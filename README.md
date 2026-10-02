@@ -1,34 +1,60 @@
-# SimSim
+# SimSim 0.1
 
-HTML・CSS・JavaScriptで動作するミッションシミュレーションの開発用リポジトリです。
+静的HTTP／HTTPSサーバで動作する、ミッションシミュレーションの空間・時間基盤。
 
-## ブラウザ環境の動作確認
+## 起動
 
-[確認用ファイル一式](environment-check/)を同じフォルダに配置し、社内ポータルのHTTP／HTTPS URLから `check.html` を開いてください。外部CDNやサーバ側処理は不要です。
+GitHubの **Code → Download ZIP** から取得し、展開したファイル一式を社内ポータルの同じ配下へ配置して `index.html` を開く。アプリ・ライブラリ・地形データはすべて同梱。サーバ側プログラム、外部CDN、外部APIへのアクセスは不要。
 
-確認する項目:
+ローカル確認用の例:
 
-- 通常のWeb Worker: 計算と配列の往復転送
-- module Worker: module形式の実行
-- WebGL 2 / WebGL 1: シェーダ、描画、画素検証
-- 静的JSONの読み込み
+```sh
+python3 -m http.server 8000
+```
 
-通常のWorker・WebGL 2・JSON読み込みの成功で、想定する静的アプリ構成の基本動作を確認できます。module Workerは構成選択の参考です。大量試行の性能やSimSim全体の動作は別途検証します。
+`http://localhost:8000/` を開く。HTMLファイルの直接起動（file:）は対象外。
 
-## 社内ポータルでのデータ形式
+GitHub Pages: `Settings → Pages → Deploy from a branch → main → /(root)`。標準URLは https://zero-error-no-warning.github.io/SimSim/ 。公開前はこのURLでは利用できない。
 
-`.json` の配信が禁止されている環境に合わせ、確認用データは `probe.jsn` としています。中身はJSON形式です。シナリオや地形メタデータも、同じ方針で `.jsn` を使用する予定です。
+## 初版でできること
 
-一括取得は GitHub の **Code → Download ZIP** を使ってください。
+- 架空の島・周辺海域・海底を3Dまたは真上から表示。
+- 地上・水上・水中・空中のユニットを追加、編集、削除。
+- 初期位置・経由点を地図クリックまたは数値入力で指定。
+- 定速移動、一度だけ・往復・周回、再生・一時停止・時刻指定・初期位置へのリセット。
+- 地形制約に反する経路は理由を表示して停止。自動経路探索は行わない。
+- 25段階のUndo/Redo。
+- `.jsn`による保存・復元。読み込みは`.json`も受け付けるが、同梱データ・出力は`.jsn`。
+- 航跡、海面、経路、高さ表示倍率の切り替え。
 
-## GitHub Pages
+## 操作
 
-`Settings → Pages → Deploy from a branch → main → /(root)` を選ぶと、このリポジトリの確認ページを公開できます。ルートの `index.html` から確認ページへ移動します。
+1. 左の一覧または地図の記号をクリックしてユニットを選択。
+2. 右の設定欄で速度・領域・有人無人・高度または深度を変更。
+3. 「地図で初期位置を指定」または「地図で経由点を追加」を押し、地図上をクリック。Escで終了。
+4. 「再生」。×60なら1秒の実時間で60秒のシミュレーション時間が進む。
+5. 保存すると初期配置・経路・設定を`.jsn`でダウンロードする。現在時刻や航跡は保存せず、読み込み時は時刻0から開始。
 
-社内運用条件の確認は、GitHub Pages上の結果だけでなく、実際の社内ポータル上でも行ってください。
+ドラッグ: 視点回転。右ドラッグ: 移動。ホイール: 拡大縮小。真上では回転せず平面表示。Space: 再生／一時停止。Ctrl/Cmd+Z: Undo、Ctrl/Cmd+Shift+Z: Redo。
 
-参考:
+設定を変更すると時刻を0へ戻す。シミュレーションの計算と描画は独立しており、高さ表示倍率は計算に影響しない。
 
-- [Web Workers — MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)
-- [WebGL — MDN](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Getting_started_with_WebGL)
-- [Three.js WebGLRenderer](https://threejs.org/docs/pages/WebGLRenderer.html)
+## 次の段階
+
+地形遮蔽・探知・通信・交戦、行動ノードエディタ、モンテカルロ・評価指標、実地形入力を追加するための初版。これらは現在未実装。同梱地形・速度は架空の動作確認用であり、能力評価の根拠ではない。
+
+形式: [docs/scenario-format.md](docs/scenario-format.md)。環境確認: [environment-check/check.html](environment-check/check.html)。
+
+## 依存ライブラリ
+
+Three.js 0.170.0を固定して同梱。OrbitControlsは同じ版を使用し、import参照のみローカル相対パスに変更。MITライセンス全文と取得元を`vendor/three/`に同梱。
+
+## 検証
+
+純粋な計算モデルの検証:
+
+```sh
+node tests/engine.test.mjs
+```
+
+ブラウザではWebGL 2・module Worker・静的ファイル取得が必要。大量ユニットや大量反復での性能は今後測定する。
