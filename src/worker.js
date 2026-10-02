@@ -1,4 +1,4 @@
-import {Simulation} from './engine.js';
+import {Simulation} from './engine.js?v=0.2';
 let simulation;
 self.onmessage = ({data}) => {
   try {

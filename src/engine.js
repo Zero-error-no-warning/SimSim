@@ -1,4 +1,4 @@
-import {expandGroups, noiseVector, random01, streamKey} from './random.js';
+import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.2';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
