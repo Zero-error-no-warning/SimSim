@@ -1,4 +1,6 @@
+import {expandGroups, noiseVector, random01, streamKey} from './random.js';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
+export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
 export const DOMAIN_NAMES = {ground:'地上', surface:'水上', subsurface:'水中', air:'空中'};
 export const clone = value => JSON.parse(JSON.stringify(value));
@@ -21,14 +23,27 @@ export function validateScenario(value) {
     if (!Array.isArray(t.elevations) || t.elevations.length !== t.columns*t.rows || t.elevations.some(h => !finite(h) || h < -12000 || h > 10000)) errors.push('terrain.elevationsは格子数と同じ長さの標高配列（-12000～10000m）にしてください。');
     if (!finite(t.seaLevel)) errors.push('terrain.seaLevelが必要です。');
   }
-  if (!Array.isArray(value.units) || value.units.length > 200) errors.push('unitsは最大200件の配列にしてください。');
+  if (value.seed !== undefined && (typeof value.seed !== 'string' || value.seed.length>100)) errors.push('seedは100文字以下の文字列にしてください。');
+  if (value.trial !== undefined && (!Number.isInteger(value.trial)||value.trial<0||value.trial>1000000000)) errors.push('trialは0～1000000000の整数にしてください。');
+  const groups=value.groups??[],groupIds=new Set();
+  if(!Array.isArray(groups)||groups.length>100) errors.push('groupsは最大100件の配列にしてください。');
+  else for(const g of groups) {
+    if(!g || typeof g!=='object'){errors.push('groupはオブジェクトにしてください。');continue;}
+    if(typeof g.id!=='string'||! /^[a-zA-Z0-9_-]{1,50}$/.test(g.id)||groupIds.has(g.id)) errors.push('group.idは重複しない英数字・_・-（50文字以下）にしてください。');
+    groupIds.add(g.id);
+    if(typeof g.name!=='string'||!g.name.trim()||g.name.length>100) errors.push('group.nameは1～100文字にしてください。');
+    if(!Number.isInteger(g.count)||g.count<1||g.count>MAX_UNITS) errors.push('group.countは1～2000にしてください。');
+    if(!['grid','random'].includes(g.placement)) errors.push('group.placementはgridまたはrandomにしてください。');
+    for(const k of ['width','height'])if(!finite(g[k])||g[k]<0||g[k]>100000)errors.push('group.'+k+'は0～100000mにしてください。');
+  }
+  if (!Array.isArray(value.units) || value.units.length > MAX_UNITS) errors.push('unitsは最大2000件の配列にしてください。');
   else {
     const ids = new Set();
-    value.units.forEach((u,index) => {
+    [...value.units,...(Array.isArray(groups)?groups.map(g=>g?.template):[])].forEach((u,index) => {
       const prefix = 'units['+index+']';
       if (!u || typeof u !== 'object') {errors.push(prefix+': オブジェクトが必要です。');return;}
-      if (typeof u.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(u.id) || ids.has(u.id)) errors.push(prefix+': idは重複しない英数字・_・-にしてください。');
-      ids.add(u.id);
+      if (typeof u.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(u.id) || (index<value.units.length && ids.has(u.id))) errors.push(prefix+': idは重複しない英数字・_・-にしてください。');
+      if(index<value.units.length)ids.add(u.id);
       if (typeof u.name !== 'string' || !u.name.trim() || u.name.length > 120) errors.push(prefix+': nameは1～120文字にしてください。');
       if (!DOMAINS.includes(u.domain)) errors.push(prefix+': domainが不正です。');
       if (!['friendly','hostile','neutral'].includes(u.faction)) errors.push(prefix+': factionが不正です。');
@@ -36,8 +51,20 @@ export function validateScenario(value) {
       if (!finite(u.speed) || u.speed < 0 || u.speed > 1500) errors.push(prefix+': speedは0～1500m/sにしてください。');
       if (!pointValid(u.initial)) errors.push(prefix+': initialのx,y,zが必要です。');
       if (!['once','loop','pingpong'].includes(u.routeMode)) errors.push(prefix+': routeModeが不正です。');
+      if(u.groupId!==undefined && index<value.units.length) errors.push(prefix+': groupIdは生成ユニット専用です。');
+      if(u.motion!==undefined) {
+        if(!u.motion||typeof u.motion!=='object'||Array.isArray(u.motion)) errors.push(prefix+': motionはオブジェクトにしてください。');
+        else for(const [key,min,max] of [['horizontal',0,10000],['vertical',0,3000],['commonHorizontal',0,10000],['scale',10,100000],['startDelay',0,86400],['speedVariation',0,1]]) {
+          if(u.motion[key]!==undefined && (!finite(u.motion[key])||u.motion[key]<min||u.motion[key]>max))errors.push(prefix+': motion.'+key+'は'+min+'～'+max+'にしてください。');
+        }
+      }
       if (!Array.isArray(u.route) || u.route.length > 500 || u.route.some(p => !pointValid(p))) errors.push(prefix+': routeは最大500件、各点にx,y,zが必要です。');
     });
+  }
+  if(Array.isArray(value.units)&&Array.isArray(groups)&&!errors.length) {
+    const total=value.units.length+groups.reduce((n,g)=>n+g.count,0);
+    if(total>MAX_UNITS)errors.push('単体と群を合わせて最大2000ユニットにしてください。');
+    else {const expanded=expandGroups(value);if(new Set(expanded.map(u=>u.id)).size!==total)errors.push('生成ユニットのidが単体ユニットと重複しています。');}
   }
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));
   return clone(value);
@@ -73,36 +100,65 @@ const distance = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const lerpPoint = (a,b,f)=>({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,z:a.z+(b.z-a.z)*f});
 export class Simulation {
   constructor(scenario) {
-    this.scenario=validateScenario(scenario);
+    const source=validateScenario(scenario);
+    this.scenario={...source,units:expandGroups(source)};
+    this.nodeCount=0;
     this.terrain=new Terrain(this.scenario.terrain);
     this.paths=new Map(this.scenario.units.map(u=>[u.id,this.compile(u)]));
   }
   compile(unit) {
     const start=this.terrain.project(unit.initial,unit.domain);
     const nodes=[{...start.point,d:0}];
-    if (start.error) return {nodes,length:0,error:start.error,errorAt:'初期位置',periodic:false};
-    const points=[unit.initial,...unit.route];
-    if (unit.route.length && unit.routeMode==='loop') points.push(unit.initial);
-    if (unit.route.length && unit.routeMode==='pingpong') points.push(...points.slice(0,-1).reverse());
+    const motion=unit.motion??{},key=streamKey(this.scenario,unit.id,'motion');
+    const delay=(motion.startDelay??0)*random01(key+'|delay');
+    const actualSpeed=unit.speed*(1+(random01(key+'|speed')*2-1)*(motion.speedVariation??0));
+    const runtime={delay,actualSpeed};
+    if (start.error) return {...runtime,nodes,length:0,error:start.error,errorAt:'初期位置',periodic:false};
+    let points=[start.point,...unit.route.map(p=>this.terrain.project(p,unit.domain).point)];
+    if(unit.route.length && unit.routeMode==='loop')points.push(start.point);
+    const nominalLength=points.slice(1).reduce((d,p,i)=>d+distance(points[i],p),0);
+    if(nominalLength>0 && ((motion.horizontal??0)+(motion.vertical??0)+(motion.commonHorizontal??0)>0)) {
+      const generated=[start.point],scale=motion.scale??2000,step=Math.min(125,this.scenario.terrain.spacing/4,scale/8);
+      let along=0;
+      for(let i=1;i<points.length;i++) {
+        const a=points[i-1],b=points[i],length=distance(a,b),count=Math.max(1,Math.ceil(length/step));
+        if(count>20000)throw new Error('航跡生成の区間が長すぎます。');
+        for(let j=1;j<=count;j++) {
+          const d=along+length*j/count,p=lerpPoint(a,b,j/count);
+          const envelope=Math.min(1,d/scale,(nominalLength-d)/scale); // Anchor departure and final destination.
+          const fade=Math.max(0,envelope);const weight=fade*fade*(3-2*fade);
+          const individual=noiseVector(key,d,scale),common=noiseVector(streamKey(this.scenario,unit.groupId??unit.id,'common-motion'),d,scale);
+          p.x+=weight*(individual[0]*(motion.horizontal??0)+common[0]*(motion.commonHorizontal??0));
+          p.y+=weight*(individual[1]*(motion.horizontal??0)+common[1]*(motion.commonHorizontal??0));
+          if(['subsurface','air'].includes(unit.domain))p.z+=weight*individual[2]*(motion.vertical??0);
+          generated.push(p);
+          if(generated.length>100000)throw new Error('航跡生成の点数が多すぎます。経路を短くするか変動間隔を大きくしてください。');
+        }
+        along+=length;
+      }
+      points=generated;
+    }
+    const actualForward=points.slice();
+    if (unit.route.length && unit.routeMode==='pingpong') points.push(...actualForward.slice(0,-1).reverse());
     const sampleDistance=Math.min(125,this.scenario.terrain.spacing/4);
     for(let index=1;index<points.length;index++) {
       const a=points[index-1],b=points[index];
       const samples=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/sampleDistance));
       // Bound work on invalid out-of-area imports without allocating enormous arrays.
-      if (samples > 20000) return {nodes,length:nodes.at(-1).d,error:'経路区間が長すぎます',errorAt:'区間 '+index,periodic:false};
+      if (samples > 20000) return {...runtime,nodes,length:nodes.at(-1).d,error:'経路区間が長すぎます',errorAt:'区間 '+index,periodic:false};
       for(let n=1;n<=samples;n++) {
         const projected=this.terrain.project(lerpPoint(a,b,n/samples),unit.domain);
-        if (projected.error) return {nodes,length:nodes.at(-1).d,error:projected.error,errorAt:'区間 '+index,periodic:false};
+        if (projected.error) return {...runtime,nodes,length:nodes.at(-1).d,error:projected.error,errorAt:'区間 '+index,periodic:false};
         const previous=nodes.at(-1),d=previous.d+distance(previous,projected.point);
-        if(d>previous.d) nodes.push({...projected.point,d});
+        if(d>previous.d) {nodes.push({...projected.point,d});if(++this.nodeCount>2000000)throw new Error('経路全体のサンプル点数が上限200万点を超えました。');}
       }
     }
-    return {nodes,length:nodes.at(-1).d,error:null,errorAt:null,periodic:unit.routeMode!=='once'};
+    return {...runtime,nodes,length:nodes.at(-1).d,error:null,errorAt:null,periodic:unit.routeMode!=='once'};
   }
   evaluate(time) {
     const t=Math.min(this.scenario.duration,Math.max(0,Number(time)||0));
     return {time:t,units:this.scenario.units.map(u=>{
-      const path=this.paths.get(u.id),travel=u.speed*t;
+      const path=this.paths.get(u.id),actualSpeed=path.actualSpeed??u.speed,delay=path.delay??0,travel=actualSpeed*Math.max(0,t-delay);
       const d=path.periodic && path.length>0 ? travel%path.length : Math.min(travel,path.length);
       let left=0,right=path.nodes.length-1;
       while(left<right) {const mid=Math.ceil((left+right)/2);if(path.nodes[mid].d<=d) left=mid;else right=mid-1;}
@@ -112,9 +168,10 @@ export class Simulation {
       let status=path.length===0?'idle':'moving';
       if(path.error && travel>=path.length) status='blocked';
       else if(!path.periodic && path.length>0 && travel>=path.length) status='arrived';
-      else if(u.speed===0) status='idle';
+      else if(actualSpeed===0) status='idle';
+      else if(t<delay)status='waiting';
       return {id:u.id,position,status,heading:Math.atan2(b.x-a.x,b.y-a.y),distance:Math.min(travel,path.periodic?travel:path.length),routeDistance:path.length,
-        error:path.error,errorAt:path.errorAt,eta:u.speed>0?path.length/u.speed:null};
+        error:path.error,errorAt:path.errorAt,actualSpeed,startDelay:delay,eta:actualSpeed>0?delay+path.length/actualSpeed:null};
     })};
   }
   routePoints(id) {return this.paths.get(id)?.nodes || [];}

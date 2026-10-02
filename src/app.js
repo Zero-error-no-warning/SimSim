@@ -1,10 +1,11 @@
 import {MapView} from './view.js';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone} from './engine.js';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js';
 
+const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
 const FACTION_NAMES={friendly:'味方',hostile:'相手側',neutral:'中立'};
 const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
-const STATUS_NAMES={idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止'};
+const STATUS_NAMES={idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false;
 const undo=[],redo=[];
 const worker=new Worker(new URL('./worker.js',import.meta.url),{type:'module',name:'SimSim simulation'});
@@ -36,15 +37,17 @@ const view=new MapView($('map'),{
 
 function notify(message,warning=false){$('notice').textContent=message;$('notice').classList.toggle('warning',warning);}
 function showError(message){$('error-text').textContent=message;if(!$('error-dialog').open)$('error-dialog').showModal();}
-function currentUnit(){return scenario?.units.find(u=>u.id===selected);}
+function currentUnit(){return model?.scenario.units.find(u=>u.id===selected);}
 function post(type='seek'){worker.postMessage({type,revision,request:++request,time,scenario:type==='scenario'?scenario:undefined});}
 function pause(){playing=false;$('play').textContent='▶ 再生';}
 function applyScenario(next,{resetHistory=false,fit=false,message='シナリオを更新しました。'}={}) {
-  scenario=validateScenario(next);model=new Simulation(scenario);pause();time=0;revision++;lastAccepted=0;
+  const checked=validateScenario(next),compiled=new Simulation(checked);
+  scenario=checked;model=compiled;pause();time=0;revision++;lastAccepted=0;
   if(resetHistory){undo.length=0;redo.length=0;dirty=false;}
-  if(!scenario.units.some(u=>u.id===selected))selected=scenario.units[0]?.id||null;
-  snapshot=model.evaluate(0);view.setScenario(scenario,selected);view.updateSnapshot(snapshot);
+  if(!model.scenario.units.some(u=>u.id===selected))selected=model.scenario.units[0]?.id||null;
+  snapshot=model.evaluate(0);view.setScenario(model.scenario,selected,model);view.updateSnapshot(snapshot);
   if(fit)view.fit();
+  $('seed').value=scenario.seed??'SimSim';$('trial').value=scenario.trial??0;
   $('title').value=scenario.title;$('duration').value=+(scenario.duration/60).toFixed(3);
   $('timeline').max=scenario.duration;$('duration-label').textContent=+(scenario.duration/60).toFixed(1)+'分';
   const t=scenario.terrain;$('terrain-info').textContent=((t.columns-1)*t.spacing/1000).toFixed(0)+' × '+((t.rows-1)*t.spacing/1000).toFixed(0)+' km · 格子 '+t.spacing+' m';
@@ -57,13 +60,24 @@ function commit(mutate,message) {
   const next=clone(scenario);mutate(next);
   try{validateScenario(next);}catch(error){showError(error.message);renderInspector();return false;}
   if(JSON.stringify(next)===JSON.stringify(scenario))return false;
-  undo.push(clone(scenario));if(undo.length>25)undo.shift();redo.length=0;dirty=true;applyScenario(next,{message:message+' 時刻を初期位置へ戻しました。'});return true;
+  const previous=clone(scenario);
+  try{applyScenario(next,{message:message+' 時刻を初期位置へ戻しました。'});}catch(error){showError(error.message);return false;}
+  undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();return true;
 }
 function updateUndo(){$('undo').disabled=!undo.length;$('redo').disabled=!redo.length;}
 function select(id){selected=id;setEditMode(null);view.setSelected(id);renderUnits();renderInspector();updateTelemetry();}
 function renderUnits() {
-  $('unit-count').textContent=scenario.units.length;$('unit-list').replaceChildren();
-  for(const unit of scenario.units) {
+  $('group-add').disabled=!currentUnit()||!!currentUnit().groupId;
+  $('unit-count').textContent=model.scenario.units.length;$('unit-list').replaceChildren();
+  const query=$('unit-search').value.toLowerCase();
+  const matches=model.scenario.units.filter(u=>(u.name+' '+u.id).toLowerCase().includes(query));
+  const visible=matches.slice(0,80);const chosen=matches.find(u=>u.id===selected);if(chosen&&!visible.includes(chosen))visible.push(chosen);
+  $('list-summary').textContent=matches.length>80?'一致 '+matches.length+'個 · 先頭80個と選択中を表示':'一致 '+matches.length+'個';
+  $('group-list').replaceChildren();
+  for(const group of scenario.groups??[]) {
+    const b=document.createElement('button');b.className='group-item';b.textContent=group.name+' · '+group.count+'個 · 編集';b.dataset.group=group.id;b.addEventListener('click',()=>openGroup(group.id));$('group-list').append(b);
+  }
+  for(const unit of visible) {
     const button=document.createElement('button');button.className='unit-item'+(unit.id===selected?' selected':'');button.dataset.id=unit.id;
     const symbol=document.createElement('span');symbol.className='unit-symbol '+unit.faction;symbol.textContent=SYMBOLS[unit.domain];
     const description=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');
@@ -74,6 +88,8 @@ function renderUnits() {
 function renderInspector() {
   const unit=currentUnit();$('properties').hidden=!unit;$('empty-selection').hidden=!!unit;$('delete').disabled=!unit;
   if(!unit)return;
+  $('definition-fields').disabled=!!unit.groupId;$('generated-note').hidden=!unit.groupId;$('edit-selected-group').hidden=!unit.groupId;$('delete').disabled=!!unit.groupId;
+  const m=unit.motion??{};for(const [id,key,factor,def] of motionFields)$(id).value=(m[key]??def)*factor;
   $('unit-name').value=unit.name;$('unit-domain').value=unit.domain;$('unit-faction').value=unit.faction;$('unit-manned').value=String(unit.manned);
   $('unit-speed').value=+(unit.speed*3.6).toFixed(2);$('unit-x').value=+(unit.initial.x/1000).toFixed(3);$('unit-y').value=+(unit.initial.y/1000).toFixed(3);
   const projected=model.terrain.project(unit.initial,unit.domain).point;
@@ -99,6 +115,7 @@ function renderInspector() {
 }
 function updateTelemetry() {
   const state=snapshot?.units.find(u=>u.id===selected);if(!state)return;
+  $('state-motion').textContent=(state.actualSpeed*3.6).toFixed(1)+' km/h / '+state.startDelay.toFixed(1)+' s';
   $('state-status').textContent=STATUS_NAMES[state.status];$('state-position').textContent=(state.position.x/1000).toFixed(2)+' / '+(state.position.y/1000).toFixed(2)+' km';
   $('state-height').textContent=state.position.z<scenario.terrain.seaLevel?'深度 '+(scenario.terrain.seaLevel-state.position.z).toFixed(0)+' m':state.position.z.toFixed(0)+' m';
   $('state-distance').textContent=(state.distance/1000).toFixed(2)+' km';$('state-route').textContent=(state.routeDistance/1000).toFixed(2)+' km';
@@ -109,13 +126,14 @@ function updateClock() {
   if(document.activeElement!==$('timeline'))$('timeline').value=snapshot?.time??time;
 }
 function setEditMode(mode) {
+  if(currentUnit()?.groupId)mode=null;
   editMode=mode;view.setEditMode(mode);$('map').classList.toggle('editing',!!mode);
   $('place').classList.toggle('active',mode==='place');$('route-edit').classList.toggle('active',mode==='route');
   $('place').textContent=mode==='place'?'指定を終了':'地図で初期位置を指定';$('route-edit').textContent=mode==='route'?'✓ 経由点の追加を終了':'＋ 地図で経由点を追加';
   $('map-instruction').textContent=mode==='place'?'初期位置にする地点をクリック · Escで終了':mode==='route'?'経由点を順にクリック · Escで終了 · 右ドラッグで移動':'クリックで選択 · ドラッグで回転 · 右ドラッグで移動 · ホイールで拡大';
 }
 function bindUnit(id,mutate,message) {
-  $(id).addEventListener('change',()=>{const input=$(id);if(!currentUnit())return;if(input.value===''||!input.checkValidity()){renderInspector();return;}commit(next=>mutate(next.units.find(u=>u.id===selected),input.value),message);});
+  $(id).addEventListener('change',()=>{const input=$(id);if(!currentUnit()||currentUnit().groupId)return;if(input.value===''||!input.checkValidity()){renderInspector();return;}commit(next=>mutate(next.units.find(u=>u.id===selected),input.value),message);});
 }
 bindUnit('unit-name',(u,value)=>u.name=value.trim(),'名称を変更しました。');
 bindUnit('unit-faction',(u,value)=>u.faction=value,'陣営を変更しました。');
@@ -129,6 +147,41 @@ bindUnit('unit-domain',(u,value)=>{
   u.domain=value;const z=value==='subsurface'?scenario.terrain.seaLevel-120:value==='air'?scenario.terrain.seaLevel+1500:scenario.terrain.seaLevel;
   u.initial.z=z;u.route.forEach(p=>p.z=z);
 },'領域を変更しました。');
+for(const [id,key,factor] of motionFields)bindUnit(id,(u,v)=>{u.motion??={};u.motion[key]=Number(v)/factor;},'航跡のばらつきを変更しました。');
+$('unit-search').addEventListener('input',renderUnits);
+for(const id of ['seed','trial'])$(id).addEventListener('change',()=>{if(!$(id).checkValidity()){applyScenario(scenario);return;}commit(next=>next[id]=id==='trial'?Number($(id).value):$(id).value,'試行設定を変更しました。');});
+$('next-trial').addEventListener('click',()=>commit(next=>next.trial=(next.trial??0)+1,'次の試行を生成しました。'));
+let editingGroup=null;
+function openGroup(id=null) {
+  pause();setEditMode(null);editingGroup=id;
+  const g=scenario.groups?.find(g=>g.id===id),u=g?.template??currentUnit();
+  if(!u){notify('ひな型にするユニットを選択してください。',true);return;}
+  const select=$('group-template');select.replaceChildren();
+  if(g){const option=new Option('保存済みのひな型: '+g.template.name,'saved');select.append(option);}
+  for(const base of scenario.units)select.append(new Option(base.name,base.id));
+  select.value=g?'saved':scenario.units.some(b=>b.id===u.id)?u.id:scenario.units[0]?.id;
+  $('group-dialog-title').textContent=g?'群を編集':'群を作る';$('group-remove').hidden=!g;
+  $('group-name').value=g?.name??u.name+'群';$('group-count').value=g?.count??100;$('group-placement').value=g?.placement??'random';
+  $('group-width').value=(g?.width??1000)/1000;$('group-height').value=(g?.height??1000)/1000;
+  const m=g?.template.motion??u.motion??{};
+  for(const [input,key,factor,def] of groupMotionFields)$(input).value=(m[key]??def)*factor;
+  $('group-dialog').showModal();
+}
+const groupMotionFields=[['group-horizontal','horizontal',1,200],['group-common','commonHorizontal',1,0],['group-vertical','vertical',1,0],['group-scale','scale',1,2000],['group-delay','startDelay',1,0],['group-speed','speedVariation',100,0]];
+$('group-add').addEventListener('click',()=>openGroup());
+$('edit-selected-group').addEventListener('click',()=>openGroup(currentUnit()?.groupId));
+$('group-cancel').addEventListener('click',()=>$('group-dialog').close());
+$('group-remove').addEventListener('click',()=>{if(commit(next=>next.groups=next.groups.filter(g=>g.id!==editingGroup),'群を削除しました。'))$('group-dialog').close();});
+$('group-form').addEventListener('submit',event=>{
+  event.preventDefault();if(!$('group-form').reportValidity())return;
+  const old=scenario.groups?.find(g=>g.id===editingGroup);
+  const source=$('group-template').value==='saved'?old?.template:scenario.units.find(u=>u.id===$('group-template').value);
+  if(!source){showError('ひな型が見つかりません。');return;}
+  const template=clone(source);template.motion={...template.motion};for(const [input,key,factor] of groupMotionFields)template.motion[key]=Number($(input).value)/factor;
+  const g={...(old??{}),id:old?.id??'group-'+Date.now().toString(36),name:$('group-name').value.trim(),count:Number($('group-count').value),placement:$('group-placement').value,width:Number($('group-width').value)*1000,height:Number($('group-height').value)*1000,template};
+  const ok=commit(next=>{next.groups??=[];const i=next.groups.findIndex(item=>item.id===g.id);if(i<0)next.groups.push(g);else next.groups[i]=g;},'群を生成しました。');
+  if(ok||JSON.stringify(old)===JSON.stringify(g))$('group-dialog').close();
+});
 $('title').addEventListener('change',()=>{if(!$('title').value.trim()){$('title').value=scenario.title;return;}commit(next=>next.title=$('title').value.trim(),'シナリオ名を変更しました。');});
 $('duration').addEventListener('change',()=>{if(!$('duration').checkValidity()||!$('duration').value){$('duration').value=scenario.duration/60;return;}commit(next=>next.duration=Number($('duration').value)*60,'終了時刻を変更しました。');});
 $('place').addEventListener('click',()=>{pause();setEditMode(editMode==='place'?null:'place');});
@@ -136,7 +189,7 @@ $('route-edit').addEventListener('click',()=>{pause();setEditMode(editMode==='ro
 $('clear-route').addEventListener('click',()=>commit(next=>next.units.find(u=>u.id===selected).route=[],'経由点を削除しました。'));
 $('delete').addEventListener('click',()=>{const name=currentUnit().name;commit(next=>next.units=next.units.filter(u=>u.id!==selected),name+'を削除しました。');setEditMode(null);});
 $('add').addEventListener('click',()=>{
-  if(scenario.units.length>=200){showError('初版の上限は200ユニットです。');return;}
+  if(model.scenario.units.length>=MAX_UNITS){showError('単体＋群の上限は2000ユニットです。');return;}
   const domain=$('template').value,terrain=model.terrain,t=scenario.terrain;
   let point=null;
   for(let y=0;y<t.rows&&!point;y++)for(let x=0;x<t.columns&&!point;x++) {
@@ -182,15 +235,16 @@ $('file').addEventListener('change',async()=>{
   }catch(error){showError(error.message);}
   finally{$('file').value='';}
 });
-async function loadDemo(initial=false) {
+async function loadDemo(initial=false,file='demo.jsn') {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const response=await fetch(new URL('../data/demo.jsn',import.meta.url),{signal:controller.signal});if(!response.ok)throw new Error('サンプル取得: HTTP '+response.status);
+    const response=await fetch(new URL('../data/'+file,import.meta.url),{signal:controller.signal});if(!response.ok)throw new Error('サンプル取得: HTTP '+response.status);
     const next=validateScenario(await response.json());
     if(!initial&&dirty&&!confirm('保存していない変更があります。サンプルへ戻しますか？'))return;
     setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:'架空地形のサンプルを読み込みました。ユニットを選び、経路を編集できます。'});$('boot').hidden=true;
   }finally{clearTimeout(timer);}
 }
+$('group-demo').addEventListener('click',()=>loadDemo(false,'group-demo.jsn').catch(error=>showError(error.message)));
 $('demo').addEventListener('click',()=>loadDemo().catch(error=>showError(error.message)));
 window.addEventListener('keydown',event=>{
   if(event.key==='Escape')setEditMode(null);
