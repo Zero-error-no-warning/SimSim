@@ -1,15 +1,15 @@
-import {hasActions} from './action-settings.js?v=0.5.0';
-import {numericScale} from './chart-scale.js?v=0.5.0';
-import {clone,validateScenario} from './engine.js?v=0.5.0';
-import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.5.0';
-import {ParameterEditor} from './parameter-ui.js?v=0.5.0';
+import {hasActions} from './action-settings.js?v=0.6.0';
+import {numericScale} from './chart-scale.js?v=0.6.0';
+import {clone,validateScenario} from './engine.js?v=0.6.0';
+import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.6.0';
+import {ParameterEditor} from './parameter-ui.js?v=0.6.0';
 const $=id=>document.getElementById(id);
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({getScenario,getSnapshot,commit,replay,seek,showError,notify}) {
     Object.assign(this,{getScenario,getSnapshot,commit,replay,seek,showError,notify});
-    this.worker=new Worker(new URL('./analysis-worker.js?v=0.5.0',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
+    this.worker=new Worker(new URL('./analysis-worker.js?v=0.6.0',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
     this.parameters=new ParameterEditor(()=>{try{this.commit(this.readConfig(),'分析の変数設定を変更しました。');}catch(error){showError(error.message);}this.renderConfig();});
     this.runId=0;this.running=false;this.rows=[];this.base=null;
     this.worker.onmessage=({data})=>{

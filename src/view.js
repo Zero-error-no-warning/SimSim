@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import {OrbitControls} from '../vendor/three/OrbitControls.js';
-import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.5.0';
+import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.6.0';
 
 const COLORS={friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'};
 const disposal = group => {
@@ -14,8 +14,8 @@ const disposal = group => {
 };
 
 export class MapView {
-  constructor(element,{onSelect,onMapClick,onHover}) {
-    this.element=element;this.onSelect=onSelect;this.onMapClick=onMapClick;this.onHover=onHover;
+  constructor(element,{onSelect,onMapClick,onHover,onEdit,onContext,onDragState}) {
+    this.element=element;this.onSelect=onSelect;this.onMapClick=onMapClick;this.onHover=onHover;this.onEdit=onEdit;this.onContext=onContext;this.onDragState=onDragState;this.authoring=true;this.handles=[];
     this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));
     this.renderer.setClearColor('#112132');
@@ -37,24 +37,81 @@ export class MapView {
     this.setControls();
     this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(element);
     this.resize();
-    const canvas=this.renderer.domElement;
-    canvas.addEventListener('pointerdown',event=>{this.down={x:event.clientX,y:event.clientY};});
-    canvas.addEventListener('pointerup',event=>{
-      if(event.button!==0 || !this.down || Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5) return;
-      this.updatePointer(event);
-      if(this.editMode) {const point=this.mapPoint();if(point)this.onMapClick(point);return;}
-      const hit=this.raycaster.intersectObjects(this.units.children)[0];
-      if(hit)this.onSelect(hit.object.userData.ids?.[hit.instanceId]??hit.object.userData.id);
-    });
-    canvas.addEventListener('pointermove',event=>{this.updatePointer(event);this.onHover(this.mapPoint());});
-    canvas.addEventListener('pointerleave',()=>this.onHover(null));
+    const canvas=this.renderer.domElement;canvas.tabIndex=0;canvas.setAttribute('aria-label','シナリオの地図・直接編集');
+    canvas.addEventListener('pointerdown',event=>this.pointerDown(event),true);
+    canvas.addEventListener('pointerup',event=>this.pointerUp(event),true);
+    canvas.addEventListener('pointercancel',()=>this.cancelDrag());
+    canvas.addEventListener('lostpointercapture',()=>this.cancelDrag());
+    canvas.addEventListener('contextmenu',event=>{event.preventDefault();if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)return;this.updatePointer(event);const handle=this.authoring?this.pickHandle(event):null,unit=this.pickUnit(event);this.onContext?.({x:event.clientX,y:event.clientY,id:unit??handle?.id,handle,point:this.pointFor(null)});});
+    canvas.addEventListener('pointermove',event=>this.pointerMove(event),true);
+    canvas.addEventListener('pointerleave',()=>{if(!this.drag)this.onHover(null);});
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();const boot=document.getElementById('boot');boot.hidden=false;boot.textContent='WebGLの描画が停止しました。ページを再読み込みしてください。シナリオは保存ボタンで取得できます。';});
   }
+  editableUnit(){const u=this.scenario?.units.find(u=>u.id===this.selected);return u?.groupId?this.scenario.groups.find(g=>g.id===u.groupId)?.template:u;}
+  screenPoint(point){const p=point.clone().project(this.camera);return {x:(p.x*.5+.5)*this.element.clientWidth,y:(-p.y*.5+.5)*this.element.clientHeight,visible:p.z>=-1&&p.z<=1};}
+  pickUnit(event) {
+    const rect=this.renderer.domElement.getBoundingClientRect();let closest=null,best=Infinity;
+    for(const [id,m] of this.markers){const p=this.screenPoint(m.position),distance=Math.hypot(p.x-(event.clientX-rect.left),p.y-(event.clientY-rect.top));const radius=id===this.selected?20:this.scenario.units.length>80?10:17;if(p.visible&&distance<radius&&(distance<best-.1||Math.abs(distance-best)<.1&&id===this.selected)){best=distance;closest=id;}}
+    return closest;
+  }
+  pickHandle(event) {
+    if(!this.showRoutes)return null;const rect=this.renderer.domElement.getBoundingClientRect();let best=null,distance=14;
+    for(const h of this.handles){if(!h.mesh.visible)continue;const p=this.screenPoint(h.mesh.position),d=Math.hypot(p.x-(event.clientX-rect.left),p.y-(event.clientY-rect.top));if(p.visible&&d<distance){distance=d;best=h;}}return best;
+  }
+  pointFor(unit,height=unit?.initial.z) {
+    if(!this.terrain)return null;
+    if(unit?.domain==='ground'){const hit=this.raycaster.intersectObject(this.terrainMesh)[0];if(hit)return {x:hit.point.x,y:-hit.point.z,z:hit.point.y/this.exaggeration};return null;}
+    const z=unit&&!['ground','surface'].includes(unit.domain)?height:this.scenario.terrain.seaLevel,plane=new THREE.Plane(new THREE.Vector3(0,1,0),-z*this.exaggeration),p=new THREE.Vector3();
+    if(!this.raycaster.ray.intersectPlane(plane,p)||!this.terrain.contains(p.x,-p.z))return null;return {x:p.x,y:-p.z,z};
+  }
+  pointerDown(event) {
+    this.renderer.domElement.focus({preventScroll:true});
+    if(this.drag){event.stopImmediatePropagation();return;}
+    this.down={x:event.clientX,y:event.clientY,pointerId:event.pointerId};if(event.button!==0||!this.authoring||this.editMode)return;
+    this.updatePointer(event);const id=this.pickUnit(event),handle=id?null:this.pickHandle(event);if(!id&&!handle)return;
+    event.stopImmediatePropagation();event.preventDefault();const selected=id??handle.id;if(selected!==this.selected)this.onSelect(selected);this.updatePointer(event);
+    const unit=this.editableUnit(),point=this.pointFor(unit,handle?.point.z??unit.initial.z);if(!point)return;
+    this.controls.enabled=false;this.drag={id:selected,index:handle?.index??-1,unit,origin:point,point,base:handle?.point??point,pointerId:event.pointerId,moved:false,valid:true};
+    this.renderer.domElement.setPointerCapture(event.pointerId);
+  }
+  pointerMove(event) {
+    this.updatePointer(event);
+    if(!this.drag){this.onHover(this.mapPoint());return;}
+    event.stopImmediatePropagation();const d=this.drag;if(event.pointerId!==d.pointerId)return;
+    if(!d.moved&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<5)return;
+    d.moved=true;const p=this.pointFor(d.unit,d.index>=0?d.base.z:d.unit.initial.z);
+    const proposed=p?{x:d.base.x+p.x-d.origin.x,y:d.base.y+p.y-d.origin.y,z:d.base.z}:null;
+    const checked=proposed?this.terrain.project(proposed,d.unit.domain):{error:'地形データの範囲外です'};d.valid=!checked.error;d.error=checked.error;d.point=checked.point??d.point;
+    this.element.classList.toggle('invalid-drop',!d.valid);this.element.classList.add('dragging');
+    if(p&&d.valid){d.delta={x:p.x-d.origin.x,y:p.y-d.origin.y};this.previewDrag(d);this.onHover(checked.point);}
+    this.onDragState?.(d.valid?'ドラッグして配置 · 放すと確定 · Escで取り消し':d.error+' · 放すと変更を取り消します',!d.valid);
+  }
+  previewDrag(d) {
+    if(d.index<0){const selected=this.scenario.units.find(u=>u.id===d.id);for(const state of this.snapshot.units){const u=this.markers.get(state.id)?.unit;if(u&&(u.id===d.id||selected.groupId&&u.groupId===selected.groupId)){const position={...state.position,x:state.position.x+d.delta.x,y:state.position.y+d.delta.y};if(u.domain==='ground')position.z=this.terrain.height(position.x,position.y)??position.z;this.markers.get(u.id).position.copy(this.world(position,30));}}
+      this.selectedMarker.position.copy(this.markers.get(d.id).position);if(this.sensorSphere){this.sensorSphere.position.copy(this.markers.get(d.id).position);this.sensorSphere.position.y+=-30+(selected.sensor.mountHeight??(selected.domain==='ground'?2:0))*this.exaggeration;}
+    }else {const h=this.handles.find(h=>h.index===d.index);if(h)h.mesh.position.copy(this.world(d.point,25));}
+    if(this.dragPreview){this.routes.remove(this.dragPreview);this.dragPreview.geometry.dispose();this.dragPreview.material.dispose();}
+    const points=[d.unit.initial,...d.unit.route].map((p,i)=>d.index<0?{...p,x:p.x+d.delta.x,y:p.y+d.delta.y}:i===d.index+1?d.point:p);
+    if(d.unit.routeMode==='loop'&&points.length>1)points.push(points[0]);
+    this.dragPreview=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points.map(p=>this.world(this.terrain.project(p,d.unit.domain).point,25))),new THREE.LineBasicMaterial({color:'#ffd18b',depthTest:false}));this.routes.add(this.dragPreview);
+  }
+  pointerUp(event) {
+    if(this.drag){event.stopImmediatePropagation();if(event.pointerId!==this.drag.pointerId)return;const d=this.drag;this.drag=null;this.controls.enabled=true;this.element.classList.remove('dragging','invalid-drop');if(this.renderer.domElement.hasPointerCapture(event.pointerId))this.renderer.domElement.releasePointerCapture(event.pointerId);
+      this.buildRoutes();this.updateSnapshot(this.snapshot);if(!d.moved&&d.index>=0)this.onEdit?.({...d,selectOnly:true});if(d.moved){if(d.valid)this.onEdit?.({id:d.id,index:d.index,point:d.point,delta:d.delta});else this.onDragState?.(d.error+' 変更を取り消しました。',true);}return;
+    }
+    if(event.button!==0||!this.down||Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)return;
+    this.updatePointer(event);if(this.editMode){const point=this.mapPoint();if(point)this.onMapClick(point);return;}const id=this.pickUnit(event);if(id)this.onSelect(id);
+  }
+  cancelDrag(){if(!this.drag)return;this.drag=null;this.controls.enabled=true;this.element.classList.remove('dragging','invalid-drop');this.buildRoutes();this.updateSnapshot(this.snapshot);this.onDragState?.('ドラッグを取り消しました。');}
+  setAuthoring(enabled){this.cancelDrag();this.element.classList.toggle('authoring',enabled);if(this.authoring===enabled)return;this.authoring=enabled;this.buildRoutes();}
+  clearCirclePreview(){if(this.circleLine){this.scene.remove(this.circleLine);this.circleLine.geometry.dispose();this.circleLine.material.dispose();this.circleLine=null;}}
+  circlePreview(center,edge,unit){this.clearCirclePreview();if(!unit)return;const radius=Math.hypot(edge.x-center.x,edge.y-center.y),points=Array.from({length:65},(_,i)=>({x:center.x+radius*Math.cos(i/64*Math.PI*2),y:center.y+radius*Math.sin(i/64*Math.PI*2),z:unit.initial.z})),invalid=points.some(p=>this.terrain.project(p,unit.domain).error);this.circleLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points.map(p=>this.world(this.terrain.project(p,unit.domain).point,25))),new THREE.LineBasicMaterial({color:invalid?'#f99587':'#ffc476',depthTest:false}));this.scene.add(this.circleLine);}
+  focusSelected(){const p=this.markers.get(this.selected)?.position;if(!p)return;const delta=p.clone().sub(this.controls.target);this.camera.position.add(delta);this.controls.target.copy(p);this.controls.update();}
   setControls() {
     this.controls?.dispose();
     this.controls=new OrbitControls(this.camera,this.renderer.domElement);
     this.controls.enableDamping=true;this.controls.dampingFactor=.12;
-    this.controls.maxPolarAngle=Math.PI*.48;this.controls.minDistance=1500;this.controls.maxDistance=180000;
+    this.controls.maxPolarAngle=this.mode==='top'?Math.PI:Math.PI*.48;this.controls.minDistance=1500;this.controls.maxDistance=180000;
     this.controls.minZoom=.35;this.controls.maxZoom=30;
     this.controls.screenSpacePanning=this.mode==='top';
     this.controls.enableRotate=this.mode==='3d'&&!this.editMode;
@@ -82,7 +139,7 @@ export class MapView {
   setMode(mode) {
     this.mode=mode;this.camera=mode==='top'?this.cameraTop:this.camera3d;this.setControls();this.fit();
   }
-  setEditMode(mode) {this.editMode=mode;const target=this.controls.target.clone();this.setControls();this.controls.target.copy(target);this.controls.update();}
+  setEditMode(mode) {if(this.editMode===mode)return;this.editMode=mode;const target=this.controls.target.clone();this.setControls();this.controls.target.copy(target);this.controls.update();}
   setSelected(id) {
     this.selected=id;this.buildLabels();this.selectedMarker.userData.id=id;
     this.selectedMarker.material.map?.dispose();
@@ -170,28 +227,26 @@ export class MapView {
     const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
   }
   buildRoutes() {
-    disposal(this.routes);
+    disposal(this.routes);this.handles=[];this.dragPreview=null;
     for(const unit of this.scenario.units) {
       if(this.scenario.units.length>80 && unit.id!==this.selected)continue;
       const points=this.model.routePoints(unit.id).map(p=>this.world(p,unit.domain==='ground'?22:0));
       if(points.length>1){const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:unit.id===this.selected?'#ffd18b':COLORS[unit.faction],transparent:true,opacity:unit.id===this.selected?.95:.42}));this.routes.add(line);}
       if(unit.id===this.selected) {
-        const raw=[unit.initial,...unit.route];
+        const definition=this.editableUnit(),raw=[definition.initial,...definition.route];
         // Planned path remains distinct from the generated route.
-        const planned=raw.map(p=>this.world(this.terrain.project(p,unit.domain).point,unit.domain==='ground'?24:0));
+        const planned=raw.map(p=>this.world(this.terrain.project(p,definition.domain).point,unit.domain==='ground'?24:0));
         if(planned.length>1){const geom=new THREE.BufferGeometry().setFromPoints(planned);const line=new THREE.Line(geom,new THREE.LineDashedMaterial({color:'#e8f1fb',dashSize:250,gapSize:160,transparent:true,opacity:.65}));line.computeLineDistances();this.routes.add(line);}
-        for(let index=0;index<raw.length;index++) {
-          const projection=this.terrain.project(raw[index],unit.domain);
-          const point=this.world(projection.point,unit.domain==='ground'?25:0);
-          const geometry=new THREE.SphereGeometry(70,10,8),material=new THREE.MeshBasicMaterial({color:projection.error?'#f58d7c':index===0?'#f9dc9a':'#ffc476',depthTest:false});
-          const mesh=new THREE.Mesh(geometry,material);mesh.position.copy(point);this.routes.add(mesh);
+        if(this.authoring)for(let index=0;index<raw.length;index++) {
+          const projection=this.terrain.project(raw[index],definition.domain),canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;const c=canvas.getContext('2d');c.fillStyle=projection.error?'#f58d7c':'#ffc476';c.strokeStyle='#122335';c.lineWidth=6;c.beginPath();c.arc(32,32,25,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#122335';c.font='bold 30px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(String(index),32,33);
+          const texture=new THREE.CanvasTexture(canvas),mesh=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false}));mesh.position.copy(this.world(projection.point,25));mesh.renderOrder=12;this.routes.add(mesh);this.handles.push({mesh,id:unit.id,index:index-1,point:{...raw[index]}});
         }
       }
     }
     this.routes.visible=this.showRoutes;
   }
   updateSnapshot(snapshot) {
-    if(!snapshot)return;this.snapshot=snapshot;this.groupAnchors=new Map();
+    if(!snapshot||this.drag)return;this.snapshot=snapshot;this.groupAnchors=new Map();
     for(const state of snapshot.units){const unit=this.markers.get(state.id)?.unit;if(unit?.groupId){const info=this.groupAnchors.get(unit.groupId)??{x:0,y:0,z:0,count:0,blocked:0};info.x+=state.position.x;info.y+=state.position.y;info.z+=state.position.z;info.count++;if(state.status==='blocked')info.blocked++;this.groupAnchors.set(unit.groupId,info);}}
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {
@@ -226,23 +281,12 @@ export class MapView {
   resetTrails(){this.trailPoints.clear();this.latestTime=0;disposal(this.trails);}
   updatePointer(event) {
     const rect=this.renderer.domElement.getBoundingClientRect();
-    this.pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);this.raycaster.setFromCamera(this.pointer,this.camera);
+    this.camera.updateMatrixWorld();this.pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);this.raycaster.setFromCamera(this.pointer,this.camera);
   }
-  mapPoint() {
-    if(!this.terrain)return null;
-    const unit=this.scenario.units.find(u=>u.id===this.selected);
-    if(this.editMode && unit?.domain==='ground') {
-      const hit=this.raycaster.intersectObject(this.terrainMesh)[0];
-      if(hit)return {x:hit.point.x,y:-hit.point.z,z:hit.point.y/this.exaggeration};
-    }
-    const height=this.editMode&&unit&&!['ground','surface'].includes(unit.domain)?unit.initial.z:this.scenario.terrain.seaLevel;
-    const plane=new THREE.Plane(new THREE.Vector3(0,1,0),-height*this.exaggeration),result=new THREE.Vector3();
-    if(!this.raycaster.ray.intersectPlane(plane,result)||!this.terrain.contains(result.x,-result.z))return null;
-    return {x:result.x,y:-result.z,z:height};
-  }
+  mapPoint() {return this.pointFor(this.editMode==='create'?this.placementUnit:this.editMode?this.editableUnit():null);}
   setLabelsVisible(visible){this.labelLayer.hidden=!visible;}
   render() {
-    this.controls.update();
+    if(!this.drag)this.controls.update();
     const width=this.element.clientWidth,height=this.element.clientHeight,occupied=[];
     this.camera.updateMatrixWorld();
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
@@ -269,6 +313,7 @@ export class MapView {
       label.className='map-label group-label '+group.template.faction;
       label.style.transform='translate('+Math.round((p.x*.5+.5)*width+20)+'px,'+Math.round((-p.y*.5+.5)*height+22)+'px)';
     }
+    for(const h of this.handles){const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;h.mesh.visible=h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24;const pixels=22,scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*h.mesh.position.distanceTo(this.camera.position)/height*pixels;h.mesh.scale.setScalar(Math.max(10,scale));}
     for(const mesh of this.batches??[]){mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();}
     const center=this.controls.target.clone(),north=center.clone().add(new THREE.Vector3(0,0,-1000));center.project(this.camera);north.project(this.camera);
     document.getElementById('north-arrow').style.transform='rotate('+Math.atan2((north.x-center.x)*width,(north.y-center.y)*height)+'rad)';

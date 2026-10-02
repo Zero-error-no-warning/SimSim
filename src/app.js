@@ -1,17 +1,18 @@
-import {ActionUI} from './action-ui.js?v=0.5.0';
-import {restoreAnalysisResult} from './detection.js?v=0.5.0';
-import {AnalysisUI} from './analysis-ui.js?v=0.5.0';
-import {MapView} from './view.js?v=0.5.0';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.5.0';
+import {definition,moveDefinition,editWaypoint,removeDefinition,translate,circleRoute} from './editor.js?v=0.6.0';
+import {ActionUI} from './action-ui.js?v=0.6.0';
+import {restoreAnalysisResult} from './detection.js?v=0.6.0';
+import {AnalysisUI} from './analysis-ui.js?v=0.6.0';
+import {MapView} from './view.js?v=0.6.0';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.6.0';
 
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
 const FACTION_NAMES={friendly:'味方',hostile:'相手側',neutral:'中立'};
 const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
 const STATUS_NAMES={standby:'指令待ち',preparing:'出発準備中',idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
-let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false;
+let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=0.5.0',import.meta.url),{type:'module',name:'SimSim simulation'});
+const worker=new Worker(new URL('./worker.js?v=0.6.0',import.meta.url),{type:'module',name:'SimSim simulation'});
 let workerReady=false;
 const timeout=setTimeout(()=>{if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');},12000);
 worker.onerror=event=>{event.preventDefault();pause();clearTimeout(timeout);showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));};
@@ -25,24 +26,17 @@ worker.onmessage=({data})=>{
 };
 const view=new MapView($('map'),{
   onSelect:id=>select(id),
-  onMapClick:point=>{
-    const unit=currentUnit();if(!unit)return;
-    const checked=model.terrain.project(point,unit.domain);
-    if(checked.error){notify(checked.error,true);return;}
-    commit(next=>{
-      const target=next.units.find(u=>u.id===selected);
-      if(editMode==='place')target.initial={...checked.point};
-      else target.route.push({...checked.point});
-    },editMode==='place'?'初期位置を変更しました。':'経由点を追加しました。');
-    if(editMode==='place')setEditMode(null);
-  },
-  onHover:point=>{$('cursor-position').textContent=point?'x '+(point.x/1000).toFixed(2)+' km / y '+(point.y/1000).toFixed(2)+' km':'';}
+  onMapClick:point=>handleMapClick(point),
+  onEdit:edit=>{if(edit.selectOnly){selectedWaypoint={id:edit.id,index:edit.index};notify('経由点 '+(edit.index+1)+' を選択しました。Deleteで削除、ドラッグで移動できます。');return;}selectedWaypoint=edit.index>=0?{id:edit.id,index:edit.index}:null;commit(next=>edit.index<0?moveDefinition(next,edit.id,edit.delta):editWaypoint(next,edit.id,edit.index,edit.point),edit.index<0?(currentUnit()?.groupId?'群全体を移動しました。':'ユニットと経路を移動しました。'):'経由点を移動しました。');},
+  onContext:context=>openMapMenu(context),onDragState:(message,warning)=>notify(message,warning),
+  onHover:point=>{if(point){$('cursor-position').textContent='x '+(point.x/1000).toFixed(2)+' km / y '+(point.y/1000).toFixed(2)+' km';}else $('cursor-position').textContent='';if(pendingPlacement||editMode?.startsWith('circle')){$('placement-hint').hidden=!point;if(point){const p=view.screenPoint(view.world(point));$('placement-hint').style.transform='translate('+p.x+'px,'+p.y+'px)';$('placement-hint').textContent=pendingPlacement?'＋ '+pendingPlacement.name:circleCenter?'半径 '+(Math.hypot(point.x-circleCenter.x,point.y-circleCenter.y)/1000).toFixed(2)+' km':'周回の中心';if(circleCenter)view.circlePreview(circleCenter,point,definition(scenario,selected)?.unit);}}}
+
 });
 
 const actionUI=new ActionUI({getScenario:()=>scenario,getSelected:()=>currentUnit(),commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,pause});
 const analysisUI=new AnalysisUI({getScenario:()=>scenario,getSnapshot:()=>snapshot,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,notify,
   replay:(next,message)=>{const previous=clone(scenario);applyScenario(next,{keepResults:true,message});undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();const target=model.scenario.units.find(u=>u.faction===next.mission?.targetFaction);if(target)select(target.id);},
-  seek:(value,id)=>{pause();if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();}
+  seek:(value,id)=>{setAuthoring(false);setEditMode(null);if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();}
 });
 function renderSensor(prefix,unit) {
   const s=unit.sensor??{enabled:false,range:1000,probabilityPerMinute:.5,domains:['ground','surface','subsurface','air'],terrainLOS:false,mountHeight:2};
@@ -62,12 +56,13 @@ function currentUnit(){return model?.scenario.units.find(u=>u.id===selected);}
 function post(type='seek'){worker.postMessage({type,revision,request:++request,time,scenario:type==='scenario'?scenario:undefined});}
 function pause(){playing=false;$('play').textContent='▶ 再生';}
 function applyScenario(next,{resetHistory=false,fit=false,message='シナリオを更新しました。',keepResults=false}={}) {
-  const checked=validateScenario(next),compiled=new Simulation(checked);
+  closeMapMenu();const checked=validateScenario(next),compiled=new Simulation(checked);
   scenario=checked;model=compiled;pause();time=0;revision++;lastAccepted=0;
   if(resetHistory){undo.length=0;redo.length=0;dirty=false;}
+  if(selectedWaypoint&&(!definition(scenario,selectedWaypoint.id)||selectedWaypoint.index>=definition(scenario,selectedWaypoint.id).unit.route.length))selectedWaypoint=null;
   if(!model.scenario.units.some(u=>u.id===selected))selected=model.scenario.units[0]?.id||null;
   snapshot=model.evaluate(0);view.setScenario(model.scenario,selected,model);view.updateSnapshot(snapshot);
-  if(fit)view.fit();
+  if(fit){view.fit();authoring=true;view.setAuthoring(true);$('authoring-toggle').classList.add('active');$('authoring-toggle').setAttribute('aria-pressed','true');}
   $('seed').value=scenario.seed??'SimSim';$('trial').value=scenario.trial??0;
   $('title').value=scenario.title;$('duration').value=+(scenario.duration/60).toFixed(3);
   $('timeline').max=scenario.duration;$('duration-label').textContent=+(scenario.duration/60).toFixed(1)+'分';
@@ -78,15 +73,15 @@ function applyScenario(next,{resetHistory=false,fit=false,message='シナリオ�
   notify(message+(invalid?' 地形制約のある経路: '+invalid+'件。対象ユニットの設定欄で理由を確認できます。':''),invalid>0);
 }
 function commit(mutate,message) {
-  const next=clone(scenario);mutate(next);
-  try{validateScenario(next);}catch(error){showError(error.message);renderInspector();return false;}
+  const next=clone(scenario);
+  try{mutate(next);validateScenario(next);}catch(error){showError(error.message);renderInspector();return false;}
   if(JSON.stringify(next)===JSON.stringify(scenario))return false;
   const previous=clone(scenario);
   try{applyScenario(next,{message:message+' 時刻を初期位置へ戻しました。'});}catch(error){showError(error.message);return false;}
   undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();return true;
 }
 function updateUndo(){$('undo').disabled=!undo.length;$('redo').disabled=!redo.length;}
-function select(id){selected=id;setEditMode(null);view.setSelected(id);renderUnits({selectionOnly:true});renderInspector();updateTelemetry();}
+function select(id){selectedWaypoint=null;selected=id;setEditMode(null);view.setSelected(id);renderUnits({selectionOnly:true});renderInspector();updateTelemetry();}
 function renderUnits({selectionOnly=false}={}) {
   $('group-add').disabled=!currentUnit()||!!currentUnit().groupId;
   const list=$('unit-list'),scrollTop=list.scrollTop,scrollLeft=list.scrollLeft;
@@ -138,7 +133,7 @@ function renderInspector() {
     const row=document.createElement('div');row.className='waypoint';
     const number=document.createElement('span');number.textContent=index+1;row.append(number);
     for(const key of ['x','y']) {
-      const input=document.createElement('input');input.type='number';input.step='.1';input.value=+(point[key]/1000).toFixed(3);input.setAttribute('aria-label','経由点'+(index+1)+' '+key+' km');
+      const input=document.createElement('input');input.type='number';input.step='any';input.value=+(point[key]/1000).toFixed(3);input.setAttribute('aria-label','経由点'+(index+1)+' '+key+' km');
       input.addEventListener('change',()=>{if(input.value===''||!input.checkValidity()){renderInspector();return;}commit(next=>next.units.find(u=>u.id===selected).route[index][key]=Number(input.value)*1000,'経由点を変更しました。');});row.append(input);
     }
     const remove=document.createElement('button');remove.textContent='×';remove.title='経由点'+(index+1)+'を削除';remove.addEventListener('click',()=>commit(next=>next.units.find(u=>u.id===selected).route.splice(index,1),'経由点を削除しました。'));row.append(remove);$('route-table').append(row);
@@ -159,11 +154,11 @@ function updateClock() {
   if(document.activeElement!==$('timeline'))$('timeline').value=snapshot?.time??time;
 }
 function setEditMode(mode) {
-  if(currentUnit()?.groupId)mode=null;
+  if(mode)setAuthoring(true);else {pendingPlacement=null;view.placementUnit=null;circleCenter=null;$('placement-hint').hidden=true;view.clearCirclePreview();}
   editMode=mode;view.setEditMode(mode);$('map').classList.toggle('editing',!!mode);
   $('place').classList.toggle('active',mode==='place');$('route-edit').classList.toggle('active',mode==='route');
-  $('place').textContent=mode==='place'?'指定を終了':'地図で初期位置を指定';$('route-edit').textContent=mode==='route'?'✓ 経由点の追加を終了':'＋ 地図で経由点を追加';
-  $('map-instruction').textContent=mode==='place'?'初期位置にする地点をクリック · Escで終了':mode==='route'?'経由点を順にクリック · Escで終了 · 右ドラッグで移動':'クリックで選択 · ドラッグで回転 · 右ドラッグで移動 · ホイールで拡大';
+  $('place').textContent=mode==='place'?'指定を終了':currentUnit()?.routeMode==='loop'?'地図で基準点を指定':'地図で初期位置を指定';$('route-edit').textContent=mode==='route'?'✓ 経由点の追加を終了':'＋ 地図で経由点を追加';
+  $('map-instruction').textContent=mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · 背景ドラッグで視点操作':'クリックで選択 · 背景ドラッグで視点操作 · ホイールで拡大';
 }
 function bindUnit(id,mutate,message) {
   $(id).addEventListener('change',()=>{const input=$(id);if(!currentUnit()||currentUnit().groupId)return;if(input.value===''||!input.checkValidity()){renderInspector();return;}commit(next=>mutate(next.units.find(u=>u.id===selected),input.value),message);});
@@ -208,7 +203,7 @@ $('group-template').addEventListener('change',()=>{const source=$('group-templat
 $('group-add').addEventListener('click',()=>openGroup());
 $('edit-selected-group').addEventListener('click',()=>openGroup(currentUnit()?.groupId));
 $('group-cancel').addEventListener('click',()=>$('group-dialog').close());
-$('group-remove').addEventListener('click',()=>{if(commit(next=>next.groups=next.groups.filter(g=>g.id!==editingGroup),'群を削除しました。'))$('group-dialog').close();});
+$('group-remove').addEventListener('click',()=>{if(commit(next=>removeDefinition(next,editingGroup+'__1'),'群を削除し、関連する分析変数・成功条件を整理しました。'))$('group-dialog').close();});
 $('group-form').addEventListener('submit',event=>{
   event.preventDefault();if(!$('group-form').reportValidity())return;
   const old=scenario.groups?.find(g=>g.id===editingGroup);
@@ -224,30 +219,60 @@ $('duration').addEventListener('change',()=>{if(!$('duration').checkValidity()||
 $('place').addEventListener('click',()=>{pause();setEditMode(editMode==='place'?null:'place');});
 $('route-edit').addEventListener('click',()=>{pause();setEditMode(editMode==='route'?null:'route');});
 $('clear-route').addEventListener('click',()=>commit(next=>next.units.find(u=>u.id===selected).route=[],'経由点を削除しました。'));
-$('delete').addEventListener('click',()=>{const name=currentUnit().name;commit(next=>next.units=next.units.filter(u=>u.id!==selected),name+'を削除しました。');setEditMode(null);});
-$('add').addEventListener('click',()=>{
-  if(model.scenario.units.length>=MAX_UNITS){showError('単体＋群の上限は2000ユニットです。');return;}
-  const domain=$('template').value,terrain=model.terrain,t=scenario.terrain;
-  let point=null;
-  for(let y=0;y<t.rows&&!point;y++)for(let x=0;x<t.columns&&!point;x++) {
-    const candidate={x:t.origin.x+x*t.spacing,y:t.origin.y+y*t.spacing,z:domain==='air'?t.seaLevel+1500:domain==='subsurface'?t.seaLevel-120:t.seaLevel};
-    if(!terrain.project(candidate,domain).error)point=terrain.project(candidate,domain).point;
+function newId(prefix){return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);}
+function setAuthoring(enabled){
+  pause();if(enabled&&time!==0){time=0;snapshot=model.evaluate(0);view.updateSnapshot(snapshot);post();}
+  authoring=enabled;view.setAuthoring(enabled);$('authoring-toggle').classList.toggle('active',enabled);$('authoring-toggle').setAttribute('aria-pressed',String(enabled));
+}
+function beginPlacement(domain,copy=null){
+  setEditMode('create');pendingPlacement=copy?{...clone(copy),name:(copy.name+' コピー').slice(0,100)}:{domain,name:DOMAIN_NAMES[domain]+'ユニット'};view.placementUnit=copy?(copy.template??copy):{domain,initial:{z:domain==='air'?scenario.terrain.seaLevel+1500:domain==='subsurface'?scenario.terrain.seaLevel-120:scenario.terrain.seaLevel}};notify('地図上の置きたい場所をクリックしてください。Escで取り消せます。');
+}
+function handleMapClick(point){
+  if(editMode==='create'&&pendingPlacement){
+    const p=pendingPlacement,isGroup=!!p.template,unit=isGroup?p.template:p;
+    const z=unit.initial?.z??(unit.domain==='air'?Math.max(model.terrain.height(point.x,point.y),scenario.terrain.seaLevel)+1500:unit.domain==='subsurface'?scenario.terrain.seaLevel-120:scenario.terrain.seaLevel),checked=model.terrain.project({...point,z},unit.domain);
+    if(checked.error){notify(checked.error+' 別の地点を選んでください。',true);return;}
+    const id=newId(isGroup?'group':'unit');
+    const ok=commit(next=>{if(isGroup){const g=clone(p);g.id=id;translate(g.template,{x:checked.point.x-g.template.initial.x,y:checked.point.y-g.template.initial.y});next.groups??=[];next.groups.push(g);}
+      else {const u=unit.initial?clone(unit):{name:pendingPlacement.name,domain:unit.domain,kind:'generic',faction:'friendly',manned:unit.domain!=='subsurface',speed:({ground:20,surface:40,subsurface:14,air:180}[unit.domain])/3.6,initial:checked.point,route:[],routeMode:'once'};if(unit.initial)translate(u,{x:checked.point.x-u.initial.x,y:checked.point.y-u.initial.y});if(u.behavior)for(const r of u.behavior.rules)if(r.receiverId===u.id)r.receiverId=id;u.id=id;next.units.push(u);}
+    },isGroup?'群を複製しました。':'ユニットを配置しました。');
+    if(ok){setEditMode(null);select(isGroup?id+'__1':id);}return;
   }
-  if(!point){showError('この地形に、指定領域のユニットを置ける地点が見つかりません。');return;}
-  const id='unit-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);selected=id;
-  commit(next=>next.units.push({id,name:DOMAIN_NAMES[domain]+'ユニット '+(next.units.length+1),domain,kind:'generic',faction:'friendly',manned:domain!=='subsurface',speed:({ground:20,surface:40,subsurface:14,air:180}[domain])/3.6,initial:point,route:[],routeMode:'once',components:[]}), 'ユニットを追加しました。');
-  setEditMode('place');
-});
+  const d=definition(scenario,selected);if(!d)return;
+  if(editMode==='circle-center'){circleCenter={...point};editMode='circle-radius';view.setEditMode(editMode);$('map-instruction').textContent='半径と開始位置をクリック · Escで取り消し';return;}
+  if(editMode==='circle-radius'){try{const path=circleRoute(circleCenter,{...point,z:d.unit.initial.z});for(const p of [path.initial,...path.route]){const checked=model.terrain.project(p,d.unit.domain);if(checked.error)throw new Error(checked.error+' 周回の半径・中心を調整してください。');}if(commit(next=>{const u=definition(next,selected).unit;Object.assign(u,path);u.motion={...u.motion,loopStart:0};},'周回経路を作成しました。'))setEditMode(null);}catch(error){notify(error.message,true);}return;}
+  const checked=model.terrain.project(point,d.unit.domain);if(checked.error){notify(checked.error,true);return;}
+  commit(next=>{const u=definition(next,selected).unit;if(editMode==='place')u.initial={...checked.point};else u.route.push({...checked.point});},editMode==='place'?'初期位置を変更しました。':'経由点を追加しました。');if(editMode==='place')setEditMode(null);
+}
+function deleteSelected(){if(selectedWaypoint){const w=selectedWaypoint;if(commit(next=>definition(next,w.id).unit.route.splice(w.index,1),'経由点を削除しました。'))selectedWaypoint=null;return;}if(!currentUnit())return;commit(next=>removeDefinition(next,selected),'対象を削除しました。関連する送信ルール・分析変数・成功条件も整理しました。');setEditMode(null);}
+$('delete').addEventListener('click',deleteSelected);
+$('add').addEventListener('click',()=>beginPlacement($('template').value));
+$('authoring-toggle').onclick=()=>{setEditMode(null);setAuthoring(!authoring);setEditMode(null);};
+$('focus-selection').onclick=()=>view.focusSelected();
+$('map-operations').onclick=()=>{const rect=$('map-operations').getBoundingClientRect();openMapMenu({x:rect.left,y:rect.bottom,id:selected});};
+$('new-scenario').onclick=()=>{setEditMode(null);commit(next=>{next.title='新しいシナリオ';next.units=[];next.groups=[];delete next.mission;next.analysis={factors:[],uncertainties:[],trials:100,step:10,requiredRate:.9};},'現在の地形を使って新しいシナリオを作成しました。右クリックからユニットを配置できます。');setAuthoring(true);};
+function closeMapMenu(){$('map-menu').hidden=true;$('map-menu').replaceChildren();}
+function openMapMenu(context){
+  closeMapMenu();if(context.id&&model.scenario.units.some(u=>u.id===context.id))select(context.id);const menu=$('map-menu'),d=definition(scenario,selected);
+  const add=(label,action)=>{const button=document.createElement('button');button.textContent=label;button.type='button';button.setAttribute('role','menuitem');button.onclick=()=>{closeMapMenu();action();};menu.append(button);};
+  if(context.handle?.index>=0){selectedWaypoint={id:context.handle.id,index:context.handle.index};add('経由点 '+(context.handle.index+1)+' を削除',deleteSelected);}
+  if(d&&context.id){add(d.group?'群の設定を開く':'ユニットの設定を開く',()=>d.group?openGroup(d.group.id):$('properties').scrollIntoView({block:'start',behavior:'smooth'}));add('行動・通信を編集',()=>actionUI.open());add('経由点を追加',()=>setEditMode('route'));add('中心と半径で周回経路を作成',()=>setEditMode('circle-center'));add(d.group?'群を複製して配置':'複製して配置',()=>beginPlacement(d.unit.domain,d.group??d.unit));if(!d.group)add('このユニットから群を作る',()=>openGroup());add('選択対象を画面中央へ',()=>view.focusSelected());add(d.group?'群を削除':'ユニットを削除',()=>{selectedWaypoint=null;deleteSelected();});}
+  for(const domain of ['ground','surface','subsurface','air'])add(SYMBOLS[domain]+' '+DOMAIN_NAMES[domain]+'ユニットを配置',()=>beginPlacement(domain));
+  add(authoring?'再生・視点操作へ':'配置編集へ',()=>{setEditMode(null);setAuthoring(!authoring);setEditMode(null);});menu.hidden=false;
+  const width=menu.offsetWidth,height=menu.offsetHeight;menu.style.left=Math.max(4,Math.min(innerWidth-width-4,context.x))+'px';menu.style.top=Math.max(4,Math.min(innerHeight-height-4,context.y))+'px';menu.querySelector('button')?.focus();
+}
+$('map-menu').addEventListener('keydown',event=>{const buttons=[...$('map-menu').querySelectorAll('button')],index=buttons.indexOf(document.activeElement);if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();}});
+document.addEventListener('pointerdown',event=>{if(!$('map-menu').contains(event.target)&&event.target!==$('map-operations'))closeMapMenu();});
 $('undo').addEventListener('click',()=>{if(!undo.length)return;redo.push(clone(scenario));const next=undo.pop();dirty=true;applyScenario(next,{message:'直前の編集を元に戻しました。'});});
 $('redo').addEventListener('click',()=>{if(!redo.length)return;undo.push(clone(scenario));const next=redo.pop();dirty=true;applyScenario(next,{message:'編集をやり直しました。'});});
 $('play').addEventListener('click',()=>{
   if(playing){pause();notify('一時停止しました。');return;}
   if(time>=scenario.duration){time=0;view.resetTrails();}
-  setEditMode(null);playing=true;$('play').textContent='Ⅱ 一時停止';notify('移動を実行しています。成功条件がある場合は探知結果も表示します。');
+  setEditMode(null);setAuthoring(false);setEditMode(null);playing=true;$('play').textContent='Ⅱ 一時停止';notify('移動を実行しています。成功条件がある場合は探知結果も表示します。');
 });
 $('reset').addEventListener('click',()=>{pause();time=0;view.resetTrails();post();notify('時刻を初期位置へ戻しました。');});
-$('step').addEventListener('click',()=>{pause();time=Math.min(scenario.duration,time+60);post();});
-$('timeline').addEventListener('input',()=>{pause();time=Number($('timeline').value);post();});
+$('step').addEventListener('click',()=>{setAuthoring(false);setEditMode(null);time=Math.min(scenario.duration,time+60);post();});
+$('timeline').addEventListener('input',()=>{setAuthoring(false);setEditMode(null);time=Number($('timeline').value);post();});
 for(const [id,mode] of [['view3d','3d'],['viewtop','top']])$(id).addEventListener('click',()=>{view.setMode(mode);$('view3d').classList.toggle('active',mode==='3d');$('viewtop').classList.toggle('active',mode==='top');updateCaption();});
 $('fit').addEventListener('click',()=>view.fit());
 function updateCaption(){$('view-caption').textContent=(view.mode==='top'?'真上':'3D')+' / 高さ表示 ×'+view.exaggeration;}
@@ -291,10 +316,14 @@ document.addEventListener('load-detection-demo',()=>loadDemo(false,'detection-de
 $('group-demo').addEventListener('click',()=>loadDemo(false,'group-demo.jsn').catch(error=>showError(error.message)));
 $('demo').addEventListener('click',()=>loadDemo().catch(error=>showError(error.message)));
 window.addEventListener('keydown',event=>{
-  if(event.key==='Escape')setEditMode(null);
+  if(event.key==='Escape'){view.cancelDrag();closeMapMenu();setEditMode(null);selectedWaypoint=null;}
   if(document.querySelector('dialog[open]'))return;
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();$(event.shiftKey?'redo':'undo').click();}
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){event.preventDefault();$('redo').click();}
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){event.preventDefault();const d=definition(scenario,selected);if(d)beginPlacement(d.unit.domain,d.group??d.unit);}
+  if(event.key.toLowerCase()==='f'){event.preventDefault();view.focusSelected();}
+  if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();deleteSelected();}
   if(event.code==='Space'){event.preventDefault();$('play').click();}
 });
 window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});

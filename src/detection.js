@@ -1,12 +1,12 @@
-import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.5.0';
-import {Simulation,clone,validateScenario} from './engine.js?v=0.5.0';
-import {random01,streamKey} from './random.js?v=0.5.0';
-import {missionErrors,analysisErrors} from './detection-settings.js?v=0.5.0';
+import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.6.0';
+import {Simulation,clone,validateScenario} from './engine.js?v=0.6.0';
+import {random01,streamKey} from './random.js?v=0.6.0';
+import {missionErrors,analysisErrors} from './detection-settings.js?v=0.6.0';
 
-export {terrainVisible,contactProbability} from './contact.js?v=0.5.0';
-import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.5.0';
-import {actionSteps} from './actions.js?v=0.5.0';
-import {hasActions} from './action-settings.js?v=0.5.0';
+export {terrainVisible,contactProbability} from './contact.js?v=0.6.0';
+import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.6.0';
+import {actionSteps} from './actions.js?v=0.6.0';
+import {hasActions} from './action-settings.js?v=0.6.0';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={}) {
   if(hasActions(model.scenario))return yield* actionSteps(model,mission,step,options);
   const errors=missionErrors(mission,model.scenario.duration);

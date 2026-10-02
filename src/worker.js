@@ -1,6 +1,6 @@
-import {hasActions} from './action-settings.js?v=0.5.0';
-import {Simulation} from './engine.js?v=0.5.0';
-import {detectionSteps,snapshotMission} from './detection.js?v=0.5.0';
+import {hasActions} from './action-settings.js?v=0.6.0';
+import {Simulation} from './engine.js?v=0.6.0';
+import {detectionSteps,snapshotMission} from './detection.js?v=0.6.0';
 let simulation,result,missionError,latest,generation=0;
 function send() {
   if(!simulation||!latest)return;

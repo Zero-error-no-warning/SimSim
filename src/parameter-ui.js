@@ -1,4 +1,4 @@
-import {availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis} from './parameters.js?v=0.5.0';
+import {availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis} from './parameters.js?v=0.6.0';
 const $=id=>document.getElementById(id),copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){this.onChange=()=>{if(!this.rendering)onChange();};for(const kind of ['factors','uncertainties'])$('add-'+kind).onclick=()=>this.add(kind);}

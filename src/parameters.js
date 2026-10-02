@@ -1,4 +1,4 @@
-import {random01,streamKey} from './random.js?v=0.5.0';
+import {random01,streamKey} from './random.js?v=0.6.0';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={})=>({key,label,family,path,min,max,scale:1,scope:'entity',...options});

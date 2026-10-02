@@ -1,6 +1,6 @@
-import {trialScenario} from './parameters.js?v=0.5.0';
-import {Simulation} from './engine.js?v=0.5.0';
-import {prepareAnalysis,detectionSteps,summarizeRow} from './detection.js?v=0.5.0';
+import {trialScenario} from './parameters.js?v=0.6.0';
+import {Simulation} from './engine.js?v=0.6.0';
+import {prepareAnalysis,detectionSteps,summarizeRow} from './detection.js?v=0.6.0';
 let generation=0;
 self.onmessage=({data})=>{
   if(data.type==='cancel'){generation++;return;}
