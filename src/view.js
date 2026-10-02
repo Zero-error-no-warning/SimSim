@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import {OrbitControls} from '../vendor/three/OrbitControls.js';
-import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.3';
+import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.4';
 
 const COLORS={friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'};
 const disposal = group => {
@@ -235,6 +235,7 @@ export class MapView {
     if(!this.raycaster.ray.intersectPlane(plane,result)||!this.terrain.contains(result.x,-result.z))return null;
     return {x:result.x,y:-result.z,z:height};
   }
+  setLabelsVisible(visible){this.labelLayer.hidden=!visible;}
   render() {
     this.controls.update();
     const width=this.element.clientWidth,height=this.element.clientHeight,occupied=[];
@@ -249,7 +250,7 @@ export class MapView {
       this.markerScale.setScalar(Math.max(10,scale));
       this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);marker.mesh.setMatrixAt(marker.index,this.matrix);
       if(id===this.selected)this.selectedMarker.scale.copy(this.markerScale);
-      if(visible&&label){let x=(projected.x*.5+.5)*width+18,y=(-projected.y*.5+.5)*height-16;const w=label.offsetWidth,h=label.offsetHeight;
+      if(visible&&label&&!this.labelLayer.hidden){let x=(projected.x*.5+.5)*width+18,y=(-projected.y*.5+.5)*height-16;const w=label.offsetWidth,h=label.offsetHeight;
         x=Math.max(4,Math.min(width-w-4,x));y=Math.max(52,Math.min(height-h-35,y));
         for(let attempt=0;attempt<8;attempt++){if(!occupied.some(rect=>x<rect.x+rect.w&&x+w>rect.x&&y<rect.y+rect.h&&y+h>rect.y))break;y+=h+3;if(y>height-h-36)y=Math.max(52,y-(attempt+2)*(h+3));}
         label.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)';occupied.push({x,y,w,h});

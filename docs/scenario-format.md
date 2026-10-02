@@ -144,3 +144,5 @@ Worker内で任意の時刻を評価できるため、同じ設定・時刻な�
 ## 探知・ミッション・分析
 
 [sensor、detectability、mission、analysisの完全な定義](detection-model.md)。分析結果のファイルも`.jsn`で、`type: "SimSim-analysis"`によりシナリオと区別する。アプリの「開く」でどちらも読み込める。
+
+0.4の追加比較変数・試行ごとの分布・結果version 2は[統一パラメータモデル](parameter-model.md)を参照。シナリオ自身のversionは1のまま。

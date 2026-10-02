@@ -1,7 +1,7 @@
-import {restoreAnalysisResult} from './detection.js?v=0.3';
-import {AnalysisUI} from './analysis-ui.js?v=0.3';
-import {MapView} from './view.js?v=0.3';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.3';
+import {restoreAnalysisResult} from './detection.js?v=0.4';
+import {AnalysisUI} from './analysis-ui.js?v=0.4';
+import {MapView} from './view.js?v=0.4';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.4';
 
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
@@ -10,7 +10,7 @@ const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
 const STATUS_NAMES={idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=0.3',import.meta.url),{type:'module',name:'SimSim simulation'});
+const worker=new Worker(new URL('./worker.js?v=0.4',import.meta.url),{type:'module',name:'SimSim simulation'});
 let workerReady=false;
 const timeout=setTimeout(()=>{if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');},12000);
 worker.onerror=event=>{event.preventDefault();pause();clearTimeout(timeout);showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));};
@@ -244,6 +244,7 @@ for(const [id,mode] of [['view3d','3d'],['viewtop','top']])$(id).addEventListene
 $('fit').addEventListener('click',()=>view.fit());
 function updateCaption(){$('view-caption').textContent=(view.mode==='top'?'真上':'3D')+' / 高さ表示 ×'+view.exaggeration;}
 $('exaggeration').addEventListener('change',()=>{view.setExaggeration(Number($('exaggeration').value));updateCaption();});
+$('show-labels').addEventListener('change',()=>view.setLabelsVisible($('show-labels').checked));
 $('show-sensor').addEventListener('change',()=>{view.showSensor=$('show-sensor').checked;view.sensorRangeGroup.visible=view.showSensor;});
 $('show-water').addEventListener('change',()=>{view.showWater=$('show-water').checked;view.water.visible=view.showWater;});
 $('show-routes').addEventListener('change',()=>{view.showRoutes=$('show-routes').checked;view.routes.visible=view.showRoutes;});
@@ -275,6 +276,7 @@ async function loadDemo(initial=false,file='demo.jsn') {
     setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:'架空地形のサンプルを読み込みました。ユニットを選び、経路を編集できます。'});$('boot').hidden=true;
   }finally{clearTimeout(timer);}
 }
+document.addEventListener('load-parameter-demo',()=>loadDemo(false,'parameter-demo.jsn').catch(error=>showError(error.message)));
 document.addEventListener('load-detection-demo',()=>loadDemo(false,'detection-demo.jsn').catch(error=>showError(error.message)));
 $('group-demo').addEventListener('click',()=>loadDemo(false,'group-demo.jsn').catch(error=>showError(error.message)));
 $('demo').addEventListener('click',()=>loadDemo().catch(error=>showError(error.message)));

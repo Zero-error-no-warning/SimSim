@@ -1,6 +1,7 @@
-import {Simulation,clone,validateScenario} from './engine.js?v=0.3';
+import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.4';
+import {Simulation,clone,validateScenario} from './engine.js?v=0.4';
 import {random01,streamKey} from './random.js?v=0.2';
-import {missionErrors,analysisErrors} from './detection-settings.js?v=0.3';
+import {missionErrors,analysisErrors} from './detection-settings.js?v=0.4';
 
 export function terrainVisible(terrain,a,b) {
   const distance=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(distance/Math.min(125,terrain.data.spacing/4)));
@@ -94,8 +95,9 @@ export function prepareAnalysis(source) {
   if(errors.length)throw new Error(errors.join('\n'));
   const a=scenario.analysis,startTrial=scenario.trial??0;
   if(startTrial+a.trials-1>1000000000)throw new Error('試行番号の上限を超えます。');
-  for(const count of a.counts)validateScenario(scenarioForCount(scenario,a.groupId,count,startTrial));
-  return {scenario,analysis:a,startTrial};
+  const conditions=analysisConditions(scenario);
+  for(const c of conditions){for(const b of [...c.settings,...(a.uncertainties??[])])readParameter(scenario,b);validateScenario(trialScenario(scenario,c,startTrial,{maximum:true}).scenario);}
+  return {scenario,analysis:a,startTrial,conditions};
 }
 export function summarizeRow(count,trials) {
   const successes=trials.filter(t=>t.success).length,times=trials.filter(t=>t.success).map(t=>t.successTime).sort((a,b)=>a-b),n=times.length;
@@ -104,22 +106,26 @@ export function summarizeRow(count,trials) {
 }
 
 export function restoreAnalysisResult(payload) {
-  if(!payload||payload.type!=='SimSim-analysis'||payload.version!==1||payload.model!=='range-hazard-v1')throw new Error('この分析結果の形式・モデル版は読み込めません。');
-  const {scenario,analysis,startTrial}=prepareAnalysis(payload.source),counts=new Set(),rows=[];
-  if(!Array.isArray(payload.rows)||payload.rows.length>analysis.counts.length)throw new Error('分析結果の条件数が不正です。');
+  if(!payload||payload.type!=='SimSim-analysis'||![1,2].includes(payload.version)||payload.model!=='range-hazard-v1')throw new Error('この分析結果の形式・モデル版は読み込めません。');
+  const {scenario,analysis,startTrial,conditions}=prepareAnalysis(payload.source),counts=new Set(),rows=[];
+  if(payload.version===1&&(analysis.factors?.length||analysis.uncertainties?.length))throw new Error('旧版の結果は個数比較のみ対応します。');
+  if(!Array.isArray(payload.rows)||payload.rows.length>conditions.length)throw new Error('分析結果の条件数が不正です。');
   for(const row of payload.rows) {
-    if(!row||!analysis.counts.includes(row.count)||counts.has(row.count)||!Array.isArray(row.trials)||!row.trials.length||row.trials.length>analysis.trials)throw new Error('分析結果の個数・試行数が不正です。');
-    counts.add(row.count);const ids=new Set(),trials=[];
+    const condition=payload.version===1?conditions.find(c=>c.count===row?.count):conditions.find(c=>c.id===row?.condition?.id);
+    if(!row||!condition||counts.has(condition.id)||!Array.isArray(row.trials)||!row.trials.length||row.trials.length>analysis.trials)throw new Error('分析結果の個数・試行数が不正です。');
+    counts.add(condition.id);const ids=new Set(),trials=[];
     for(const t of row.trials) {
       if(!t||!Number.isInteger(t.trial)||t.trial<startTrial||t.trial>=startTrial+analysis.trials||ids.has(t.trial)||typeof t.success!=='boolean')throw new Error('分析結果の試行番号・成否が不正です。');
       ids.add(t.trial);
       for(const [key,min,max] of [['targetCount',1,2000],['detectedCount',0,2000],['invalidUnits',0,2000],['constrainedPaths',0,2000]])if(!Number.isInteger(t[key])||t[key]<min||t[key]>max)throw new Error('分析結果の'+key+'が不正です。');
       if(t.detectedCount>t.targetCount||t.success!==(scenario.mission.join==='any'?t.detectedCount>0:t.detectedCount===t.targetCount))throw new Error('分析結果の探知数と成否が一致していません。');
-      if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>0&&t.successTime<=scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
-      trials.push({trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths});
+      const generated=trialScenario(scenario,condition,t.trial);
+      if(payload.version===2&&(!Array.isArray(t.sampled)||t.sampled.length!==generated.sampled.length||new Set(t.sampled.map(b=>bindingKey(b??{}))).size!==t.sampled.length||generated.sampled.some(b=>!t.sampled.some(v=>v&&bindingKey(v)===bindingKey(b)&&v.value===b.value))))throw new Error('分析結果の抽出値がシード・分布と一致しません。');
+      if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>0&&t.successTime<=generated.scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
+      trials.push({trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled});
     }
-    trials.sort((a,b)=>a.trial-b.trial);rows.push(summarizeRow(row.count,trials));
+    trials.sort((a,b)=>a.trial-b.trial);rows.push({...summarizeRow(condition.count,trials),condition});
   }
-  rows.sort((a,b)=>a.count-b.count);
-  return {source:scenario,rows,completed:rows.reduce((n,r)=>n+r.total,0),planned:analysis.counts.length*analysis.trials,elapsedMs:Number.isFinite(payload.elapsedMs)&&payload.elapsedMs>=0?payload.elapsedMs:0};
+  rows.sort((a,b)=>a.condition.index-b.condition.index);
+  return {source:scenario,rows,completed:rows.reduce((n,r)=>n+r.total,0),planned:conditions.length*analysis.trials,elapsedMs:Number.isFinite(payload.elapsedMs)&&payload.elapsedMs>=0?payload.elapsedMs:0};
 }
