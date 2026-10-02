@@ -1,5 +1,5 @@
-import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.4.1';
-import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.2';
+import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.4.2';
+import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.4.2';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -34,6 +34,7 @@ export function validateScenario(value) {
     groupIds.add(g.id);
     if(typeof g.name!=='string'||!g.name.trim()||g.name.length>100) errors.push('group.nameは1～100文字にしてください。');
     if(!Number.isInteger(g.count)||g.count<1||g.count>MAX_UNITS) errors.push('group.countは1～2000にしてください。');
+    if(g.loopStartMode!==undefined&&!['template','even','random'].includes(g.loopStartMode))errors.push('group.loopStartModeはtemplate、even、randomにしてください。');
     if(!['grid','random'].includes(g.placement)) errors.push('group.placementはgridまたはrandomにしてください。');
     for(const k of ['width','height'])if(!finite(g[k])||g[k]<0||g[k]>100000)errors.push('group.'+k+'は0～100000mにしてください。');
   }
@@ -56,7 +57,7 @@ export function validateScenario(value) {
       if(u.groupId!==undefined && index<value.units.length) errors.push(prefix+': groupIdは生成ユニット専用です。');
       if(u.motion!==undefined) {
         if(!u.motion||typeof u.motion!=='object'||Array.isArray(u.motion)) errors.push(prefix+': motionはオブジェクトにしてください。');
-        else for(const [key,min,max] of [['horizontal',0,10000],['vertical',0,3000],['commonHorizontal',0,10000],['scale',10,100000],['startDelay',0,86400],['speedVariation',0,1]]) {
+        else for(const [key,min,max] of [['horizontal',0,10000],['vertical',0,3000],['commonHorizontal',0,10000],['scale',10,100000],['startDelay',0,86400],['speedVariation',0,1],['loopStart',0,1]]) {
           if(u.motion[key]!==undefined && (!finite(u.motion[key])||u.motion[key]<min||u.motion[key]>max))errors.push(prefix+': motion.'+key+'は'+min+'～'+max+'にしてください。');
         }
       }
@@ -101,6 +102,14 @@ export class Terrain {
 
 const distance = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const lerpPoint = (a,b,f)=>({x:a.x+(b.x-a.x)*f,y:a.y+(b.y-a.y)*f,z:a.z+(b.z-a.z)*f});
+// Rotate a sampled closed path without changing the reference geometry or its direction.
+function rotateLoop(points,fraction) {
+  const distances=[0];for(let i=1;i<points.length;i++)distances.push(distances.at(-1)+distance(points[i-1],points[i]));
+  const length=distances.at(-1);if(length===0)return points;
+  const offset=length*fraction,index=distances.findIndex((d,i)=>i>0&&d>offset),i=index<0?points.length-1:index;
+  const start=lerpPoint(points[i-1],points[i],(offset-distances[i-1])/(distances[i]-distances[i-1]));
+  return [start,...points.slice(i,-1),...points.slice(0,i),{...start}];
+}
 export class Simulation {
   constructor(scenario) {
     const source=validateScenario(scenario);
@@ -111,12 +120,12 @@ export class Simulation {
   }
   compile(unit) {
     const start=this.terrain.project(unit.initial,unit.domain);
-    const nodes=[{...start.point,d:0}];
+    let nodes=[{...start.point,d:0}];
     const motion=unit.motion??{},key=streamKey(this.scenario,unit.id,'motion');
     const delay=(motion.startDelay??0)*random01(key+'|delay');
     const actualSpeed=unit.speed*(1+(random01(key+'|speed')*2-1)*(motion.speedVariation??0));
-    const runtime={delay,actualSpeed};
-    if (start.error) return {...runtime,nodes,length:0,error:start.error,errorAt:'初期位置',periodic:false};
+    const runtime={delay,actualSpeed},phase=unit.routeMode==='loop'?(motion.loopStart??0)%1:0,phased=phase>0&&unit.route.length>0;
+    if (start.error&&!phased) return {...runtime,nodes,length:0,error:start.error,errorAt:'初期位置',periodic:false};
     let points=[start.point,...unit.route.map(p=>this.terrain.project(p,unit.domain).point)];
     if(unit.route.length && unit.routeMode==='loop')points.push(start.point);
     const nominalLength=points.slice(1).reduce((d,p,i)=>d+distance(points[i],p),0);
@@ -140,6 +149,23 @@ export class Simulation {
         along+=length;
       }
       points=generated;
+    }
+    if(phased) {
+      // Sample/project the whole reference loop before choosing a departure point.
+      // Retain invalid sections: after rotation the usual constraint check stops at the
+      // first obstacle reached from this departure, rather than at the reference anchor.
+      const sampled=[points[0]],spacing=Math.min(125,this.scenario.terrain.spacing/4);
+      for(let i=1;i<points.length;i++) {
+        const a=points[i-1],b=points[i],count=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/spacing));
+        if(count>20000)return {...runtime,nodes,length:0,error:'経路区間が長すぎます',errorAt:'初期位置',periodic:false};
+        for(let j=1;j<=count;j++) {
+          sampled.push(this.terrain.project(lerpPoint(a,b,j/count),unit.domain).point);
+          if(sampled.length>2000001)throw new Error('経路全体のサンプル点数が上限200万点を超えました。');
+        }
+      }
+      points=rotateLoop(sampled,phase);
+      const departure=this.terrain.project(points[0],unit.domain);nodes=[{...departure.point,d:0}];
+      if(departure.error)return {...runtime,nodes,length:0,error:departure.error,errorAt:'初期位置',periodic:false};
     }
     const actualForward=points.slice();
     if (unit.route.length && unit.routeMode==='pingpong') points.push(...actualForward.slice(0,-1).reverse());

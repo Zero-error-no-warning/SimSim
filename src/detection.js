@@ -1,7 +1,7 @@
-import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.4.1';
-import {Simulation,clone,validateScenario} from './engine.js?v=0.4.1';
-import {random01,streamKey} from './random.js?v=0.2';
-import {missionErrors,analysisErrors} from './detection-settings.js?v=0.4.1';
+import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.4.2';
+import {Simulation,clone,validateScenario} from './engine.js?v=0.4.2';
+import {random01,streamKey} from './random.js?v=0.4.2';
+import {missionErrors,analysisErrors} from './detection-settings.js?v=0.4.2';
 
 export function terrainVisible(terrain,a,b) {
   const distance=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(distance/Math.min(125,terrain.data.spacing/4)));

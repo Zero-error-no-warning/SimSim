@@ -1,14 +1,14 @@
-import {numericScale} from './chart-scale.js?v=0.4.1';
-import {clone,validateScenario} from './engine.js?v=0.4.1';
-import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.4.1';
-import {ParameterEditor} from './parameter-ui.js?v=0.4.1';
+import {numericScale} from './chart-scale.js?v=0.4.2';
+import {clone,validateScenario} from './engine.js?v=0.4.2';
+import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.4.2';
+import {ParameterEditor} from './parameter-ui.js?v=0.4.2';
 const $=id=>document.getElementById(id);
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({getScenario,getSnapshot,commit,replay,seek,showError,notify}) {
     Object.assign(this,{getScenario,getSnapshot,commit,replay,seek,showError,notify});
-    this.worker=new Worker(new URL('./analysis-worker.js?v=0.4.1',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
+    this.worker=new Worker(new URL('./analysis-worker.js?v=0.4.2',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
     this.parameters=new ParameterEditor(()=>{try{this.commit(this.readConfig(),'分析の変数設定を変更しました。');}catch(error){showError(error.message);}this.renderConfig();});
     this.runId=0;this.running=false;this.rows=[];this.base=null;
     this.worker.onmessage=({data})=>{
@@ -22,6 +22,7 @@ export class AnalysisUI {
     this.worker.onerror=event=>{event.preventDefault();this.stop();showError('分析Workerの起動・実行に失敗しました。'+(event.message??''));};
     $('analysis-open').onclick=()=>{$('analysis-dialog').showModal();};
     $('analysis-close').onclick=()=>$('analysis-dialog').close();
+    $('island-demo').onclick=()=>document.dispatchEvent(new Event('load-island-demo'));
     $('parameter-demo').onclick=()=>document.dispatchEvent(new Event('load-parameter-demo'));
     $('detection-demo').onclick=()=>document.dispatchEvent(new Event('load-detection-demo'));
     for(const id of ['mission-enabled','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{

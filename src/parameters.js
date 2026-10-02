@@ -1,4 +1,4 @@
-import {random01,streamKey} from './random.js?v=0.2';
+import {random01,streamKey} from './random.js?v=0.4.2';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={})=>({key,label,family,path,min,max,scale:1,scope:'entity',...options});
@@ -11,6 +11,7 @@ export const PARAMETERS=[
   define('state.position.y','配置・経路の中心 y','State','initial.y',-1000000,1000000,{unit:'km',scale:1000,translate:'y'}),
   define('state.position.z','高度・深度 z','State','initial.z',-20000,100000,{unit:'m',translate:'z',vertical:true}),
   define('extent.sense.mountHeight','センサー取付高','Extent','sensor.mountHeight',0,1000,{unit:'m',sensor:true,default:0}),
+  define('state.route.phase','周回の出発点','State','motion.loopStart',0,1,{unit:'%',scale:.01,default:0,loopOnly:true}),
   define('motion.horizontal','個体の水平ずれ上限','Motion','motion.horizontal',0,10000,{unit:'m',default:0}),
   define('motion.commonHorizontal','群共通の水平ずれ上限','Motion','motion.commonHorizontal',0,10000,{unit:'m',default:0}),
   define('motion.vertical','上下ずれ上限','Motion','motion.vertical',0,3000,{unit:'m',default:0,vertical:true}),
@@ -37,6 +38,7 @@ function resolve(s,target,p) {
   const object=kind==='unit'?s.units?.find(u=>u.id===id):kind==='group'?s.groups?.find(g=>g.id===id):null;
   if(!object||p.scope==='scenario'||(p.scope==='group'&&kind!=='group'))throw new Error('変数の対象が見つかりません: '+target);
   const entity=kind==='group'&&p.scope==='entity'?object.template:object;
+  if(p.loopOnly&&entity.routeMode!=='loop')throw new Error('周回の出発点は周回経路の対象に指定してください。');
   if(p.sensor&&!entity.sensor)throw new Error('探知変数の対象にセンサーがありません。');
   return entity;
 }
@@ -49,7 +51,7 @@ export function writeParameter(s,b,value) {
 }
 export function availableBindings(s) {
   const out=[];
-  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
+  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.loopOnly&&entity.routeMode!=='loop'||p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
   for(const u of s.units??[])add('unit:'+u.id,u.name,u,'unit');
   for(const g of s.groups??[])add('group:'+g.id,g.name,g.template,'group');
   if(s.mission)for(const p of PARAMETERS.filter(p=>p.scope==='scenario'))out.push({target:'scenario',targetLabel:'シナリオ・ミッション',parameter:p.key,label:p.label+' ('+p.unit+')'});

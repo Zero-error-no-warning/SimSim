@@ -22,7 +22,9 @@ export function expandGroups(scenario) {
       const fy=group.placement==='random'?random01(key+'|y'):(Math.floor(index/columns)+.5)/rows;
       const dx=(fx-.5)*group.width,dy=(fy-.5)*group.height;
       const translate=p=>({...p,x:p.x+dx,y:p.y+dy});
-      units.push({...group.template,id,name:(group.name+' '+(index+1)).slice(0,120),groupId:group.id,initial:translate(group.template.initial),route:group.template.route.map(translate)});
+      const mode=group.loopStartMode??'template';
+      const motion=group.template.routeMode==='loop'&&mode!=='template'?{...group.template.motion,loopStart:((group.template.motion?.loopStart??0)+(mode==='even'?index/group.count:random01(streamKey(scenario,id,'loop-start-placement-v1'))))%1}:group.template.motion;
+      units.push({...group.template,...(motion?{motion}:{}),id,name:(group.name+' '+(index+1)).slice(0,120),groupId:group.id,initial:translate(group.template.initial),route:group.template.route.map(translate)});
     }
   }
   return units;
