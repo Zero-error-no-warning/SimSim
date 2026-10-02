@@ -1,4 +1,4 @@
-import {variableErrors} from './parameters.js?v=0.4.2';
+import {variableErrors} from './parameters.js?v=0.5.0';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
@@ -20,7 +20,8 @@ export function missionErrors(m,duration) {
   if(m===undefined)return [];
   const errors=[];
   if(!m||typeof m!=='object'||Array.isArray(m))return ['missionはオブジェクトにしてください。'];
-  if(m.type!=='detect')errors.push('mission.typeはdetectにしてください。');
+  if(!['detect','arrive'].includes(m.type))errors.push('mission.typeはdetectまたはarriveにしてください。');
+  if(m.type==='arrive'&&(!Array.isArray(m.responderIds)||!m.responderIds.length||m.responderIds.length>2000||m.responderIds.some(id=>typeof id!=='string')||new Set(m.responderIds).size!==m.responderIds.length))errors.push('mission.responderIdsに到着を評価する単体ユニットIDを指定してください。');
   if(!FACTIONS.includes(m.observerFaction)||!FACTIONS.includes(m.targetFaction)||m.observerFaction===m.targetFaction)errors.push('観測側と対象側には異なる陣営を指定してください。');
   if(!['any','all'].includes(m.join))errors.push('mission.joinはanyまたはallにしてください。');
   if(!finite(m.deadline)||m.deadline<=0||m.deadline>duration)errors.push('mission.deadlineは0より大きく終了時刻以下にしてください。');

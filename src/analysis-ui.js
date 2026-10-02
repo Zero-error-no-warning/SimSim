@@ -1,14 +1,15 @@
-import {numericScale} from './chart-scale.js?v=0.4.2';
-import {clone,validateScenario} from './engine.js?v=0.4.2';
-import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.4.2';
-import {ParameterEditor} from './parameter-ui.js?v=0.4.2';
+import {hasActions} from './action-settings.js?v=0.5.0';
+import {numericScale} from './chart-scale.js?v=0.5.0';
+import {clone,validateScenario} from './engine.js?v=0.5.0';
+import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.5.0';
+import {ParameterEditor} from './parameter-ui.js?v=0.5.0';
 const $=id=>document.getElementById(id);
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({getScenario,getSnapshot,commit,replay,seek,showError,notify}) {
     Object.assign(this,{getScenario,getSnapshot,commit,replay,seek,showError,notify});
-    this.worker=new Worker(new URL('./analysis-worker.js?v=0.4.2',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
+    this.worker=new Worker(new URL('./analysis-worker.js?v=0.5.0',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
     this.parameters=new ParameterEditor(()=>{try{this.commit(this.readConfig(),'分析の変数設定を変更しました。');}catch(error){showError(error.message);}this.renderConfig();});
     this.runId=0;this.running=false;this.rows=[];this.base=null;
     this.worker.onmessage=({data})=>{
@@ -22,10 +23,11 @@ export class AnalysisUI {
     this.worker.onerror=event=>{event.preventDefault();this.stop();showError('分析Workerの起動・実行に失敗しました。'+(event.message??''));};
     $('analysis-open').onclick=()=>{$('analysis-dialog').showModal();};
     $('analysis-close').onclick=()=>$('analysis-dialog').close();
+    $('response-demo').onclick=()=>document.dispatchEvent(new Event('load-response-demo'));
     $('island-demo').onclick=()=>document.dispatchEvent(new Event('load-island-demo'));
     $('parameter-demo').onclick=()=>document.dispatchEvent(new Event('load-parameter-demo'));
     $('detection-demo').onclick=()=>document.dispatchEvent(new Event('load-detection-demo'));
-    for(const id of ['mission-enabled','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
+    for(const id of ['mission-enabled','mission-type','mission-responders','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
       if(id==='mission-observer'&&$('mission-observer').value===$('mission-target').value)$('mission-target').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-observer').value);
       if(id==='mission-target'&&$('mission-observer').value===$('mission-target').value)$('mission-observer').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-target').value);
       try{const next=this.readConfig(id);this.commit(next,'成功条件・分析設定を変更しました。');}catch(error){showError(error.message);this.renderConfig();}
@@ -49,13 +51,15 @@ export class AnalysisUI {
   }
   renderConfig() {
     const s=this.getScenario(),m=s.mission??{observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:s.duration},a=normalizedAnalysis(s.analysis??{factors:[],trials:100,step:10,requiredRate:.95});
-    $('mission-enabled').checked=!!s.mission;$('mission-observer').value=m.observerFaction;$('mission-target').value=m.targetFaction;$('mission-join').value=m.join;$('mission-deadline').value=+(m.deadline/60).toFixed(3);$('mission-deadline').dataset.display=$('mission-deadline').value;$('mission-deadline').dataset.seconds=m.deadline;$('mission-deadline').title=m.deadline+'秒';$('mission-deadline').max=s.duration/60;
+    $('mission-enabled').checked=!!s.mission;$('mission-type').value=m.type??'detect';$('responder-field').hidden=m.type!=='arrive';
+    const responders=$('mission-responders');responders.replaceChildren();const chosen=m.responderIds??[s.units.find(u=>u.behavior?.hold&&u.faction===m.observerFaction)?.id??s.units.find(u=>u.faction===m.observerFaction)?.id];for(const u of s.units){const option=new Option(u.name,u.id);option.selected=chosen.includes(u.id);responders.append(option);}
+    $('mission-join').options[0].textContent=m.type==='arrive'?'対応ユニットのうち一つが到着':'対象のうち一つを探知';$('mission-join').options[1].textContent=m.type==='arrive'?'対応ユニットすべてが到着':'対象すべてを探知';$('mission-observer').value=m.observerFaction;$('mission-target').value=m.targetFaction;$('mission-join').value=m.join;$('mission-deadline').value=+(m.deadline/60).toFixed(3);$('mission-deadline').dataset.display=$('mission-deadline').value;$('mission-deadline').dataset.seconds=m.deadline;$('mission-deadline').title=m.deadline+'秒';$('mission-deadline').max=s.duration/60;
     $('mission-target-note').textContent=m.targetIds?'対象ID指定: '+m.targetIds.join(', ')+'（対象陣営の変更で解除）':'対象側の陣営に属する全ユニットを評価します。';
     $('analysis-trials').value=a.trials;$('analysis-step').value=a.step;$('analysis-required').value=a.requiredRate*100;this.parameters.render({...s,analysis:a});const conditions=analysisConditions({...s,analysis:a});$('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
   }
   readConfig(changedId='') {
     const next=clone(this.getScenario());
-    if($('mission-enabled').checked){next.mission={...next.mission,type:'detect',observerFaction:$('mission-observer').value,targetFaction:$('mission-target').value,join:$('mission-join').value,deadline:$('mission-deadline').value===$('mission-deadline').dataset.display?Number($('mission-deadline').dataset.seconds):Math.round(Number($('mission-deadline').value)*60*1e6)/1e6};if(changedId==='mission-target')delete next.mission.targetIds;}
+    if($('mission-enabled').checked){next.mission={...next.mission,type:$('mission-type').value,observerFaction:$('mission-observer').value,targetFaction:$('mission-target').value,join:$('mission-join').value,deadline:$('mission-deadline').value===$('mission-deadline').dataset.display?Number($('mission-deadline').dataset.seconds):Math.round(Number($('mission-deadline').value)*60*1e6)/1e6};if(next.mission.type==='arrive')next.mission.responderIds=[...$('mission-responders').selectedOptions].map(o=>o.value);else delete next.mission.responderIds;if(changedId==='mission-target')delete next.mission.targetIds;}
     else delete next.mission;
     next.analysis={...next.analysis,...this.parameters.read(),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100};
     delete next.analysis.groupId;delete next.analysis.counts;
@@ -76,7 +80,7 @@ export class AnalysisUI {
     $('analysis-rows').replaceChildren();
     for(const row of this.rows) {
       const tr=document.createElement('tr');if((row.condition?.id??row.count)===this.highlightCount)tr.className='selected-result';
-      for(const value of [row.condition?.label??row.count,row.successes+' / '+row.total,percent(row.rate),percent(row.rate===null?null:1-row.rate),percent(row.low)+'–'+percent(row.high),minutes(row.median),row.invalidTrials]){const td=document.createElement('td');td.textContent=value;tr.append(td);}
+      for(const value of [row.condition?.label??row.count,row.successes+' / '+row.total,row.trials.filter(t=>t.detectedCount>0).length+' / '+row.total,percent(row.rate),percent(row.rate===null?null:1-row.rate),percent(row.low)+'–'+percent(row.high),minutes(row.median),row.invalidTrials]){const td=document.createElement('td');td.textContent=value;tr.append(td);}
       const td=document.createElement('td'),input=document.createElement('input'),button=document.createElement('button');input.type='number';input.step='1';input.min=row.trials[0]?.trial??0;input.max=row.trials.at(-1)?.trial??0;input.value=(row.trials.find(t=>!t.success)??row.trials[0])?.trial??0;input.setAttribute('aria-label','条件 '+(row.condition?.index??row.count)+' の試行番号');input.disabled=this.running;button.textContent='再現';button.disabled=this.running;
       button.onclick=()=>{const trial=row.trials.find(t=>t.trial===Number(input.value));if(!trial){this.showError('完了済みの試行番号を指定してください。');return;}const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.base,condition,trial.trial);this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');this.seek(trial.successTime??next.mission.deadline);$('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');this.highlightCount=condition.id;this.renderResults();$('analysis-dialog').close();};
       td.append(input,button);tr.append(td);$('analysis-rows').append(tr);
@@ -118,18 +122,23 @@ export class AnalysisUI {
   }
   onSnapshot() {
     const mission=this.getSnapshot()?.mission,el=$('mission-status');
-    if(!mission){el.className='';el.textContent=this.getSnapshot()?.missionError?'評価できません: '+this.getSnapshot().missionError:this.getScenario()?.mission?'探知を計算中…':'成功条件は未設定';}
-    else {el.className=mission.status;el.textContent=({pending:'評価中',success:'成功条件成立',failure:'期限までに未成立'})[mission.status]+' · 探知 '+mission.detectedCount+' / '+mission.targetCount+' · 期限 '+minutes(mission.deadline);}
+    if(!mission){el.className='';el.textContent=this.getSnapshot()?.missionError?'評価できません: '+this.getSnapshot().missionError:this.getSnapshot()?.actionsPending?'探知・行動を計算中…':this.getScenario()?.mission?'探知を計算中…':'成功条件は未設定';}
+    else {el.className=mission.status;el.textContent=({pending:'評価中',success:'成功条件成立',failure:'期限までに未成立'})[mission.status]+' · 探知 '+mission.detectedCount+' / '+mission.targetCount+(this.getScenario()?.mission?.type==='arrive'?' · 到着 '+mission.reachedCount+' / '+mission.responderCount:'')+' · 期限 '+minutes(mission.deadline);}
     if($('events-dialog').open)this.renderEvents();
   }
   renderEvents() {
-    const m=this.getSnapshot()?.mission,list=$('event-list');list.replaceChildren();$('events-summary').textContent=m?'現在時刻までの初回探知 '+m.events.length+'件。判定区間の末尾時刻で記録します。':'成功条件を設定すると探知履歴を表示します。';
-    for(const event of m?.events.slice(-200)??[]) {
-      const row=document.createElement('div');row.className='event-item';const text=document.createElement('span'),button=document.createElement('button');text.textContent=minutes(event.time)+' · '+event.observerId+' → '+event.targetId+' · 距離 '+Math.round(event.distance)+'m';button.textContent='この時刻';button.onclick=()=>{this.seek(event.time,event.targetId);$('events-dialog').close();};row.append(text,button);list.append(row);
+    const snapshot=this.getSnapshot(),m=snapshot?.mission,list=$('event-list');list.replaceChildren();
+    const events=snapshot?.actionEvents?.length?snapshot.actionEvents:(m?.events??[]).map(e=>({...e,type:'detected',unitId:e.observerId}));
+    $('events-summary').textContent=snapshot?.actionsPending?'探知・行動を計算中…':'現在時刻までの '+events.length+'件（末尾200件を表示）。探知は判定区間の末尾、通信・出発・到着はイベント時刻で記録します。';
+    const name=id=>{const s=this.getScenario(),u=s.units.find(u=>u.id===id);if(u)return u.name;const g=s.groups?.find(g=>id?.startsWith(g.id+'__'));return g?g.name+' '+id.slice(g.id.length+2):id??'';};
+    for(const event of events.slice(-200)) {
+      const row=document.createElement('div');row.className='event-item'+(event.type==='sendFailed'?' failed':'');const text=document.createElement('span'),button=document.createElement('button');
+      const details={detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備 · 出発予定 '+minutes(event.departureTime),departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 経路終点に到着'};
+      text.textContent=minutes(event.time)+' · '+details[event.type];button.textContent='この時刻';button.onclick=()=>{this.seek(event.time,event.type==='detected'?event.targetId:event.unitId);$('events-dialog').close();};row.append(text,button);list.append(row);
     }
   }
   export() {
-    const payload={type:'SimSim-analysis',version:2,model:'range-hazard-v1',confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows};
+    const payload={type:'SimSim-analysis',version:hasActions(this.base)?3:2,model:hasActions(this.base)?'event-actions-v1':'range-hazard-v1',confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows};
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SimSim-analysis.jsn';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);this.notify('分析条件と試行結果を.jsnで保存しました。');
   }
 }

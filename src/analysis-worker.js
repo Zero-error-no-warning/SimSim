@@ -1,6 +1,6 @@
-import {trialScenario} from './parameters.js?v=0.4.2';
-import {Simulation} from './engine.js?v=0.4.2';
-import {prepareAnalysis,detectionSteps,summarizeRow} from './detection.js?v=0.4.2';
+import {trialScenario} from './parameters.js?v=0.5.0';
+import {Simulation} from './engine.js?v=0.5.0';
+import {prepareAnalysis,detectionSteps,summarizeRow} from './detection.js?v=0.5.0';
 let generation=0;
 self.onmessage=({data})=>{
   if(data.type==='cancel'){generation++;return;}
@@ -20,7 +20,7 @@ async function run(data,token) {
           if(performance.now()-lastYield>16){await new Promise(r=>setTimeout(r,0));lastYield=performance.now();if(token!==generation)return;}
           state=generator.next();
         }
-        const result=state.value;trials.push({trial,sampled,success:result.success,successTime:result.successTime,detectedCount:result.detectedCount,targetCount:result.targetCount,invalidUnits:result.invalidUnits,constrainedPaths:result.constrainedPaths});completed++;
+        const result=state.value;trials.push({reachedCount:result.reachedCount??0,responderCount:result.responderCount??0,trial,sampled,success:result.success,successTime:result.successTime,detectedCount:result.detectedCount,targetCount:result.targetCount,invalidUnits:result.invalidUnits,constrainedPaths:result.constrainedPaths});completed++;
         if(performance.now()-lastProgress>120||i===analysis.trials-1){lastProgress=performance.now();self.postMessage({type:'progress',runId:data.runId,completed,planned,elapsedMs:performance.now()-start,rows:[...rows,{...summarizeRow(condition.count,trials),condition}]});}
         await new Promise(r=>setTimeout(r,0));lastYield=performance.now();
       }

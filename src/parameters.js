@@ -1,4 +1,4 @@
-import {random01,streamKey} from './random.js?v=0.4.2';
+import {random01,streamKey} from './random.js?v=0.5.0';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={})=>({key,label,family,path,min,max,scale:1,scope:'entity',...options});
@@ -6,6 +6,10 @@ export const PARAMETERS=[
   define('rate.movement.speed','移動速度','Rate','speed',0,1500,{unit:'m/s',default:0}),
   define('extent.sense.radius','最大探知距離','Extent','sensor.range',.001,100000,{unit:'km',scale:1000,sensor:true}),
   define('interaction.detection.probability','距離0で1分の探知確率','Interaction','sensor.probabilityPerMinute',0,1,{unit:'%',scale:.01,sensor:true}),
+  define('extent.communication.radius','最大通信距離','Extent','communication.range',.001,100000,{unit:'km',scale:1000,communication:true}),
+  define('interaction.communication.delay','通信遅延','Interaction','communication.delay',0,86400,{unit:'s',communication:true}),
+  define('interaction.communication.probability','通信成功確率','Interaction','communication.probability',0,1,{unit:'%',scale:.01,communication:true}),
+  define('behavior.preparation','出発準備時間','Behavior','behavior.preparation',0,86400,{unit:'s',behavior:true}),
   define('extent.signature.coefficient','被探知係数','Extent','detectability',0,10,{unit:'倍',default:1}),
   define('state.position.x','配置・経路の中心 x','State','initial.x',-1000000,1000000,{unit:'km',scale:1000,translate:'x'}),
   define('state.position.y','配置・経路の中心 y','State','initial.y',-1000000,1000000,{unit:'km',scale:1000,translate:'y'}),
@@ -39,6 +43,8 @@ function resolve(s,target,p) {
   if(!object||p.scope==='scenario'||(p.scope==='group'&&kind!=='group'))throw new Error('変数の対象が見つかりません: '+target);
   const entity=kind==='group'&&p.scope==='entity'?object.template:object;
   if(p.loopOnly&&entity.routeMode!=='loop')throw new Error('周回の出発点は周回経路の対象に指定してください。');
+  if(p.communication&&!entity.communication?.enabled)throw new Error('通信変数の対象で通信を有効にしてください。');
+  if(p.behavior&&!entity.behavior)throw new Error('条件付き行動の設定がありません。');
   if(p.sensor&&!entity.sensor)throw new Error('探知変数の対象にセンサーがありません。');
   return entity;
 }
@@ -51,7 +57,7 @@ export function writeParameter(s,b,value) {
 }
 export function availableBindings(s) {
   const out=[];
-  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.loopOnly&&entity.routeMode!=='loop'||p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
+  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.loopOnly&&entity.routeMode!=='loop'||p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.communication&&!entity.communication?.enabled||p.behavior&&!entity.behavior||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
   for(const u of s.units??[])add('unit:'+u.id,u.name,u,'unit');
   for(const g of s.groups??[])add('group:'+g.id,g.name,g.template,'group');
   if(s.mission)for(const p of PARAMETERS.filter(p=>p.scope==='scenario'))out.push({target:'scenario',targetLabel:'シナリオ・ミッション',parameter:p.key,label:p.label+' ('+p.unit+')'});

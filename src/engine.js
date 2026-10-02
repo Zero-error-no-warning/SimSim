@@ -1,5 +1,6 @@
-import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.4.2';
-import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.4.2';
+import {actionErrors} from './action-settings.js?v=0.5.0';
+import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.5.0';
+import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.5.0';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -40,14 +41,14 @@ export function validateScenario(value) {
   }
   if (!Array.isArray(value.units) || value.units.length > MAX_UNITS) errors.push('unitsは最大2000件の配列にしてください。');
   else {
-    const ids = new Set();
+    const ids = new Set(),recipientIds=new Set(value.units.map(u=>u?.id));
     [...value.units,...(Array.isArray(groups)?groups.map(g=>g?.template):[])].forEach((u,index) => {
       const prefix = 'units['+index+']';
       if (!u || typeof u !== 'object') {errors.push(prefix+': オブジェクトが必要です。');return;}
       if (typeof u.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(u.id) || (index<value.units.length && ids.has(u.id))) errors.push(prefix+': idは重複しない英数字・_・-にしてください。');
       if(index<value.units.length)ids.add(u.id);
       if (typeof u.name !== 'string' || !u.name.trim() || u.name.length > 120) errors.push(prefix+': nameは1～120文字にしてください。');
-      errors.push(...sensorErrors(u,prefix));
+      errors.push(...sensorErrors(u,prefix),...actionErrors(u,prefix,recipientIds));
       if (!DOMAINS.includes(u.domain)) errors.push(prefix+': domainが不正です。');
       if (!['friendly','hostile','neutral'].includes(u.faction)) errors.push(prefix+': factionが不正です。');
       if (typeof u.manned !== 'boolean') errors.push(prefix+': mannedはbooleanにしてください。');
@@ -70,6 +71,7 @@ export function validateScenario(value) {
     else {const expanded=expandGroups(value);if(new Set(expanded.map(u=>u.id)).size!==total)errors.push('生成ユニットのidが単体ユニットと重複しています。');}
   }
   errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration));
+  if(value.mission?.type==='arrive'&&value.mission.responderIds?.some(id=>!value.units?.some(u=>u.id===id)))errors.push('到着評価の対象となる単体ユニットが見つかりません。');
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));
   return clone(value);
 }
@@ -114,7 +116,7 @@ export class Simulation {
   constructor(scenario) {
     const source=validateScenario(scenario);
     this.scenario={...source,units:expandGroups(source)};
-    this.nodeCount=0;
+    this.nodeCount=0;this.activations=new Map();
     this.terrain=new Terrain(this.scenario.terrain);
     this.paths=new Map(this.scenario.units.map(u=>[u.id,this.compile(u)]));
   }
@@ -190,7 +192,9 @@ export class Simulation {
   }
   evaluateUnit(u,time) {
       const t=Math.min(this.scenario.duration,Math.max(0,Number(time)||0));
-      const path=this.paths.get(u.id),actualSpeed=path.actualSpeed??u.speed,delay=path.delay??0,travel=actualSpeed*Math.max(0,t-delay);
+      const path=this.paths.get(u.id),actualSpeed=path.actualSpeed??u.speed,activation=this.activations.get(u.id),held=!!u.behavior?.hold;
+      const delay=held?(activation?.time??Infinity)+(path.delay??0):(path.delay??0),rawTravel=actualSpeed*Math.max(0,t-delay);
+      const travel=!path.periodic&&actualSpeed>0&&t>=delay+path.length/actualSpeed?Math.max(rawTravel,path.length):rawTravel;
       const d=path.periodic && path.length>0 ? travel%path.length : Math.min(travel,path.length);
       let left=0,right=path.nodes.length-1;
       while(left<right) {const mid=Math.ceil((left+right)/2);if(path.nodes[mid].d<=d) left=mid;else right=mid-1;}
@@ -202,8 +206,9 @@ export class Simulation {
       else if(!path.periodic && path.length>0 && travel>=path.length) status='arrived';
       else if(actualSpeed===0) status='idle';
       else if(t<delay)status='waiting';
+      if(held&&t<delay&&path.errorAt!=='初期位置')status=activation&&t>=activation.triggerTime?'preparing':'standby';
       return {id:u.id,position,status,heading:Math.atan2(b.x-a.x,b.y-a.y),distance:Math.min(travel,path.periodic?travel:path.length),routeDistance:path.length,
-        error:path.error,errorAt:path.errorAt,actualSpeed,startDelay:delay,eta:actualSpeed>0?delay+path.length/actualSpeed:null};
+        error:path.error,errorAt:path.errorAt,actualSpeed,startDelay:Number.isFinite(delay)?delay:null,departureTime:held&&activation?activation.time+(path.delay??0):null,eta:actualSpeed>0&&Number.isFinite(delay)?delay+path.length/actualSpeed:null};
   }
   routePoints(id) {return this.paths.get(id)?.nodes || [];}
 }

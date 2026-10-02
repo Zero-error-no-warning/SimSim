@@ -1,16 +1,17 @@
-import {restoreAnalysisResult} from './detection.js?v=0.4.2';
-import {AnalysisUI} from './analysis-ui.js?v=0.4.2';
-import {MapView} from './view.js?v=0.4.2';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.4.2';
+import {ActionUI} from './action-ui.js?v=0.5.0';
+import {restoreAnalysisResult} from './detection.js?v=0.5.0';
+import {AnalysisUI} from './analysis-ui.js?v=0.5.0';
+import {MapView} from './view.js?v=0.5.0';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.5.0';
 
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
 const FACTION_NAMES={friendly:'味方',hostile:'相手側',neutral:'中立'};
 const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
-const STATUS_NAMES={idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
+const STATUS_NAMES={standby:'指令待ち',preparing:'出発準備中',idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=0.4.2',import.meta.url),{type:'module',name:'SimSim simulation'});
+const worker=new Worker(new URL('./worker.js?v=0.5.0',import.meta.url),{type:'module',name:'SimSim simulation'});
 let workerReady=false;
 const timeout=setTimeout(()=>{if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');},12000);
 worker.onerror=event=>{event.preventDefault();pause();clearTimeout(timeout);showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));};
@@ -19,6 +20,7 @@ worker.onmessage=({data})=>{
   if(data.type==='error'){pause();showError(data.message);return;}
   if(data.request<lastAccepted)return;
   lastAccepted=data.request;workerReady=true;clearTimeout(timeout);snapshot=data.snapshot;
+  $('play').disabled=!!snapshot.actionsPending;$('step').disabled=!!snapshot.actionsPending;$('timeline').disabled=!!snapshot.actionsPending;
   view.updateSnapshot(snapshot);updateTelemetry();updateClock();analysisUI.onSnapshot();
 };
 const view=new MapView($('map'),{
@@ -37,6 +39,7 @@ const view=new MapView($('map'),{
   onHover:point=>{$('cursor-position').textContent=point?'x '+(point.x/1000).toFixed(2)+' km / y '+(point.y/1000).toFixed(2)+' km':'';}
 });
 
+const actionUI=new ActionUI({getScenario:()=>scenario,getSelected:()=>currentUnit(),commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,pause});
 const analysisUI=new AnalysisUI({getScenario:()=>scenario,getSnapshot:()=>snapshot,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,notify,
   replay:(next,message)=>{const previous=clone(scenario);applyScenario(next,{keepResults:true,message});undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();const target=model.scenario.units.find(u=>u.faction===next.mission?.targetFaction);if(target)select(target.id);},
   seek:(value,id)=>{pause();if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();}
@@ -145,7 +148,7 @@ function renderInspector() {
 function updateTelemetry() {
   const state=snapshot?.units.find(u=>u.id===selected);if(!state)return;
   const detection=snapshot?.mission?.events.find(e=>e.targetId===selected);$('state-detection').textContent=detection?'探知 '+(detection.time/60).toFixed(1)+'分':snapshot?.mission?'未探知':'—';
-  $('state-motion').textContent=(state.actualSpeed*3.6).toFixed(1)+' km/h / '+state.startDelay.toFixed(1)+' s';
+  $('state-motion').textContent=(state.actualSpeed*3.6).toFixed(1)+' km/h / '+(state.startDelay===null?'出発未定':state.startDelay.toFixed(1)+' s');
   $('state-status').textContent=STATUS_NAMES[state.status];$('state-position').textContent=(state.position.x/1000).toFixed(2)+' / '+(state.position.y/1000).toFixed(2)+' km';
   $('state-height').textContent=state.position.z<scenario.terrain.seaLevel?'深度 '+(scenario.terrain.seaLevel-state.position.z).toFixed(0)+' m':state.position.z.toFixed(0)+' m';
   $('state-distance').textContent=(state.distance/1000).toFixed(2)+' km';$('state-route').textContent=(state.routeDistance/1000).toFixed(2)+' km';
@@ -281,6 +284,7 @@ async function loadDemo(initial=false,file='demo.jsn') {
     setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:'架空地形のサンプルを読み込みました。ユニットを選び、経路を編集できます。'});$('boot').hidden=true;
   }finally{clearTimeout(timer);}
 }
+document.addEventListener('load-response-demo',()=>loadDemo(false,'response-demo.jsn').catch(error=>showError(error.message)));
 document.addEventListener('load-island-demo',()=>loadDemo(false,'island-patrol-demo.jsn').catch(error=>showError(error.message)));
 document.addEventListener('load-parameter-demo',()=>loadDemo(false,'parameter-demo.jsn').catch(error=>showError(error.message)));
 document.addEventListener('load-detection-demo',()=>loadDemo(false,'detection-demo.jsn').catch(error=>showError(error.message)));

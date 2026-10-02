@@ -1,32 +1,14 @@
-import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.4.2';
-import {Simulation,clone,validateScenario} from './engine.js?v=0.4.2';
-import {random01,streamKey} from './random.js?v=0.4.2';
-import {missionErrors,analysisErrors} from './detection-settings.js?v=0.4.2';
+import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.5.0';
+import {Simulation,clone,validateScenario} from './engine.js?v=0.5.0';
+import {random01,streamKey} from './random.js?v=0.5.0';
+import {missionErrors,analysisErrors} from './detection-settings.js?v=0.5.0';
 
-export function terrainVisible(terrain,a,b) {
-  const distance=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(distance/Math.min(125,terrain.data.spacing/4)));
-  for(let i=0;i<=steps;i++) {
-    const f=i/steps,x=a.x+(b.x-a.x)*f,y=a.y+(b.y-a.y)*f,z=a.z+(b.z-a.z)*f,h=terrain.height(x,y);
-    if(h===null||z<h-1e-6)return false;
-  }
-  return true;
-}
-export function contactProbability(sensor,distance,detectability,seconds) {
-  if(seconds<=0||detectability<=0||distance>=sensor.range||sensor.probabilityPerMinute<=0)return 0;
-  if(sensor.probabilityPerMinute>=1)return 1;
-  const hazard=-Math.log1p(-sensor.probabilityPerMinute)/60;
-  return -Math.expm1(-hazard*seconds*detectability*(1-distance/sensor.range)**2);
-}
-const mounted=(p,u)=>({...p,z:p.z+(u.sensor?.mountHeight??(u.domain==='ground'?2:0))});
-const spatialKey=(x,y,size)=>Math.floor(x/size)+','+Math.floor(y/size);
-function makeIndex(items,size) {
-  const cells=new Map();for(const item of items){const key=spatialKey(item.position.x,item.position.y,size);if(!cells.has(key))cells.set(key,[]);cells.get(key).push(item);}return cells;
-}
-function* neighbors(cells,p,size) {
-  const x=Math.floor(p.x/size),y=Math.floor(p.y/size);
-  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)for(const item of cells.get((x+dx)+','+(y+dy))??[])yield item;
-}
-export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10) {
+export {terrainVisible,contactProbability} from './contact.js?v=0.5.0';
+import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.5.0';
+import {actionSteps} from './actions.js?v=0.5.0';
+import {hasActions} from './action-settings.js?v=0.5.0';
+export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={}) {
+  if(hasActions(model.scenario))return yield* actionSteps(model,mission,step,options);
   const errors=missionErrors(mission,model.scenario.duration);
   if(!mission)throw new Error('成功条件を設定してください。');
   if(errors.length)throw new Error(errors.join('\n'));
@@ -76,8 +58,9 @@ export function runDetection(model,mission=model.scenario.mission,step=model.sce
 }
 export function snapshotMission(result,mission,time) {
   const events=result.events.filter(e=>e.time<=time),detectedCount=events.length;
-  const success=mission.join==='any'?detectedCount>0:detectedCount===result.targetCount;
-  return {events,detectedCount,targetCount:result.targetCount,status:success?'success':time>=mission.deadline?'failure':'pending',deadline:mission.deadline};
+  const reachedCount=(result.actionEvents??[]).filter(e=>e.type==='arrived'&&e.time<=time&&mission.responderIds?.includes(e.unitId)).length;
+  const success=result.successTime!==null&&result.successTime<=time;
+  return {events,detectedCount,targetCount:result.targetCount,reachedCount,responderCount:result.responderCount??0,status:success?'success':time>=mission.deadline?'failure':'pending',deadline:mission.deadline};
 }
 export function wilson(successes,total) {
   if(total===0)return {rate:null,low:null,high:null};
@@ -106,7 +89,7 @@ export function summarizeRow(count,trials) {
 }
 
 export function restoreAnalysisResult(payload) {
-  if(!payload||payload.type!=='SimSim-analysis'||![1,2].includes(payload.version)||payload.model!=='range-hazard-v1')throw new Error('この分析結果の形式・モデル版は読み込めません。');
+  if(!payload||payload.type!=='SimSim-analysis'||![1,2,3].includes(payload.version)||payload.model!==(payload.version===3?'event-actions-v1':'range-hazard-v1'))throw new Error('この分析結果の形式・モデル版は読み込めません。');
   const {scenario,analysis,startTrial,conditions}=prepareAnalysis(payload.source),counts=new Set(),rows=[];
   if(payload.version===1&&(analysis.factors?.length||analysis.uncertainties?.length))throw new Error('旧版の結果は個数比較のみ対応します。');
   if(!Array.isArray(payload.rows)||payload.rows.length>conditions.length)throw new Error('分析結果の条件数が不正です。');
@@ -118,11 +101,13 @@ export function restoreAnalysisResult(payload) {
       if(!t||!Number.isInteger(t.trial)||t.trial<startTrial||t.trial>=startTrial+analysis.trials||ids.has(t.trial)||typeof t.success!=='boolean')throw new Error('分析結果の試行番号・成否が不正です。');
       ids.add(t.trial);
       for(const [key,min,max] of [['targetCount',1,2000],['detectedCount',0,2000],['invalidUnits',0,2000],['constrainedPaths',0,2000]])if(!Number.isInteger(t[key])||t[key]<min||t[key]>max)throw new Error('分析結果の'+key+'が不正です。');
-      if(t.detectedCount>t.targetCount||t.success!==(scenario.mission.join==='any'?t.detectedCount>0:t.detectedCount===t.targetCount))throw new Error('分析結果の探知数と成否が一致していません。');
+      if(t.detectedCount>t.targetCount||scenario.mission.type!=='arrive'&&t.success!==(scenario.mission.join==='any'?t.detectedCount>0:t.detectedCount===t.targetCount))throw new Error('分析結果の探知数と成否が一致していません。');
       const generated=trialScenario(scenario,condition,t.trial);
-      if(payload.version===2&&(!Array.isArray(t.sampled)||t.sampled.length!==generated.sampled.length||new Set(t.sampled.map(b=>bindingKey(b??{}))).size!==t.sampled.length||generated.sampled.some(b=>!t.sampled.some(v=>v&&bindingKey(v)===bindingKey(b)&&v.value===b.value))))throw new Error('分析結果の抽出値がシード・分布と一致しません。');
+      if(payload.version>=2&&(!Array.isArray(t.sampled)||t.sampled.length!==generated.sampled.length||new Set(t.sampled.map(b=>bindingKey(b??{}))).size!==t.sampled.length||generated.sampled.some(b=>!t.sampled.some(v=>v&&bindingKey(v)===bindingKey(b)&&v.value===b.value))))throw new Error('分析結果の抽出値がシード・分布と一致しません。');
       if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>0&&t.successTime<=generated.scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
-      trials.push({trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled});
+      if(scenario.mission.type==='arrive'&&(!Number.isInteger(t.reachedCount)||t.reachedCount<0||t.reachedCount>scenario.mission.responderIds.length||t.success!==(scenario.mission.join==='any'?t.reachedCount>0:t.reachedCount===scenario.mission.responderIds.length)))throw new Error('到着数と成否が一致していません。');
+      if(payload.version<3&&hasActions(scenario))throw new Error('条件付き行動の結果はversion 3を使用してください。');
+      trials.push({...(payload.version===3?{reachedCount:t.reachedCount??0,responderCount:scenario.mission.responderIds?.length??0}:{}),trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled});
     }
     trials.sort((a,b)=>a.trial-b.trial);rows.push({...summarizeRow(condition.count,trials),condition});
   }

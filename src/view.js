@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import {OrbitControls} from '../vendor/three/OrbitControls.js';
-import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.4.2';
+import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.5.0';
 
 const COLORS={friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'};
 const disposal = group => {
@@ -210,6 +210,11 @@ export class MapView {
       const geometry=new THREE.BufferGeometry().setFromPoints([this.world(event.observerPosition,15),this.world(event.targetPosition,15)]);
       this.detectionGroup.add(new THREE.Line(geometry,new THREE.LineBasicMaterial({color:'#83e5ae',transparent:true,opacity:.8,depthTest:false})));
     }
+    for(const event of snapshot.actionEvents?.filter(e=>e.type==='received'&&snapshot.time-e.time<=120).slice(-3)??[]) {
+      const geometry=new THREE.BufferGeometry().setFromPoints([this.world(event.sourcePosition,15),this.world(event.receiverPosition,15)]);
+      this.detectionGroup.add(new THREE.Line(geometry,new THREE.LineBasicMaterial({color:'#ffc580',transparent:true,opacity:.85,depthTest:false})));
+    }
+    for(const state of snapshot.units){const label=this.labels.get(state.id);if(label){const unit=this.markers.get(state.id)?.unit;label.querySelector('small').textContent=DOMAIN_NAMES[unit.domain]+' · '+({standby:'指令待ち',preparing:'出発準備',moving:'移動中',arrived:'到着',blocked:'停止',waiting:'出発待ち',idle:'待機'})[state.status];}}
     this.latestTime=snapshot.time;disposal(this.trails);
     for(const unit of this.scenario.units) {
       if(this.scenario.units.length>80 && unit.id!==this.selected)continue;
