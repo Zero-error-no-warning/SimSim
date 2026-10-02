@@ -65,9 +65,15 @@ function commit(mutate,message) {
   undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();return true;
 }
 function updateUndo(){$('undo').disabled=!undo.length;$('redo').disabled=!redo.length;}
-function select(id){selected=id;setEditMode(null);view.setSelected(id);renderUnits();renderInspector();updateTelemetry();}
-function renderUnits() {
+function select(id){selected=id;setEditMode(null);view.setSelected(id);renderUnits({selectionOnly:true});renderInspector();updateTelemetry();}
+function renderUnits({selectionOnly=false}={}) {
   $('group-add').disabled=!currentUnit()||!!currentUnit().groupId;
+  const list=$('unit-list'),scrollTop=list.scrollTop,scrollLeft=list.scrollLeft;
+  // Keep existing buttons and their focus when selecting an already listed unit.
+  if(selectionOnly && [...list.children].some(button=>button.dataset.id===selected)) {
+    for(const button of list.children)button.classList.toggle('selected',button.dataset.id===selected);
+    return;
+  }
   $('unit-count').textContent=model.scenario.units.length;$('unit-list').replaceChildren();
   const query=$('unit-search').value.toLowerCase();
   const matches=model.scenario.units.filter(u=>(u.name+' '+u.id).toLowerCase().includes(query));
@@ -84,6 +90,8 @@ function renderUnits() {
     name.textContent=unit.name;detail.textContent=DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人')+' · '+Math.round(unit.speed*3.6)+' km/h';
     description.append(name,detail);button.append(symbol,description);button.addEventListener('click',()=>select(unit.id));$('unit-list').appendChild(button);
   }
+  // Map selection can add a member beyond the first 80. Retain the user's viewport.
+  if(selectionOnly){list.scrollTop=scrollTop;list.scrollLeft=scrollLeft;}
 }
 function renderInspector() {
   const unit=currentUnit();$('properties').hidden=!unit;$('empty-selection').hidden=!!unit;$('delete').disabled=!unit;
