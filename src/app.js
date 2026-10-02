@@ -1,5 +1,7 @@
-import {MapView} from './view.js?v=0.2';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.2';
+import {restoreAnalysisResult} from './detection.js?v=0.3';
+import {AnalysisUI} from './analysis-ui.js?v=0.3';
+import {MapView} from './view.js?v=0.3';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.3';
 
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
@@ -8,7 +10,7 @@ const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
 const STATUS_NAMES={idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=0.2',import.meta.url),{type:'module',name:'SimSim simulation'});
+const worker=new Worker(new URL('./worker.js?v=0.3',import.meta.url),{type:'module',name:'SimSim simulation'});
 let workerReady=false;
 const timeout=setTimeout(()=>{if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');},12000);
 worker.onerror=event=>{event.preventDefault();pause();clearTimeout(timeout);showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));};
@@ -17,7 +19,7 @@ worker.onmessage=({data})=>{
   if(data.type==='error'){pause();showError(data.message);return;}
   if(data.request<lastAccepted)return;
   lastAccepted=data.request;workerReady=true;clearTimeout(timeout);snapshot=data.snapshot;
-  view.updateSnapshot(snapshot);updateTelemetry();updateClock();
+  view.updateSnapshot(snapshot);updateTelemetry();updateClock();analysisUI.onSnapshot();
 };
 const view=new MapView($('map'),{
   onSelect:id=>select(id),
@@ -35,12 +37,28 @@ const view=new MapView($('map'),{
   onHover:point=>{$('cursor-position').textContent=point?'x '+(point.x/1000).toFixed(2)+' km / y '+(point.y/1000).toFixed(2)+' km':'';}
 });
 
+const analysisUI=new AnalysisUI({getScenario:()=>scenario,getSnapshot:()=>snapshot,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,notify,
+  replay:(next,message)=>{const previous=clone(scenario);applyScenario(next,{keepResults:true,message});undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();const target=model.scenario.units.find(u=>u.faction===next.mission?.targetFaction);if(target)select(target.id);},
+  seek:(value,id)=>{pause();if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();}
+});
+function renderSensor(prefix,unit) {
+  const s=unit.sensor??{enabled:false,range:1000,probabilityPerMinute:.5,domains:['ground','surface','subsurface','air'],terrainLOS:false,mountHeight:2};
+  $(prefix+'-sensor-enabled').checked=s.enabled;$(prefix+'-sensor-range').value=s.range/1000;$(prefix+'-sensor-probability').value=s.probabilityPerMinute*100;$(prefix+'-sensor-los').checked=s.terrainLOS;$(prefix+'-sensor-height').value=s.mountHeight??(unit.domain==='ground'?2:0);$(prefix+'-detectability').value=unit.detectability??1;
+  for(const domain of ['ground','surface','subsurface','air'])$(prefix+'-sensor-'+domain).checked=s.domains.includes(domain);
+}
+function readSensor(prefix) {return {enabled:$(prefix+'-sensor-enabled').checked,range:Number($(prefix+'-sensor-range').value)*1000,probabilityPerMinute:Number($(prefix+'-sensor-probability').value)/100,domains:['ground','surface','subsurface','air'].filter(d=>$(prefix+'-sensor-'+d).checked),terrainLOS:$(prefix+'-sensor-los').checked,mountHeight:Number($(prefix+'-sensor-height').value)};}
+for(const input of document.querySelectorAll('[id^="unit-sensor-"],#unit-detectability'))input.addEventListener('change',()=>{
+  if(!currentUnit()||currentUnit().groupId)return;
+  if(!input.checkValidity()||(input.type==='number'&&input.value==='')){renderInspector();return;}
+  commit(next=>{const u=next.units.find(u=>u.id===selected);u.sensor={...u.sensor,...readSensor('unit')};u.detectability=Number($('unit-detectability').value);},'探知設定を変更しました。');
+});
+
 function notify(message,warning=false){$('notice').textContent=message;$('notice').classList.toggle('warning',warning);}
 function showError(message){$('error-text').textContent=message;if(!$('error-dialog').open)$('error-dialog').showModal();}
 function currentUnit(){return model?.scenario.units.find(u=>u.id===selected);}
 function post(type='seek'){worker.postMessage({type,revision,request:++request,time,scenario:type==='scenario'?scenario:undefined});}
 function pause(){playing=false;$('play').textContent='▶ 再生';}
-function applyScenario(next,{resetHistory=false,fit=false,message='シナリオを更新しました。'}={}) {
+function applyScenario(next,{resetHistory=false,fit=false,message='シナリオを更新しました。',keepResults=false}={}) {
   const checked=validateScenario(next),compiled=new Simulation(checked);
   scenario=checked;model=compiled;pause();time=0;revision++;lastAccepted=0;
   if(resetHistory){undo.length=0;redo.length=0;dirty=false;}
@@ -52,7 +70,7 @@ function applyScenario(next,{resetHistory=false,fit=false,message='シナリオ�
   $('timeline').max=scenario.duration;$('duration-label').textContent=+(scenario.duration/60).toFixed(1)+'分';
   const t=scenario.terrain;$('terrain-info').textContent=((t.columns-1)*t.spacing/1000).toFixed(0)+' × '+((t.rows-1)*t.spacing/1000).toFixed(0)+' km · 格子 '+t.spacing+' m';
   document.querySelector('.map-title').textContent=scenario.title;
-  renderUnits();renderInspector();updateClock();updateTelemetry();updateUndo();setEditMode(editMode&&selected?editMode:null);post('scenario');
+  analysisUI.onScenario({keepResults});analysisUI.onSnapshot();renderUnits();renderInspector();updateClock();updateTelemetry();updateUndo();setEditMode(editMode&&selected?editMode:null);post('scenario');
   const invalid=snapshot.units.filter(u=>u.error).length;
   notify(message+(invalid?' 地形制約のある経路: '+invalid+'件。対象ユニットの設定欄で理由を確認できます。':''),invalid>0);
 }
@@ -98,6 +116,7 @@ function renderInspector() {
   if(!unit)return;
   $('definition-fields').disabled=!!unit.groupId;$('generated-note').hidden=!unit.groupId;$('edit-selected-group').hidden=!unit.groupId;$('delete').disabled=!!unit.groupId;
   const m=unit.motion??{};for(const [id,key,factor,def] of motionFields)$(id).value=(m[key]??def)*factor;
+  renderSensor('unit',unit);
   $('unit-name').value=unit.name;$('unit-domain').value=unit.domain;$('unit-faction').value=unit.faction;$('unit-manned').value=String(unit.manned);
   $('unit-speed').value=+(unit.speed*3.6).toFixed(2);$('unit-x').value=+(unit.initial.x/1000).toFixed(3);$('unit-y').value=+(unit.initial.y/1000).toFixed(3);
   const projected=model.terrain.project(unit.initial,unit.domain).point;
@@ -123,6 +142,7 @@ function renderInspector() {
 }
 function updateTelemetry() {
   const state=snapshot?.units.find(u=>u.id===selected);if(!state)return;
+  const detection=snapshot?.mission?.events.find(e=>e.targetId===selected);$('state-detection').textContent=detection?'探知 '+(detection.time/60).toFixed(1)+'分':snapshot?.mission?'未探知':'—';
   $('state-motion').textContent=(state.actualSpeed*3.6).toFixed(1)+' km/h / '+state.startDelay.toFixed(1)+' s';
   $('state-status').textContent=STATUS_NAMES[state.status];$('state-position').textContent=(state.position.x/1000).toFixed(2)+' / '+(state.position.y/1000).toFixed(2)+' km';
   $('state-height').textContent=state.position.z<scenario.terrain.seaLevel?'深度 '+(scenario.terrain.seaLevel-state.position.z).toFixed(0)+' m':state.position.z.toFixed(0)+' m';
@@ -171,6 +191,7 @@ function openGroup(id=null) {
   $('group-dialog-title').textContent=g?'群を編集':'群を作る';$('group-remove').hidden=!g;
   $('group-name').value=g?.name??u.name+'群';$('group-count').value=g?.count??100;$('group-placement').value=g?.placement??'random';
   $('group-width').value=(g?.width??1000)/1000;$('group-height').value=(g?.height??1000)/1000;
+  renderSensor('group',u);
   const m=g?.template.motion??u.motion??{};
   for(const [input,key,factor,def] of groupMotionFields)$(input).value=(m[key]??def)*factor;
   $('group-dialog').showModal();
@@ -185,13 +206,13 @@ $('group-form').addEventListener('submit',event=>{
   const old=scenario.groups?.find(g=>g.id===editingGroup);
   const source=$('group-template').value==='saved'?old?.template:scenario.units.find(u=>u.id===$('group-template').value);
   if(!source){showError('ひな型が見つかりません。');return;}
-  const template=clone(source);template.motion={...template.motion};for(const [input,key,factor] of groupMotionFields)template.motion[key]=Number($(input).value)/factor;
+  const template=clone(source);template.sensor={...template.sensor,...readSensor('group')};template.detectability=Number($('group-detectability').value);template.motion={...template.motion};for(const [input,key,factor] of groupMotionFields)template.motion[key]=Number($(input).value)/factor;
   const g={...(old??{}),id:old?.id??'group-'+Date.now().toString(36),name:$('group-name').value.trim(),count:Number($('group-count').value),placement:$('group-placement').value,width:Number($('group-width').value)*1000,height:Number($('group-height').value)*1000,template};
   const ok=commit(next=>{next.groups??=[];const i=next.groups.findIndex(item=>item.id===g.id);if(i<0)next.groups.push(g);else next.groups[i]=g;},'群を生成しました。');
   if(ok||JSON.stringify(old)===JSON.stringify(g))$('group-dialog').close();
 });
 $('title').addEventListener('change',()=>{if(!$('title').value.trim()){$('title').value=scenario.title;return;}commit(next=>next.title=$('title').value.trim(),'シナリオ名を変更しました。');});
-$('duration').addEventListener('change',()=>{if(!$('duration').checkValidity()||!$('duration').value){$('duration').value=scenario.duration/60;return;}commit(next=>next.duration=Number($('duration').value)*60,'終了時刻を変更しました。');});
+$('duration').addEventListener('change',()=>{if(!$('duration').checkValidity()||!$('duration').value){$('duration').value=scenario.duration/60;return;}commit(next=>{next.duration=Number($('duration').value)*60;if(next.mission)next.mission.deadline=Math.min(next.mission.deadline,next.duration);},'終了時刻を変更しました。');});
 $('place').addEventListener('click',()=>{pause();setEditMode(editMode==='place'?null:'place');});
 $('route-edit').addEventListener('click',()=>{pause();setEditMode(editMode==='route'?null:'route');});
 $('clear-route').addEventListener('click',()=>commit(next=>next.units.find(u=>u.id===selected).route=[],'経由点を削除しました。'));
@@ -214,7 +235,7 @@ $('redo').addEventListener('click',()=>{if(!redo.length)return;undo.push(clone(s
 $('play').addEventListener('click',()=>{
   if(playing){pause();notify('一時停止しました。');return;}
   if(time>=scenario.duration){time=0;view.resetTrails();}
-  setEditMode(null);playing=true;$('play').textContent='Ⅱ 一時停止';notify('移動を実行しています。探知・交戦は次の段階で追加します。');
+  setEditMode(null);playing=true;$('play').textContent='Ⅱ 一時停止';notify('移動を実行しています。成功条件がある場合は探知結果も表示します。');
 });
 $('reset').addEventListener('click',()=>{pause();time=0;view.resetTrails();post();notify('時刻を初期位置へ戻しました。');});
 $('step').addEventListener('click',()=>{pause();time=Math.min(scenario.duration,time+60);post();});
@@ -223,6 +244,7 @@ for(const [id,mode] of [['view3d','3d'],['viewtop','top']])$(id).addEventListene
 $('fit').addEventListener('click',()=>view.fit());
 function updateCaption(){$('view-caption').textContent=(view.mode==='top'?'真上':'3D')+' / 高さ表示 ×'+view.exaggeration;}
 $('exaggeration').addEventListener('change',()=>{view.setExaggeration(Number($('exaggeration').value));updateCaption();});
+$('show-sensor').addEventListener('change',()=>{view.showSensor=$('show-sensor').checked;view.sensorRangeGroup.visible=view.showSensor;});
 $('show-water').addEventListener('change',()=>{view.showWater=$('show-water').checked;view.water.visible=view.showWater;});
 $('show-routes').addEventListener('change',()=>{view.showRoutes=$('show-routes').checked;view.routes.visible=view.showRoutes;});
 $('show-trails').addEventListener('change',()=>{view.showTrails=$('show-trails').checked;view.trails.visible=view.showTrails;});
@@ -237,9 +259,10 @@ $('file').addEventListener('change',async()=>{
   const file=$('file').files[0];if(!file)return;
   try {
     if(file.size>15*1024*1024)throw new Error('ファイルは15MB以下にしてください。');
-    const next=validateScenario(JSON.parse(await file.text()));
+    const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
+    const next=restored?.source??validateScenario(parsed);
     if(dirty&&!confirm('保存していない変更があります。ファイルを読み込みますか？'))return;
-    setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:file.name+'を読み込みました。'});
+    setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:file.name+'を読み込みました。'});if(restored)analysisUI.loadResult(restored);
   }catch(error){showError(error.message);}
   finally{$('file').value='';}
 });
@@ -252,10 +275,12 @@ async function loadDemo(initial=false,file='demo.jsn') {
     setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:'架空地形のサンプルを読み込みました。ユニットを選び、経路を編集できます。'});$('boot').hidden=true;
   }finally{clearTimeout(timer);}
 }
+document.addEventListener('load-detection-demo',()=>loadDemo(false,'detection-demo.jsn').catch(error=>showError(error.message)));
 $('group-demo').addEventListener('click',()=>loadDemo(false,'group-demo.jsn').catch(error=>showError(error.message)));
 $('demo').addEventListener('click',()=>loadDemo().catch(error=>showError(error.message)));
 window.addEventListener('keydown',event=>{
   if(event.key==='Escape')setEditMode(null);
+  if(document.querySelector('dialog[open]'))return;
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();$(event.shiftKey?'redo':'undo').click();}
   if(event.code==='Space'){event.preventDefault();$('play').click();}

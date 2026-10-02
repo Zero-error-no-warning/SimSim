@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import {OrbitControls} from '../vendor/three/OrbitControls.js';
-import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.2';
+import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.3';
 
 const COLORS={friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'};
 const disposal = group => {
@@ -24,7 +24,8 @@ export class MapView {
     this.scene.add(new THREE.HemisphereLight('#e2f0ff','#25374d',2));
     const sun=new THREE.DirectionalLight('#fff2d7',2.2);sun.position.set(-20000,45000,20000);this.scene.add(sun);
     this.environment=new THREE.Group();this.routes=new THREE.Group();this.units=new THREE.Group();this.trails=new THREE.Group();
-    this.scene.add(this.environment,this.routes,this.units,this.trails);
+    this.sensorRangeGroup=new THREE.Group();this.detectionGroup=new THREE.Group();this.showSensor=true;
+    this.scene.add(this.environment,this.routes,this.units,this.trails,this.sensorRangeGroup,this.detectionGroup);
     this.camera3d=new THREE.PerspectiveCamera(44,1,10,700000);
     this.cameraTop=new THREE.OrthographicCamera(-20000,20000,16000,-16000,10,700000);
     this.cameraTop.up.set(0,0,-1);
@@ -88,7 +89,18 @@ export class MapView {
     const unit=this.scenario.units.find(u=>u.id===id);
     this.selectedMarker.visible=!!unit;
     if(unit){this.selectedMarker.material.map=this.symbolTexture(unit,true);this.selectedMarker.material.needsUpdate=true;const marker=this.markers.get(id);if(marker)this.selectedMarker.position.copy(marker.position);}
-    this.buildRoutes();this.resetTrails();
+    this.buildRoutes();this.buildSensorRange();this.resetTrails();
+  }
+  buildSensorRange() {
+    disposal(this.sensorRangeGroup);this.sensorSphere=null;
+    const unit=this.scenario.units.find(u=>u.id===this.selected);
+    if(unit?.sensor?.enabled){
+      const material=new THREE.MeshBasicMaterial({color:'#80dbae',wireframe:true,transparent:true,opacity:.28,depthWrite:false});
+      this.sensorSphere=new THREE.Mesh(new THREE.SphereGeometry(unit.sensor.range,20,12),material);this.sensorSphere.scale.y=this.exaggeration;
+      const position=this.snapshot?.units.find(u=>u.id===unit.id)?.position??unit.initial;
+      this.sensorSphere.position.copy(this.world({...position,z:position.z+(unit.sensor.mountHeight??(unit.domain==='ground'?2:0))}));this.sensorRangeGroup.add(this.sensorSphere);
+    }
+    this.sensorRangeGroup.visible=this.showSensor;
   }
   buildLabels() {
     this.labelLayer.replaceChildren();this.labels.clear();this.groupLabels=new Map();
@@ -100,7 +112,7 @@ export class MapView {
       const label=document.createElement('div');label.className='map-label '+unit.faction+(unit.id===this.selected?' selected':'');
       const name=document.createElement('span');name.textContent=unit.name;
       const detail=document.createElement('small');detail.textContent=DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人');
-      label.append(name,detail);this.labelLayer.appendChild(label);this.labels.set(unit.id,label);
+      label.append(name,detail);label.classList.toggle('detected',!!this.snapshot?.mission?.events.some(e=>e.targetId===unit.id));this.labelLayer.appendChild(label);this.labels.set(unit.id,label);
     }
   }
   setExaggeration(value) {this.exaggeration=value;this.terrainKey=null;if(this.scenario){this.setScenario(this.scenario,this.selected,this.model);this.updateSnapshot(this.snapshot);}}
@@ -190,6 +202,14 @@ export class MapView {
       }
     }
     if(this.markers.has(this.selected))this.selectedMarker.position.copy(this.markers.get(this.selected).position);
+    if(this.sensorSphere){const unit=this.markers.get(this.selected)?.unit,state=snapshot.units.find(u=>u.id===this.selected);if(state)this.sensorSphere.position.copy(this.world({...state.position,z:state.position.z+(unit.sensor.mountHeight??(unit.domain==='ground'?2:0))}));}
+    const detected=new Set(snapshot.mission?.events.map(e=>e.targetId)??[]);
+    for(const [id,label] of this.labels){label.classList.toggle('detected',detected.has(id));label.title=detected.has(id)?'探知済み':'';}
+    disposal(this.detectionGroup);
+    for(const event of snapshot.mission?.events.slice(-3)??[]) {
+      const geometry=new THREE.BufferGeometry().setFromPoints([this.world(event.observerPosition,15),this.world(event.targetPosition,15)]);
+      this.detectionGroup.add(new THREE.Line(geometry,new THREE.LineBasicMaterial({color:'#83e5ae',transparent:true,opacity:.8,depthTest:false})));
+    }
     this.latestTime=snapshot.time;disposal(this.trails);
     for(const unit of this.scenario.units) {
       if(this.scenario.units.length>80 && unit.id!==this.selected)continue;
