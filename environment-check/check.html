@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SimSim 環境確認</title><link rel="stylesheet" href="check.css"><script src="check.js" defer></script></head>
+<body><main>
+<p class="eyebrow">SIMSIM / ENVIRONMENT CHECK</p>
+<h1>ブラウザ環境の動作確認</h1>
+<p>このフォルダの全ファイルを社内ポータルの同じフォルダに配置し、HTTP／HTTPSのURLから開いてください。外部CDNへのアクセスやサーバへの書き込みは行いません。</p>
+<p id="summary" role="status">JavaScript起動待ち。この表示が変わらない場合は、check.jsの配置・配信・実行許可を確認してください。</p>
+<div class="toolbar"><button id="run" disabled>確認を再実行</button><button id="copy" disabled>結果をコピー</button><span id="copy-status" role="status"></span></div>
+<div class="cards">
+<section><h2>通常のWeb Worker</h2><strong id="classic-status">待機</strong><p id="classic-detail">worker.jsを読み込み、数値配列の計算と転送を確認します。</p></section>
+<section><h2>module Worker</h2><strong id="module-status">待機</strong><p id="module-detail">同じファイルをmodule形式で実行します。</p></section>
+<section><h2>WebGL 2</h2><strong id="gl2-status">待機</strong><p id="gl2-detail">シェーダを実行して三角形を描画し、画素を検証します。</p><div id="gl2-preview" class="preview"></div></section>
+<section><h2>WebGL 1</h2><strong id="gl1-status">待機</strong><p id="gl1-detail">旧方式の対応も別に確認します。</p><div id="gl1-preview" class="preview"></div></section>
+<section class="wide"><h2>静的JSONファイルの読み込み</h2><strong id="json-status">待機</strong><p id="json-detail">同じフォルダのprobe.jsonを読み込みます。サーバ側処理は不要です。</p></section>
+</div>
+<h2>結果の読み方</h2>
+<p><b>通常のWorkerとWebGL 2が成功</b>なら、並列計算と現行Three.jsを使った描画の基本動作を確認できています。module Workerは構成選択の参考です。WebGL 1だけの成功では、現行Three.jsの条件を満たしません。</p>
+<p>失敗した場合は、下の結果とブラウザのF12 → Consoleに表示されたエラーを確認してください。画面性能や実際のSimSim全体の動作は、次の試作で確認します。</p>
+<label for="report">確認結果（選択してコピーできます）</label><textarea id="report" readonly rows="15" spellcheck="false"></textarea>
+<p class="note">結果にはホスト名・ポータルのURLを含めません。エラー文にパス等が含まれる場合があります。</p>
+</main></body></html>
