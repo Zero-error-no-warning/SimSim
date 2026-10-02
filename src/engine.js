@@ -1,4 +1,4 @@
-import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.4';
+import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.4.1';
 import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.2';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;

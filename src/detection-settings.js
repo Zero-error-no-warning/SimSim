@@ -1,4 +1,4 @@
-import {variableErrors} from './parameters.js?v=0.4';
+import {variableErrors} from './parameters.js?v=0.4.1';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
@@ -31,7 +31,7 @@ export function analysisErrors(a,duration) {
   if(a===undefined)return [];
   if(!a||typeof a!=='object'||Array.isArray(a))return ['analysisはオブジェクトにしてください。'];
   const errors=[];
-  if(typeof a.groupId!=='string')errors.push('analysis.groupIdは文字列にしてください。');
+  if(a.groupId!==undefined&&typeof a.groupId!=='string')errors.push('analysis.groupIdは文字列にしてください。');
   if(a.groupId&&(!Array.isArray(a.counts)||!a.counts.length||a.counts.length>12||a.counts.some(n=>!Number.isInteger(n)||n<0||n>2000)||new Set(a.counts).size!==a.counts.length))errors.push('analysis.countsは重複しない0～2000の整数（最大12条件）にしてください。');
   if(!Number.isInteger(a.trials)||a.trials<1||a.trials>2000)errors.push('analysis.trialsは1～2000にしてください。');
   if(!finite(a.step)||a.step<1||a.step>300||Math.ceil(duration/a.step)>20000)errors.push('判定間隔は1～300秒、シナリオ全体で2万区間以内にしてください。');

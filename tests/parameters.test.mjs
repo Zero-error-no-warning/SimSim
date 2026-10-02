@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {clone,Simulation,validateScenario} from '../src/engine.js';
 import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js';
-import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey} from '../src/parameters.js';
+import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js';
 import {numericScale} from '../src/chart-scale.js';
 const source=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.jsn',import.meta.url),'utf8'));
 const range={target:'group:observers',parameter:'extent.sense.radius',values:[300,900]};
@@ -10,7 +10,9 @@ const speed={target:'unit:hostile-transit',parameter:'rate.movement.speed',distr
 // Obtain the fixture's actual target ID rather than relying on its display name.
 speed.target='unit:'+source.units.find(u=>u.faction==='hostile').id;
 const signature={target:speed.target,parameter:'extent.signature.coefficient',distribution:'triangular',min:.2,max:2,mode:1};
-source.analysis={...source.analysis,counts:[0,100],trials:5,factors:[range],uncertainties:[speed,signature]};
+source.analysis={...source.analysis,groupId:'observers',counts:[0,100],trials:5,factors:[range],uncertainties:[speed,signature]};
+const unified=clone(source);unified.analysis=normalizedAnalysis(source.analysis);assert(!('groupId' in unified.analysis)&&!('counts' in unified.analysis));assert.deepEqual(analysisConditions(unified).map(c=>c.id),analysisConditions(source).map(c=>c.id));
+for(const condition of analysisConditions(source))assert.deepEqual(trialScenario(unified,analysisConditions(unified).find(c=>c.id===condition.id),4).scenario.groups,trialScenario(source,condition,4).scenario.groups);
 const frozen=clone(source),prepared=prepareAnalysis(source);assert.equal(prepared.conditions.length,4);
 for(let trial=0;trial<50;trial++){
   const samples=prepared.conditions.map(c=>trialScenario(source,c,trial));

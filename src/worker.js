@@ -1,5 +1,5 @@
-import {Simulation} from './engine.js?v=0.4';
-import {detectionSteps,snapshotMission} from './detection.js?v=0.4';
+import {Simulation} from './engine.js?v=0.4.1';
+import {detectionSteps,snapshotMission} from './detection.js?v=0.4.1';
 let simulation,result,missionError,latest,generation=0;
 function send() {
   if(!simulation||!latest)return;

@@ -35,7 +35,7 @@ assert(Math.abs(contactProbability({...sensor,probabilityPerMinute:.5},0,2,60)-.
 const interval=wilson(50,100);assert(Math.abs(interval.low-.4038315303659957)<1e-10);assert(Math.abs(interval.high-.5961684696340044)<1e-10);
 assert(wilson(0,100).high>0&&wilson(100,100).low<1);assert.equal(wilson(0,0).rate,null);
 const malformed=clone(scenario);malformed.units[0].sensor.domains=[];assert.throws(()=>validateScenario(malformed),/domains/);
-const demo=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.jsn',import.meta.url),'utf8'));prepareAnalysis(demo);
+const demo=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.jsn',import.meta.url),'utf8'));demo.analysis.groupId='observers';demo.analysis.counts=demo.analysis.factors.shift().values;prepareAnalysis(demo);
 const start=performance.now(),summary=[];
 for(const count of demo.analysis.counts){const trials=[];for(let trial=0;trial<50;trial++){const model=new Simulation(scenarioForCount(demo,'observers',count,trial)),r=runDetection(model);trials.push({...r,trial});}summary.push(summarizeRow(count,trials));}
 for(let trial=0;trial<50;trial++){for(let i=1;i<summary.length;i++){const a=summary[i-1].trials[trial],b=summary[i].trials[trial];assert(!a.success||b.success,'Adding observers must preserve successful detections with paired streams');if(a.success)assert(b.successTime<=a.successTime);}}

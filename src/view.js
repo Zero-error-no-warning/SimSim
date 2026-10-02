@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
 import {OrbitControls} from '../vendor/three/OrbitControls.js';
-import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.4';
+import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.4.1';
 
 const COLORS={friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'};
 const disposal = group => {

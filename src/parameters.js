@@ -24,6 +24,12 @@ export const PARAMETERS=[
 ];
 export const parameter=key=>PARAMETERS.find(p=>p.key===key);
 export const bindingKey=b=>JSON.stringify([b.target,b.parameter]);
+// Legacy count controls are converted to an ordinary comparison factor for editing.
+export function normalizedAnalysis(a) {
+  const next=JSON.parse(JSON.stringify(a));
+  next.factors=[...(a.groupId?[{target:'group:'+a.groupId,parameter:'capacity.population',values:[...a.counts].sort((x,y)=>x-y)}]:[]),...(next.factors??[])];
+  delete next.groupId;delete next.counts;return next;
+}
 const copy=v=>JSON.parse(JSON.stringify(v));
 function resolve(s,target,p) {
   if(target==='scenario'){if(p.scope!=='scenario'||!s.mission)throw new Error('成功条件を設定してください。');return s;}
@@ -43,10 +49,10 @@ export function writeParameter(s,b,value) {
 }
 export function availableBindings(s) {
   const out=[];
-  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
+  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
   for(const u of s.units??[])add('unit:'+u.id,u.name,u,'unit');
-  for(const g of s.groups??[])add('group:'+g.id,g.name+'〔群〕',g.template,'group');
-  if(s.mission)for(const p of PARAMETERS.filter(p=>p.scope==='scenario'))out.push({target:'scenario',parameter:p.key,label:p.label+' ('+p.unit+')'});
+  for(const g of s.groups??[])add('group:'+g.id,g.name,g.template,'group');
+  if(s.mission)for(const p of PARAMETERS.filter(p=>p.scope==='scenario'))out.push({target:'scenario',targetLabel:'シナリオ・ミッション',parameter:p.key,label:p.label+' ('+p.unit+')'});
   return out;
 }
 export function formatBinding(s,b,value) {
@@ -59,7 +65,8 @@ export function variableErrors(a,duration) {
   const errors=[],used=new Set();
   if(a.groupId)used.add(bindingKey({target:'group:'+a.groupId,parameter:'capacity.population'}));
   for(const [kind,list] of [['factors',a.factors??[]],['uncertainties',a.uncertainties??[]]]) {
-    if(!Array.isArray(list)||list.length>8){errors.push(kind+'は最大8変数にしてください。');continue;}
+    const limit=kind==='factors'?9:8;
+    if(!Array.isArray(list)||list.length>limit){errors.push(kind+'は最大'+limit+'変数にしてください。');continue;}
     for(const b of list){
       const p=parameter(b?.parameter),key=bindingKey(b??{});
       if(!p||typeof b.target!=='string'){errors.push('未対応の変数または対象です。');continue;}

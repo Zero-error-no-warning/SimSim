@@ -1,7 +1,7 @@
-import {restoreAnalysisResult} from './detection.js?v=0.4';
-import {AnalysisUI} from './analysis-ui.js?v=0.4';
-import {MapView} from './view.js?v=0.4';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.4';
+import {restoreAnalysisResult} from './detection.js?v=0.4.1';
+import {AnalysisUI} from './analysis-ui.js?v=0.4.1';
+import {MapView} from './view.js?v=0.4.1';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.4.1';
 
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
@@ -10,7 +10,7 @@ const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
 const STATUS_NAMES={idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=0.4',import.meta.url),{type:'module',name:'SimSim simulation'});
+const worker=new Worker(new URL('./worker.js?v=0.4.1',import.meta.url),{type:'module',name:'SimSim simulation'});
 let workerReady=false;
 const timeout=setTimeout(()=>{if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');},12000);
 worker.onerror=event=>{event.preventDefault();pause();clearTimeout(timeout);showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));};

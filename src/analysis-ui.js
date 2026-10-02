@@ -1,14 +1,14 @@
-import {numericScale} from './chart-scale.js?v=0.4';
-import {clone,validateScenario} from './engine.js?v=0.4';
-import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter} from './parameters.js?v=0.4';
-import {ParameterEditor} from './parameter-ui.js?v=0.4';
+import {numericScale} from './chart-scale.js?v=0.4.1';
+import {clone,validateScenario} from './engine.js?v=0.4.1';
+import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.4.1';
+import {ParameterEditor} from './parameter-ui.js?v=0.4.1';
 const $=id=>document.getElementById(id);
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({getScenario,getSnapshot,commit,replay,seek,showError,notify}) {
     Object.assign(this,{getScenario,getSnapshot,commit,replay,seek,showError,notify});
-    this.worker=new Worker(new URL('./analysis-worker.js?v=0.4',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
+    this.worker=new Worker(new URL('./analysis-worker.js?v=0.4.1',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
     this.parameters=new ParameterEditor(()=>{try{this.commit(this.readConfig(),'分析の変数設定を変更しました。');}catch(error){showError(error.message);}this.renderConfig();});
     this.runId=0;this.running=false;this.rows=[];this.base=null;
     this.worker.onmessage=({data})=>{
@@ -24,7 +24,7 @@ export class AnalysisUI {
     $('analysis-close').onclick=()=>$('analysis-dialog').close();
     $('parameter-demo').onclick=()=>document.dispatchEvent(new Event('load-parameter-demo'));
     $('detection-demo').onclick=()=>document.dispatchEvent(new Event('load-detection-demo'));
-    for(const id of ['mission-enabled','mission-observer','mission-target','mission-join','mission-deadline','analysis-group','analysis-counts','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
+    for(const id of ['mission-enabled','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
       if(id==='mission-observer'&&$('mission-observer').value===$('mission-target').value)$('mission-target').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-observer').value);
       if(id==='mission-target'&&$('mission-observer').value===$('mission-target').value)$('mission-observer').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-target').value);
       try{const next=this.readConfig(id);this.commit(next,'成功条件・分析設定を変更しました。');}catch(error){showError(error.message);this.renderConfig();}
@@ -47,19 +47,17 @@ export class AnalysisUI {
     $('analysis-progress').textContent='保存済み結果（再計算なし） · '+this.completed+' / '+this.planned+'試行';$('analysis-bar').max=this.planned;$('analysis-bar').value=this.completed;this.renderConfig();this.renderResults();this.buttons();$('analysis-dialog').showModal();
   }
   renderConfig() {
-    const s=this.getScenario(),m=s.mission??{observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:s.duration},a=s.analysis??{groupId:s.groups?.[0]?.id??'',counts:[0,100,300,1000],trials:100,step:10,requiredRate:.95};
+    const s=this.getScenario(),m=s.mission??{observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:s.duration},a=normalizedAnalysis(s.analysis??{factors:[],trials:100,step:10,requiredRate:.95});
     $('mission-enabled').checked=!!s.mission;$('mission-observer').value=m.observerFaction;$('mission-target').value=m.targetFaction;$('mission-join').value=m.join;$('mission-deadline').value=+(m.deadline/60).toFixed(3);$('mission-deadline').dataset.display=$('mission-deadline').value;$('mission-deadline').dataset.seconds=m.deadline;$('mission-deadline').title=m.deadline+'秒';$('mission-deadline').max=s.duration/60;
     $('mission-target-note').textContent=m.targetIds?'対象ID指定: '+m.targetIds.join(', ')+'（対象陣営の変更で解除）':'対象側の陣営に属する全ユニットを評価します。';
-    $('analysis-group').replaceChildren(new Option('個数は固定（追加変数だけを比較）',''));for(const g of s.groups??[])$('analysis-group').append(new Option(g.name+' ('+g.count+'個)',g.id));
-    if(!(s.groups??[]).some(g=>g.id===a.groupId)&&this.base?.groups?.some(g=>g.id===a.groupId))$('analysis-group').append(new Option('分析時の群（現在は除外）',a.groupId));
-    $('analysis-group').value=a.groupId;$('analysis-counts').value=(a.counts??[]).join(', ');$('analysis-counts').disabled=!a.groupId;$('analysis-trials').value=a.trials;$('analysis-step').value=a.step;$('analysis-required').value=a.requiredRate*100;this.parameters.render(s);const conditions=analysisConditions({...s,analysis:a});$('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
+    $('analysis-trials').value=a.trials;$('analysis-step').value=a.step;$('analysis-required').value=a.requiredRate*100;this.parameters.render({...s,analysis:a});const conditions=analysisConditions({...s,analysis:a});$('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
   }
   readConfig(changedId='') {
     const next=clone(this.getScenario());
     if($('mission-enabled').checked){next.mission={...next.mission,type:'detect',observerFaction:$('mission-observer').value,targetFaction:$('mission-target').value,join:$('mission-join').value,deadline:$('mission-deadline').value===$('mission-deadline').dataset.display?Number($('mission-deadline').dataset.seconds):Math.round(Number($('mission-deadline').value)*60*1e6)/1e6};if(changedId==='mission-target')delete next.mission.targetIds;}
     else delete next.mission;
-    next.analysis={...next.analysis,...this.parameters.read(),groupId:$('analysis-group').value,counts:$('analysis-counts').value.split(/[,、\s]+/).filter(Boolean).map(Number),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100};
-    if(changedId==='analysis-group'&&next.analysis.groupId&&!next.analysis.counts.length)next.analysis.counts=[0,next.groups.find(g=>g.id===next.analysis.groupId).count];
+    next.analysis={...next.analysis,...this.parameters.read(),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100};
+    delete next.analysis.groupId;delete next.analysis.counts;
     return validateScenario(next);
   }
   start() {
