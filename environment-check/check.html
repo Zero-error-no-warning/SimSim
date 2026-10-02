@@ -12,7 +12,7 @@
 <section><h2>module Worker</h2><strong id="module-status">待機</strong><p id="module-detail">同じファイルをmodule形式で実行します。</p></section>
 <section><h2>WebGL 2</h2><strong id="gl2-status">待機</strong><p id="gl2-detail">シェーダを実行して三角形を描画し、画素を検証します。</p><div id="gl2-preview" class="preview"></div></section>
 <section><h2>WebGL 1</h2><strong id="gl1-status">待機</strong><p id="gl1-detail">旧方式の対応も別に確認します。</p><div id="gl1-preview" class="preview"></div></section>
-<section class="wide"><h2>静的JSONファイルの読み込み</h2><strong id="json-status">待機</strong><p id="json-detail">同じフォルダのprobe.jsonを読み込みます。サーバ側処理は不要です。</p></section>
+<section class="wide"><h2>静的JSONファイルの読み込み</h2><strong id="json-status">待機</strong><p id="json-detail">同じフォルダのprobe.jsnを読み込みます。中身はJSON形式、拡張子は.jsnです。サーバ側処理は不要です。</p></section>
 </div>
 <h2>結果の読み方</h2>
 <p><b>通常のWorkerとWebGL 2が成功</b>なら、並列計算と現行Three.jsを使った描画の基本動作を確認できています。module Workerは構成選択の参考です。WebGL 1だけの成功では、現行Three.jsの条件を満たしません。</p>

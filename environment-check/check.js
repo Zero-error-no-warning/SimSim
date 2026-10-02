@@ -14,7 +14,7 @@
     updateReport();
   });
   function updateReport() {
-    report.value = ['SimSim environment check v1', new Date().toISOString(),
+    report.value = ['SimSim environment check v1.1', new Date().toISOString(),
       'Protocol: ' + location.protocol,
       'Secure context: ' + window.isSecureContext,
       'Browser: ' + navigator.userAgent,
@@ -140,16 +140,16 @@
     });
   }
   async function jsonTest() {
-    setResult('json','pending','probe.jsonを読み込んでいます…');
+    setResult('json','pending','probe.jsnを読み込んでいます…');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(new URL('probe.json', document.baseURI), {signal:controller.signal,cache:'no-store'});
+      const response = await fetch(new URL('probe.jsn', document.baseURI), {signal:controller.signal,cache:'no-store'});
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const data = await response.json();
       if (data.simsimEnvironmentProbe !== 1) throw new Error('JSONの内容が想定と異なります。');
       setResult('json','ok','同じフォルダの静的JSONを読み込めました。');
-    } catch (error) { setResult('json','fail',error.name + ': ' + error.message + '\nprobe.jsonの配置、配信、CSPのconnect-srcを確認してください。'); }
+    } catch (error) { setResult('json','fail',error.name + ': ' + error.message + '\nprobe.jsnの配置、配信、CSPのconnect-srcを確認してください。'); }
     finally {clearTimeout(timer);}
   }
   async function run() {

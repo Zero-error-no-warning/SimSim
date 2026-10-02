@@ -15,6 +15,10 @@ HTML・CSS・JavaScriptで動作するミッションシミュレーションの
 
 通常のWorker・WebGL 2・JSON読み込みの成功で、想定する静的アプリ構成の基本動作を確認できます。module Workerは構成選択の参考です。大量試行の性能やSimSim全体の動作は別途検証します。
 
+## 社内ポータルでのデータ形式
+
+`.json` の配信が禁止されている環境に合わせ、確認用データは `probe.jsn` としています。中身はJSON形式です。シナリオや地形メタデータも、同じ方針で `.jsn` を使用する予定です。
+
 一括取得は GitHub の **Code → Download ZIP** を使ってください。
 
 ## GitHub Pages
