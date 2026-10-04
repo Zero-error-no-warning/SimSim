@@ -2,7 +2,9 @@
 
 静的HTTP／HTTPSサーバで動作する、ミッションシミュレーションの空間・時間基盤。
 
-このブランチは `feat/shared-behavior-replay`。mainの0.6.0から独立した開発版です。GitHub Pagesの現行URLはmainを表示するため、このブランチの確認には **Code → Download ZIP** でこのブランチを取得し、静的HTTPサーバへ配置してください。
+このブランチは `feat/shared-behavior-replay`。mainの0.6.0から独立した開発版です。GitHub Pagesはこのブランチのルートを公開しています。社内での確認には **Code → Download ZIP** でこのブランチを取得し、静的HTTPサーバへ配置してください。
+
+2026-10-04の [全体レビューと再構成計画](docs/architecture-audit-2026-10-04.md) に、現状の不整合、残す・統合する・廃止するコード、改修順序をまとめています。新旧の実行方式が混在しており、レビューで確認した問題はまだ修正していません。
 
 ## 開発版の最初の操作
 
@@ -28,7 +30,7 @@ python3 -m http.server 8000
 
 `http://localhost:8000/` を開く。HTMLファイルの直接起動（file:）は対象外。
 
-GitHub Pages: `Settings → Pages → Deploy from a branch → main → /(root)`。標準URLは https://zero-error-no-warning.github.io/SimSim/ 。公開設定が有効になっている場合、このURLで利用できる。
+GitHub Pages: `Settings → Pages → Deploy from a branch → feat/shared-behavior-replay → /(root)`。標準URLは https://zero-error-no-warning.github.io/SimSim/ 。
 
 ## できること
 
