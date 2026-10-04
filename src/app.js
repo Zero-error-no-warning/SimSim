@@ -1,9 +1,12 @@
-import {definition,moveDefinition,editWaypoint,removeDefinition,translate,circleRoute} from './editor.js?v=0.6.0';
-import {ActionUI} from './action-ui.js?v=0.6.0';
-import {restoreAnalysisResult} from './detection.js?v=0.6.0';
-import {AnalysisUI} from './analysis-ui.js?v=0.6.0';
-import {MapView} from './view.js?v=0.6.0';
-import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.6.0';
+import {BehaviorUI} from './behavior-ui.js?v=0.7.0-dev';
+import {createSimulation} from './recorded-engine.js?v=0.7.0-dev';
+import {hasSharedBehaviors,sharedAssignment,NODE_KINDS} from './shared-settings.js?v=0.7.0-dev';
+import {definition,moveDefinition,editWaypoint,removeDefinition,translate,circleRoute} from './editor.js?v=0.7.0-dev';
+import {ActionUI} from './action-ui.js?v=0.7.0-dev';
+import {restoreAnalysisResult} from './detection.js?v=0.7.0-dev';
+import {AnalysisUI} from './analysis-ui.js?v=0.7.0-dev';
+import {MapView} from './view.js?v=0.7.0-dev';
+import {Simulation, Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS} from './engine.js?v=0.7.0-dev';
 
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=id=>document.getElementById(id);
@@ -12,22 +15,25 @@ const SYMBOLS={ground:'■',surface:'◆',subsurface:'●',air:'▲'};
 const STATUS_NAMES={standby:'指令待ち',preparing:'出発準備中',idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'};
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=0.6.0',import.meta.url),{type:'module',name:'SimSim simulation'});
+const worker=new Worker(new URL('./worker.js?v=0.7.0-dev',import.meta.url),{type:'module',name:'SimSim simulation'});
 let workerReady=false;
 const timeout=setTimeout(()=>{if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');},12000);
 worker.onerror=event=>{event.preventDefault();pause();clearTimeout(timeout);showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));};
 worker.onmessage=({data})=>{
   if(data.revision!==revision)return;
+  if(data.type==='recordingProgress'){$('recording-info').textContent='計算中 '+Math.round(data.time/data.duration*100)+'%';return;}
+  if(data.type==='recordingExport'){downloadRecording(data.payload);return;}
   if(data.type==='error'){pause();showError(data.message);return;}
   if(data.request<lastAccepted)return;
   lastAccepted=data.request;workerReady=true;clearTimeout(timeout);snapshot=data.snapshot;
   $('play').disabled=!!snapshot.actionsPending;$('step').disabled=!!snapshot.actionsPending;$('timeline').disabled=!!snapshot.actionsPending;
+  $('record-run').disabled=!hasSharedBehaviors(scenario)||!!snapshot.recordingRunning;$('record-cancel').disabled=!snapshot.recordingRunning;$('record-save').disabled=!snapshot.recording;$('recording-info').textContent=snapshot.recording?'記録済み · '+snapshot.recording.frames+'フレーム · '+(snapshot.recording.bytes/1048576).toFixed(2)+' MiB · 再生時の計算なし':snapshot.recordingPending?'未計算 · 「計算・記録」を押してください':'';
   view.updateSnapshot(snapshot);updateTelemetry();updateClock();analysisUI.onSnapshot();
 };
 const view=new MapView($('map'),{
   onSelect:id=>select(id),
   onMapClick:point=>handleMapClick(point),
-  onEdit:edit=>{if(edit.selectOnly){selectedWaypoint={id:edit.id,index:edit.index};notify('経由点 '+(edit.index+1)+' を選択しました。Deleteで削除、ドラッグで移動できます。');return;}selectedWaypoint=edit.index>=0?{id:edit.id,index:edit.index}:null;commit(next=>edit.index<0?moveDefinition(next,edit.id,edit.delta):editWaypoint(next,edit.id,edit.index,edit.point),edit.index<0?(currentUnit()?.groupId?'群全体を移動しました。':'ユニットと経路を移動しました。'):'経由点を移動しました。');},
+  onEdit:edit=>{if(edit.selectOnly){selectedWaypoint={id:edit.id,index:edit.index};notify('経由点 '+(edit.index+1)+' を選択しました。Deleteで削除、ドラッグで移動できます。');return;}selectedWaypoint=edit.index>=0?{id:edit.id,index:edit.index}:null;commit(next=>{const a=sharedAssignment(next,edit.id);if(a){if(edit.index<0)for(const p of a.route){p.x+=edit.delta.x;p.y+=edit.delta.y;}else a.route[edit.index+1]={...edit.point};}else if(edit.index<0)moveDefinition(next,edit.id,edit.delta);else editWaypoint(next,edit.id,edit.index,edit.point);},edit.index<0?(currentUnit()?.groupId?'群全体を移動しました。':'ユニットと経路を移動しました。'):'経由点を移動しました。');},
   onContext:context=>openMapMenu(context),onDragState:(message,warning)=>notify(message,warning),
   onHover:point=>{if(point){$('cursor-position').textContent='x '+(point.x/1000).toFixed(2)+' km / y '+(point.y/1000).toFixed(2)+' km';}else $('cursor-position').textContent='';if(pendingPlacement||editMode?.startsWith('circle')){$('placement-hint').hidden=!point;if(point){const p=view.screenPoint(view.world(point));$('placement-hint').style.transform='translate('+p.x+'px,'+p.y+'px)';$('placement-hint').textContent=pendingPlacement?'＋ '+pendingPlacement.name:circleCenter?'半径 '+(Math.hypot(point.x-circleCenter.x,point.y-circleCenter.y)/1000).toFixed(2)+' km':'周回の中心';if(circleCenter)view.circlePreview(circleCenter,point,definition(scenario,selected)?.unit);}}}
 
@@ -35,9 +41,12 @@ const view=new MapView($('map'),{
 
 const actionUI=new ActionUI({getScenario:()=>scenario,getSelected:()=>currentUnit(),commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,pause});
 const analysisUI=new AnalysisUI({getScenario:()=>scenario,getSnapshot:()=>snapshot,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,notify,
-  replay:(next,message)=>{const previous=clone(scenario);applyScenario(next,{keepResults:true,message});undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();const target=model.scenario.units.find(u=>u.faction===next.mission?.targetFaction);if(target)select(target.id);},
+  replay:(next,message)=>{const previous=clone(scenario);applyScenario(next,{keepResults:true,autoRecord:true,message});undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();const target=model.scenario.units.find(u=>u.faction===next.mission?.targetFaction);if(target)select(target.id);},
   seek:(value,id)=>{setAuthoring(false);setEditMode(null);if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();}
 });
+const behaviorUI=new BehaviorUI({getScenario:()=>scenario,getSelected:()=>currentUnit(),commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message),showError,pickRoute:()=>{behaviorUI.startRoute();setEditMode('shared-route');notify('地図を順にクリックして共有周回経路を指定。3点以上でEscを押して編集画面へ戻ります。');},pickBase:()=>{setEditMode('shared-base');notify('帰投地点を地図でクリックしてください。');}});
+$('record-run').onclick=()=>{pause();time=0;post('calculate');};$('record-cancel').onclick=()=>post('cancelRecording');$('record-save').onclick=()=>post('exportRecording');
+function downloadRecording(payload){const blob=new Blob([JSON.stringify(payload)],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SimSim-recording.jsn';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);notify('再生記録を保存しました。開くと再計算せず再生できます。');}
 function renderSensor(prefix,unit) {
   const s=unit.sensor??{enabled:false,range:1000,probabilityPerMinute:.5,domains:['ground','surface','subsurface','air'],terrainLOS:false,mountHeight:2};
   $(prefix+'-sensor-enabled').checked=s.enabled;$(prefix+'-sensor-range').value=s.range/1000;$(prefix+'-sensor-probability').value=s.probabilityPerMinute*100;$(prefix+'-sensor-los').checked=s.terrainLOS;$(prefix+'-sensor-height').value=s.mountHeight??(unit.domain==='ground'?2:0);$(prefix+'-detectability').value=unit.detectability??1;
@@ -53,10 +62,10 @@ for(const input of document.querySelectorAll('[id^="unit-sensor-"],#unit-detecta
 function notify(message,warning=false){$('notice').textContent=message;$('notice').classList.toggle('warning',warning);}
 function showError(message){$('error-text').textContent=message;if(!$('error-dialog').open)$('error-dialog').showModal();}
 function currentUnit(){return model?.scenario.units.find(u=>u.id===selected);}
-function post(type='seek'){worker.postMessage({type,revision,request:++request,time,scenario:type==='scenario'?scenario:undefined});}
+function post(type='seek',extra={}){worker.postMessage({type,revision,request:++request,time,scenario:type==='scenario'?scenario:undefined,...extra});}
 function pause(){playing=false;$('play').textContent='▶ 再生';}
-function applyScenario(next,{resetHistory=false,fit=false,message='シナリオを更新しました。',keepResults=false}={}) {
-  closeMapMenu();const checked=validateScenario(next),compiled=new Simulation(checked);
+function applyScenario(next,{resetHistory=false,fit=false,message='シナリオを更新しました。',keepResults=false,recording=null,autoRecord=false}={}) {
+  closeMapMenu();const checked=validateScenario(next),compiled=createSimulation(checked);
   scenario=checked;model=compiled;pause();time=0;revision++;lastAccepted=0;
   if(resetHistory){undo.length=0;redo.length=0;dirty=false;}
   if(selectedWaypoint&&(!definition(scenario,selectedWaypoint.id)||selectedWaypoint.index>=definition(scenario,selectedWaypoint.id).unit.route.length))selectedWaypoint=null;
@@ -68,7 +77,7 @@ function applyScenario(next,{resetHistory=false,fit=false,message='シナリオ�
   $('timeline').max=scenario.duration;$('duration-label').textContent=+(scenario.duration/60).toFixed(1)+'分';
   const t=scenario.terrain;$('terrain-info').textContent=((t.columns-1)*t.spacing/1000).toFixed(0)+' × '+((t.rows-1)*t.spacing/1000).toFixed(0)+' km · 格子 '+t.spacing+' m';
   document.querySelector('.map-title').textContent=scenario.title;
-  analysisUI.onScenario({keepResults});analysisUI.onSnapshot();renderUnits();renderInspector();updateClock();updateTelemetry();updateUndo();setEditMode(editMode&&selected?editMode:null);post('scenario');
+  analysisUI.onScenario({keepResults});analysisUI.onSnapshot();renderUnits();renderInspector();updateClock();updateTelemetry();updateUndo();setEditMode(editMode&&selected?editMode:null);post('scenario',{recording,autoRecord});
   const invalid=snapshot.units.filter(u=>u.error).length;
   notify(message+(invalid?' 地形制約のある経路: '+invalid+'件。対象ユニットの設定欄で理由を確認できます。':''),invalid>0);
 }
@@ -138,13 +147,14 @@ function renderInspector() {
     }
     const remove=document.createElement('button');remove.textContent='×';remove.title='経由点'+(index+1)+'を削除';remove.addEventListener('click',()=>commit(next=>next.units.find(u=>u.id===selected).route.splice(index,1),'経由点を削除しました。'));row.append(remove);$('route-table').append(row);
   });
-  $('clear-route').disabled=!unit.route.length;
+  const a=sharedAssignment(scenario,selected);if(a){$('route-table').replaceChildren();const note=document.createElement('p');note.className='route-help';note.textContent='共有経路: '+a.route.length+'点。地図上のドラッグは共有経路へ適用されます。経路・帰投先は「共有挙動」で設定します。';$('route-table').append(note);}$('place').disabled=!!a;$('route-edit').disabled=!!a;$('route-mode').disabled=!!a;
+  $('clear-route').disabled=!!a||!unit.route.length;
 }
 function updateTelemetry() {
   const state=snapshot?.units.find(u=>u.id===selected);if(!state)return;
   const detection=snapshot?.mission?.events.find(e=>e.targetId===selected);$('state-detection').textContent=detection?'探知 '+(detection.time/60).toFixed(1)+'分':snapshot?.mission?'未探知':'—';
-  $('state-motion').textContent=(state.actualSpeed*3.6).toFixed(1)+' km/h / '+(state.startDelay===null?'出発未定':state.startDelay.toFixed(1)+' s');
-  $('state-status').textContent=STATUS_NAMES[state.status];$('state-position').textContent=(state.position.x/1000).toFixed(2)+' / '+(state.position.y/1000).toFixed(2)+' km';
+  $('state-motion').textContent=(state.actualSpeed*3.6).toFixed(1)+' km/h / '+(state.startDelay==null?'—':state.startDelay.toFixed(1)+' s');
+  $('state-status').textContent=STATUS_NAMES[state.status]+(state.nodeId?' · '+(scenario.behaviors?.find(g=>g.id===state.behaviorId)?.nodes.find(n=>n.id===state.nodeId)?.kind?NODE_KINDS[scenario.behaviors.find(g=>g.id===state.behaviorId).nodes.find(n=>n.id===state.nodeId).kind]:state.nodeId):'');$('state-position').textContent=(state.position.x/1000).toFixed(2)+' / '+(state.position.y/1000).toFixed(2)+' km';
   $('state-height').textContent=state.position.z<scenario.terrain.seaLevel?'深度 '+(scenario.terrain.seaLevel-state.position.z).toFixed(0)+' m':state.position.z.toFixed(0)+' m';
   $('state-distance').textContent=(state.distance/1000).toFixed(2)+' km';$('state-route').textContent=(state.routeDistance/1000).toFixed(2)+' km';
   $('unit-warning').hidden=!state.error;$('unit-warning').textContent=state.error?(state.errorAt+'：'+state.error+'\n到達可能な区間まで移動し、その地点で停止します。'):'';
@@ -228,6 +238,7 @@ function beginPlacement(domain,copy=null){
   setEditMode('create');pendingPlacement=copy?{...clone(copy),name:(copy.name+' コピー').slice(0,100)}:{domain,name:DOMAIN_NAMES[domain]+'ユニット'};view.placementUnit=copy?(copy.template??copy):{domain,initial:{z:domain==='air'?scenario.terrain.seaLevel+1500:domain==='subsurface'?scenario.terrain.seaLevel-120:scenario.terrain.seaLevel}};notify('地図上の置きたい場所をクリックしてください。Escで取り消せます。');
 }
 function handleMapClick(point){
+  if(editMode==='shared-route'){const n=behaviorUI.addRoutePoint(point);notify('共有周回経路 '+n+'点 · Escで編集画面へ戻る');return;}if(editMode==='shared-base'){setEditMode(null);behaviorUI.setBase(point);return;}
   if(editMode==='create'&&pendingPlacement){
     const p=pendingPlacement,isGroup=!!p.template,unit=isGroup?p.template:p;
     const z=unit.initial?.z??(unit.domain==='air'?Math.max(model.terrain.height(point.x,point.y),scenario.terrain.seaLevel)+1500:unit.domain==='subsurface'?scenario.terrain.seaLevel-120:scenario.terrain.seaLevel),checked=model.terrain.project({...point,z},unit.domain);
@@ -250,7 +261,7 @@ $('add').addEventListener('click',()=>beginPlacement($('template').value));
 $('authoring-toggle').onclick=()=>{setEditMode(null);setAuthoring(!authoring);setEditMode(null);};
 $('focus-selection').onclick=()=>view.focusSelected();
 $('map-operations').onclick=()=>{const rect=$('map-operations').getBoundingClientRect();openMapMenu({x:rect.left,y:rect.bottom,id:selected});};
-$('new-scenario').onclick=()=>{setEditMode(null);commit(next=>{next.title='新しいシナリオ';next.units=[];next.groups=[];delete next.mission;next.analysis={factors:[],uncertainties:[],trials:100,step:10,requiredRate:.9};},'現在の地形を使って新しいシナリオを作成しました。右クリックからユニットを配置できます。');setAuthoring(true);};
+$('new-scenario').onclick=()=>{setEditMode(null);commit(next=>{next.title='新しいシナリオ';next.units=[];next.groups=[];delete next.mission;next.behaviorAssignments=[];next.analysis={factors:[],uncertainties:[],trials:100,step:10,requiredRate:.9};},'現在の地形を使って新しいシナリオを作成しました。右クリックからユニットを配置できます。');setAuthoring(true);};
 function closeMapMenu(){$('map-menu').hidden=true;$('map-menu').replaceChildren();}
 function openMapMenu(context){
   closeMapMenu();if(context.id&&model.scenario.units.some(u=>u.id===context.id))select(context.id);const menu=$('map-menu'),d=definition(scenario,selected);
@@ -292,15 +303,15 @@ $('load').addEventListener('click',()=>$('file').click());
 $('file').addEventListener('change',async()=>{
   const file=$('file').files[0];if(!file)return;
   try {
-    if(file.size>15*1024*1024)throw new Error('ファイルは15MB以下にしてください。');
+    if(file.size>256*1024*1024)throw new Error('ファイルは256MB以下にしてください。');
     const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
-    const next=restored?.source??validateScenario(parsed);
+    const recording=parsed.type==='SimSim-recording'?parsed:null,next=restored?.source??validateScenario(recording?.source??parsed);
     if(dirty&&!confirm('保存していない変更があります。ファイルを読み込みますか？'))return;
-    setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,message:file.name+'を読み込みました。'});if(restored)analysisUI.loadResult(restored);
+    setEditMode(null);applyScenario(next,{resetHistory:true,fit:true,recording,message:file.name+'を読み込みました。'});if(restored)analysisUI.loadResult(restored);
   }catch(error){showError(error.message);}
   finally{$('file').value='';}
 });
-async function loadDemo(initial=false,file='demo.jsn') {
+async function loadDemo(initial=false,file='shared-demo.jsn') {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
     const response=await fetch(new URL('../data/'+file,import.meta.url),{signal:controller.signal});if(!response.ok)throw new Error('サンプル取得: HTTP '+response.status);
@@ -316,7 +327,7 @@ document.addEventListener('load-detection-demo',()=>loadDemo(false,'detection-de
 $('group-demo').addEventListener('click',()=>loadDemo(false,'group-demo.jsn').catch(error=>showError(error.message)));
 $('demo').addEventListener('click',()=>loadDemo().catch(error=>showError(error.message)));
 window.addEventListener('keydown',event=>{
-  if(event.key==='Escape'){view.cancelDrag();closeMapMenu();setEditMode(null);selectedWaypoint=null;}
+  if(event.key==='Escape'){if(editMode==='shared-route'){event.preventDefault();behaviorUI.finishRoute();}else if(editMode==='shared-base'){event.preventDefault();behaviorUI.dialog.showModal();}view.cancelDrag();closeMapMenu();setEditMode(null);selectedWaypoint=null;}
   if(document.querySelector('dialog[open]'))return;
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();$(event.shiftKey?'redo':'undo').click();}

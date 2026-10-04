@@ -14,9 +14,10 @@ export function removeDefinition(s,id) {
   if(s.mission?.targetIds){s.mission.targetIds=s.mission.targetIds.filter(id=>present.has(id));if(!s.mission.targetIds.length)delete s.mission;}
   if(s.mission?.responderIds){s.mission.responderIds=s.mission.responderIds.filter(id=>s.units.some(u=>u.id===id));if(!s.mission.responderIds.length)delete s.mission;}
   if(s.mission&&![...s.units,...(s.groups??[]).map(g=>g.template)].some(u=>u.faction===s.mission.targetFaction))delete s.mission;
+  if(s.behaviorAssignments)s.behaviorAssignments=s.behaviorAssignments.map(a=>({...a,targets:a.targets.filter(t=>t.startsWith('group:')?s.groups?.some(g=>g.id===t.slice(6)):s.units.some(u=>u.id===t.slice(5)))})).filter(a=>a.targets.length);
   if(s.analysis){
     if(s.analysis.groupId&&!s.groups?.some(g=>g.id===s.analysis.groupId)){delete s.analysis.groupId;delete s.analysis.counts;}
-    for(const key of ['factors','uncertainties'])s.analysis[key]=s.analysis[key]?.filter(b=>b.target==='scenario'?!!s.mission:b.target.startsWith('group:')?s.groups?.some(g=>g.id===b.target.slice(6)):s.units.some(u=>u.id===b.target.slice(5)));
+    for(const key of ['factors','uncertainties'])s.analysis[key]=s.analysis[key]?.filter(b=>b.target==='scenario'?!!s.mission:b.target.startsWith('assignment:')?s.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?s.groups?.some(g=>g.id===b.target.slice(6)):s.units.some(u=>u.id===b.target.slice(5)));
   }
 }
 export function circleRoute(center,edge,count=32){const radius=Math.hypot(edge.x-center.x,edge.y-center.y),angle=Math.atan2(edge.y-center.y,edge.x-center.x);if(radius<50||radius>50000)throw new Error('周回半径は50～50000mにしてください。');const points=Array.from({length:count},(_,i)=>({x:center.x+radius*Math.cos(angle+Math.PI*2*i/count),y:center.y+radius*Math.sin(angle+Math.PI*2*i/count),z:edge.z}));return {initial:points[0],route:points.slice(1),routeMode:'loop'};}

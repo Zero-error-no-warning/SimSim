@@ -1,15 +1,16 @@
-import {hasActions} from './action-settings.js?v=0.6.0';
-import {numericScale} from './chart-scale.js?v=0.6.0';
-import {clone,validateScenario} from './engine.js?v=0.6.0';
-import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.6.0';
-import {ParameterEditor} from './parameter-ui.js?v=0.6.0';
+import {hasSharedBehaviors} from './shared-settings.js?v=0.7.0-dev';
+import {hasActions} from './action-settings.js?v=0.7.0-dev';
+import {numericScale} from './chart-scale.js?v=0.7.0-dev';
+import {clone,validateScenario} from './engine.js?v=0.7.0-dev';
+import {trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis} from './parameters.js?v=0.7.0-dev';
+import {ParameterEditor} from './parameter-ui.js?v=0.7.0-dev';
 const $=id=>document.getElementById(id);
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({getScenario,getSnapshot,commit,replay,seek,showError,notify}) {
     Object.assign(this,{getScenario,getSnapshot,commit,replay,seek,showError,notify});
-    this.worker=new Worker(new URL('./analysis-worker.js?v=0.6.0',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
+    this.worker=new Worker(new URL('./analysis-worker.js?v=0.7.0-dev',import.meta.url),{type:'module',name:'SimSim Monte Carlo'});
     this.parameters=new ParameterEditor(()=>{try{this.commit(this.readConfig(),'分析の変数設定を変更しました。');}catch(error){showError(error.message);}this.renderConfig();});
     this.runId=0;this.running=false;this.rows=[];this.base=null;
     this.worker.onmessage=({data})=>{
@@ -55,7 +56,7 @@ export class AnalysisUI {
     const responders=$('mission-responders');responders.replaceChildren();const chosen=m.responderIds??[s.units.find(u=>u.behavior?.hold&&u.faction===m.observerFaction)?.id??s.units.find(u=>u.faction===m.observerFaction)?.id];for(const u of s.units){const option=new Option(u.name,u.id);option.selected=chosen.includes(u.id);responders.append(option);}
     $('mission-join').options[0].textContent=m.type==='arrive'?'対応ユニットのうち一つが到着':'対象のうち一つを探知';$('mission-join').options[1].textContent=m.type==='arrive'?'対応ユニットすべてが到着':'対象すべてを探知';$('mission-observer').value=m.observerFaction;$('mission-target').value=m.targetFaction;$('mission-join').value=m.join;$('mission-deadline').value=+(m.deadline/60).toFixed(3);$('mission-deadline').dataset.display=$('mission-deadline').value;$('mission-deadline').dataset.seconds=m.deadline;$('mission-deadline').title=m.deadline+'秒';$('mission-deadline').max=s.duration/60;
     $('mission-target-note').textContent=m.targetIds?'対象ID指定: '+m.targetIds.join(', ')+'（対象陣営の変更で解除）':'対象側の陣営に属する全ユニットを評価します。';
-    $('analysis-trials').value=a.trials;$('analysis-step').value=a.step;$('analysis-required').value=a.requiredRate*100;this.parameters.render({...s,analysis:a});const conditions=analysisConditions({...s,analysis:a});$('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
+    $('analysis-trials').value=a.trials;$('analysis-step').value=a.step;$('analysis-step').disabled=hasSharedBehaviors(s);$('analysis-step').title=hasSharedBehaviors(s)?'共有挙動では共有挙動画面の計算刻み '+(s.recording?.step??1)+'秒を使用します。':'';$('analysis-required').value=a.requiredRate*100;this.parameters.render({...s,analysis:a});const conditions=analysisConditions({...s,analysis:a});$('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
   }
   readConfig(changedId='') {
     const next=clone(this.getScenario());
@@ -134,11 +135,11 @@ export class AnalysisUI {
     for(const event of events.slice(-200)) {
       const row=document.createElement('div');row.className='event-item'+(event.type==='sendFailed'?' failed':'');const text=document.createElement('span'),button=document.createElement('button');
       const details={detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備 · 出発予定 '+minutes(event.departureTime),departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 経路終点に到着'};
-      text.textContent=minutes(event.time)+' · '+details[event.type];button.textContent='この時刻';button.onclick=()=>{this.seek(event.time,event.type==='detected'?event.targetId:event.unitId);$('events-dialog').close();};row.append(text,button);list.append(row);
+      text.textContent=minutes(event.time)+' · '+(details[event.type]??(event.type==='nodeChanged'?'挙動切替 '+name(event.unitId)+' → '+event.nodeId:event.type==='elapsed'?'待機終了 '+name(event.unitId):event.type));button.textContent='この時刻';button.onclick=()=>{this.seek(event.time,event.type==='detected'?event.targetId:event.unitId);$('events-dialog').close();};row.append(text,button);list.append(row);
     }
   }
   export() {
-    const payload={type:'SimSim-analysis',version:hasActions(this.base)?3:2,model:hasActions(this.base)?'event-actions-v1':'range-hazard-v1',confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows};
+    const payload={type:'SimSim-analysis',version:hasSharedBehaviors(this.base)?4:hasActions(this.base)?3:2,model:hasSharedBehaviors(this.base)?'shared-behavior-v1':hasActions(this.base)?'event-actions-v1':'range-hazard-v1',confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows};
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SimSim-analysis.jsn';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);this.notify('分析条件と試行結果を.jsnで保存しました。');
   }
 }

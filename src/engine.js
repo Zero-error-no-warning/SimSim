@@ -1,6 +1,7 @@
-import {actionErrors} from './action-settings.js?v=0.6.0';
-import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.6.0';
-import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.6.0';
+import {sharedErrors} from './shared-settings.js?v=0.7.0-dev';
+import {actionErrors} from './action-settings.js?v=0.7.0-dev';
+import {sensorErrors,missionErrors,analysisErrors} from './detection-settings.js?v=0.7.0-dev';
+import {expandGroups, noiseVector, random01, streamKey} from './random.js?v=0.7.0-dev';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -12,7 +13,7 @@ const pointValid = p => p && ['x','y','z'].every(k => finite(p[k]));
 export function validateScenario(value) {
   const errors = [];
   if (!value || typeof value !== 'object') throw new Error('シナリオはオブジェクトで指定してください。');
-  if (value.version !== 1) errors.push('versionは1にしてください。');
+  if (![1,2].includes(value.version)) errors.push('versionは1または2にしてください。');
   if (value.unitsSystem !== 'SI') errors.push('unitsSystemはSI（m・s）にしてください。');
   if (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 160) errors.push('titleは1～160文字で指定してください。');
   if (!finite(value.duration) || value.duration <= 0 || value.duration > 86400) errors.push('durationは0より大きく86400秒以下にしてください。');
@@ -70,7 +71,7 @@ export function validateScenario(value) {
     if(total>MAX_UNITS)errors.push('単体と群を合わせて最大2000ユニットにしてください。');
     else {const expanded=expandGroups(value);if(new Set(expanded.map(u=>u.id)).size!==total)errors.push('生成ユニットのidが単体ユニットと重複しています。');}
   }
-  errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration));
+  errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration),...sharedErrors(value));
   if(value.mission?.type==='arrive'&&value.mission.responderIds?.some(id=>!value.units?.some(u=>u.id===id)))errors.push('到着評価の対象となる単体ユニットが見つかりません。');
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));
   return clone(value);
@@ -115,7 +116,7 @@ function rotateLoop(points,fraction) {
 export class Simulation {
   constructor(scenario) {
     const source=validateScenario(scenario);
-    this.scenario={...source,units:expandGroups(source)};
+    this.source=source;this.scenario={...source,units:expandGroups(source)};
     this.nodeCount=0;this.activations=new Map();
     this.terrain=new Terrain(this.scenario.terrain);
     this.paths=new Map(this.scenario.units.map(u=>[u.id,this.compile(u)]));

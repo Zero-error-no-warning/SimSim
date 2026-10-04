@@ -1,13 +1,16 @@
-import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.6.0';
-import {Simulation,clone,validateScenario} from './engine.js?v=0.6.0';
-import {random01,streamKey} from './random.js?v=0.6.0';
-import {missionErrors,analysisErrors} from './detection-settings.js?v=0.6.0';
+import {sharedSteps} from './recorded-engine.js?v=0.7.0-dev';
+import {hasSharedBehaviors} from './shared-settings.js?v=0.7.0-dev';
+import {analysisConditions,trialScenario,readParameter,bindingKey} from './parameters.js?v=0.7.0-dev';
+import {Simulation,clone,validateScenario} from './engine.js?v=0.7.0-dev';
+import {random01,streamKey} from './random.js?v=0.7.0-dev';
+import {missionErrors,analysisErrors} from './detection-settings.js?v=0.7.0-dev';
 
-export {terrainVisible,contactProbability} from './contact.js?v=0.6.0';
-import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.6.0';
-import {actionSteps} from './actions.js?v=0.6.0';
-import {hasActions} from './action-settings.js?v=0.6.0';
+export {terrainVisible,contactProbability} from './contact.js?v=0.7.0-dev';
+import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.7.0-dev';
+import {actionSteps} from './actions.js?v=0.7.0-dev';
+import {hasActions} from './action-settings.js?v=0.7.0-dev';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={}) {
+  if(hasSharedBehaviors(model.scenario))return yield* sharedSteps(model,mission,step,options);
   if(hasActions(model.scenario))return yield* actionSteps(model,mission,step,options);
   const errors=missionErrors(mission,model.scenario.duration);
   if(!mission)throw new Error('成功条件を設定してください。');
@@ -89,8 +92,9 @@ export function summarizeRow(count,trials) {
 }
 
 export function restoreAnalysisResult(payload) {
-  if(!payload||payload.type!=='SimSim-analysis'||![1,2,3].includes(payload.version)||payload.model!==(payload.version===3?'event-actions-v1':'range-hazard-v1'))throw new Error('この分析結果の形式・モデル版は読み込めません。');
+  if(!payload||payload.type!=='SimSim-analysis'||![1,2,3,4].includes(payload.version)||payload.model!==(payload.version===4?'shared-behavior-v1':payload.version===3?'event-actions-v1':'range-hazard-v1'))throw new Error('この分析結果の形式・モデル版は読み込めません。');
   const {scenario,analysis,startTrial,conditions}=prepareAnalysis(payload.source),counts=new Set(),rows=[];
+  if(hasSharedBehaviors(scenario)!==(payload.version===4))throw new Error('共有挙動の分析モデルが一致しません。');
   if(payload.version===1&&(analysis.factors?.length||analysis.uncertainties?.length))throw new Error('旧版の結果は個数比較のみ対応します。');
   if(!Array.isArray(payload.rows)||payload.rows.length>conditions.length)throw new Error('分析結果の条件数が不正です。');
   for(const row of payload.rows) {
@@ -107,7 +111,7 @@ export function restoreAnalysisResult(payload) {
       if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>0&&t.successTime<=generated.scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
       if(scenario.mission.type==='arrive'&&(!Number.isInteger(t.reachedCount)||t.reachedCount<0||t.reachedCount>scenario.mission.responderIds.length||t.success!==(scenario.mission.join==='any'?t.reachedCount>0:t.reachedCount===scenario.mission.responderIds.length)))throw new Error('到着数と成否が一致していません。');
       if(payload.version<3&&hasActions(scenario))throw new Error('条件付き行動の結果はversion 3を使用してください。');
-      trials.push({...(payload.version===3?{reachedCount:t.reachedCount??0,responderCount:scenario.mission.responderIds?.length??0}:{}),trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled});
+      trials.push({...(payload.version>=3?{reachedCount:t.reachedCount??0,responderCount:scenario.mission.responderIds?.length??0}:{}),trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled});
     }
     trials.sort((a,b)=>a.trial-b.trial);rows.push({...summarizeRow(condition.count,trials),condition});
   }

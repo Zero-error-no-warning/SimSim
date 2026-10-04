@@ -1,6 +1,6 @@
-import {missionErrors} from './detection-settings.js?v=0.6.0';
-import {random01,streamKey} from './random.js?v=0.6.0';
-import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.6.0';
+import {missionErrors} from './detection-settings.js?v=0.7.0-dev';
+import {random01,streamKey} from './random.js?v=0.7.0-dev';
+import {terrainVisible,contactProbability,mounted,makeIndex,neighbors} from './contact.js?v=0.7.0-dev';
 // Event queue and routes are precomputed once per trial; seeking never consumes RNG state.
 class Queue {
   constructor(){this.items=[];this.sequence=0;}

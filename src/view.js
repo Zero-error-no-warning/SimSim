@@ -1,6 +1,7 @@
+import {sharedAssignment} from './shared-settings.js?v=0.7.0-dev';
 import * as THREE from '../vendor/three/three.module.min.js';
 import {OrbitControls} from '../vendor/three/OrbitControls.js';
-import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.6.0';
+import {Terrain, Simulation, DOMAIN_NAMES} from './engine.js?v=0.7.0-dev';
 
 const COLORS={friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'};
 const disposal = group => {
@@ -47,7 +48,7 @@ export class MapView {
     canvas.addEventListener('pointerleave',()=>{if(!this.drag)this.onHover(null);});
     canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();const boot=document.getElementById('boot');boot.hidden=false;boot.textContent='WebGLの描画が停止しました。ページを再読み込みしてください。シナリオは保存ボタンで取得できます。';});
   }
-  editableUnit(){const u=this.scenario?.units.find(u=>u.id===this.selected);return u?.groupId?this.scenario.groups.find(g=>g.id===u.groupId)?.template:u;}
+  editableUnit(){const u=this.scenario?.units.find(u=>u.id===this.selected),a=sharedAssignment(this.scenario,this.selected);if(a)return {...u,initial:a.route[0],route:a.route.slice(1),routeMode:'loop'};return u?.groupId?this.scenario.groups.find(g=>g.id===u.groupId)?.template:u;}
   screenPoint(point){const p=point.clone().project(this.camera);return {x:(p.x*.5+.5)*this.element.clientWidth,y:(-p.y*.5+.5)*this.element.clientHeight,visible:p.z>=-1&&p.z<=1};}
   pickUnit(event) {
     const rect=this.renderer.domElement.getBoundingClientRect();let closest=null,best=Infinity;

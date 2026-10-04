@@ -1,4 +1,4 @@
-import {random01,streamKey} from './random.js?v=0.6.0';
+import {random01,streamKey} from './random.js?v=0.7.0-dev';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={})=>({key,label,family,path,min,max,scale:1,scope:'entity',...options});
@@ -25,6 +25,8 @@ export const PARAMETERS=[
   define('capacity.population','群の個数','Capacity','count',0,2000,{unit:'個',scope:'group',integer:true}),
   define('extent.deployment.width','配置幅 x','Extent','width',0,100000,{unit:'km',scale:1000,scope:'group'}),
   define('extent.deployment.height','配置幅 y','Extent','height',0,100000,{unit:'km',scale:1000,scope:'group'}),
+  define('coordination.spacing','協調する指定間隔','Behavior','spacingDistance',0,100000,{unit:'m',scope:'assignment',fixedSpacing:true,default:500}),
+  define('coordination.gain','間隔の調整係数','Behavior','gain',0,1,{unit:'1/s',scope:'assignment',default:.01}),
   define('mission.deadline','成功条件の期限','Mission','mission.deadline',.000001,86400,{unit:'min',scale:60,scope:'scenario'})
 ];
 export const parameter=key=>PARAMETERS.find(p=>p.key===key);
@@ -39,8 +41,9 @@ const copy=v=>JSON.parse(JSON.stringify(v));
 function resolve(s,target,p) {
   if(target==='scenario'){if(p.scope!=='scenario'||!s.mission)throw new Error('成功条件を設定してください。');return s;}
   const colon=target?.indexOf(':')??-1,kind=target?.slice(0,colon),id=target?.slice(colon+1);
-  const object=kind==='unit'?s.units?.find(u=>u.id===id):kind==='group'?s.groups?.find(g=>g.id===id):null;
+  const object=kind==='unit'?s.units?.find(u=>u.id===id):kind==='group'?s.groups?.find(g=>g.id===id):kind==='assignment'?s.behaviorAssignments?.find(a=>a.id===id):null;
   if(!object||p.scope==='scenario'||(p.scope==='group'&&kind!=='group'))throw new Error('変数の対象が見つかりません: '+target);
+  if((p.scope==='assignment')!==(kind==='assignment'))throw new Error('変数の対象が一致しません。');
   const entity=kind==='group'&&p.scope==='entity'?object.template:object;
   if(p.loopOnly&&entity.routeMode!=='loop')throw new Error('周回の出発点は周回経路の対象に指定してください。');
   if(p.communication&&!entity.communication?.enabled)throw new Error('通信変数の対象で通信を有効にしてください。');
@@ -57,15 +60,17 @@ export function writeParameter(s,b,value) {
 }
 export function availableBindings(s) {
   const out=[];
-  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.loopOnly&&entity.routeMode!=='loop'||p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.communication&&!entity.communication?.enabled||p.behavior&&!entity.behavior||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
+  const add=(target,name,entity,kind)=>{for(const p of PARAMETERS){if(p.scope==='assignment'||p.loopOnly&&entity.routeMode!=='loop'||p.scope==='scenario'||p.scope==='group'&&kind!=='group'||p.sensor&&!entity.sensor?.enabled||p.communication&&!entity.communication?.enabled||p.behavior&&!entity.behavior||p.vertical&&['ground','surface'].includes(entity.domain))continue;out.push({target,targetLabel:(kind==='group'?'群: ':'ユニット: ')+name,parameter:p.key,label:name+' · '+p.family+' · '+p.label+' ('+p.unit+')'});}};
   for(const u of s.units??[])add('unit:'+u.id,u.name,u,'unit');
   for(const g of s.groups??[])add('group:'+g.id,g.name,g.template,'group');
+  for(const a of s.behaviorAssignments??[])for(const p of PARAMETERS.filter(p=>p.scope==='assignment'&&(!p.fixedSpacing||a.spacing==='fixed')))out.push({target:'assignment:'+a.id,targetLabel:'協調: '+a.name,parameter:p.key,label:a.name+' · '+p.label+' ('+p.unit+')'});
   if(s.mission)for(const p of PARAMETERS.filter(p=>p.scope==='scenario'))out.push({target:'scenario',targetLabel:'シナリオ・ミッション',parameter:p.key,label:p.label+' ('+p.unit+')'});
   return out;
 }
 export function formatBinding(s,b,value) {
   const p=parameter(b.parameter);let name=b.target;
   if(b.target.startsWith('group:'))name=s.groups?.find(g=>g.id===b.target.slice(6))?.name??name;
+  if(b.target.startsWith('assignment:'))name=s.behaviorAssignments?.find(a=>a.id===b.target.slice(11))?.name??name;
   if(b.target.startsWith('unit:'))name=s.units?.find(u=>u.id===b.target.slice(5))?.name??name;
   return name+' / '+p.label+' = '+Number((value/p.scale).toFixed(5))+' '+p.unit;
 }
@@ -110,5 +115,7 @@ export function trialScenario(source,condition,trial,{maximum=false}={}) {
   // Apply before removing a zero-count group, so other template factors still resolve.
   for(const b of [...condition.settings,...sampled])writeParameter(scenario,b,b.value);
   scenario.groups=scenario.groups?.filter(g=>g.count!==0);
+  if(scenario.behaviorAssignments)scenario.behaviorAssignments=scenario.behaviorAssignments.map(a=>({...a,targets:a.targets.filter(t=>!t.startsWith('group:')||scenario.groups?.some(g=>g.id===t.slice(6)))})).filter(a=>a.targets.length);
+
   return {scenario,sampled};
 }

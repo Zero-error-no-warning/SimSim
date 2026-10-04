@@ -1,0 +1,424 @@
+{
+  "version": 2,
+  "unitsSystem": "SI",
+  "title": "共有挙動：周回監視・報告・帰投（架空）",
+  "duration": 1200,
+  "seed": "SimSim-shared-demo",
+  "trial": 0,
+  "terrain": {
+    "columns": 9,
+    "rows": 9,
+    "spacing": 1000,
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300,
+      -300
+    ]
+  },
+  "units": [
+    {
+      "id": "control",
+      "name": "帰投・報告地点（架空）",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 7000,
+        "y": 1000,
+        "z": 800
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "transit",
+      "name": "海域を通過する目標",
+      "domain": "surface",
+      "faction": "hostile",
+      "manned": false,
+      "speed": 6,
+      "initial": {
+        "x": 4000,
+        "y": 1000,
+        "z": 0
+      },
+      "route": [
+        {
+          "x": 4000,
+          "y": 7000,
+          "z": 0
+        }
+      ],
+      "routeMode": "once",
+      "motion": {
+        "horizontal": 150,
+        "scale": 1500,
+        "startDelay": 120,
+        "speedVariation": 0.1
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "patrol",
+      "name": "監視UAV",
+      "count": 8,
+      "placement": "grid",
+      "width": 0,
+      "height": 0,
+      "template": {
+        "id": "uav",
+        "name": "uav",
+        "domain": "air",
+        "faction": "friendly",
+        "manned": false,
+        "speed": 60,
+        "initial": {
+          "x": 7000,
+          "y": 1000,
+          "z": 800
+        },
+        "route": [],
+        "routeMode": "once",
+        "sensor": {
+          "enabled": true,
+          "range": 1800,
+          "probabilityPerMinute": 0.85,
+          "domains": [
+            "surface"
+          ],
+          "terrainLOS": true,
+          "mountHeight": 0
+        },
+        "communication": {
+          "enabled": true,
+          "range": 15000,
+          "delay": 10,
+          "probability": 0.9,
+          "terrainLOS": false
+        },
+        "motion": {
+          "speedVariation": 0.12
+        }
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "patrol-return",
+      "name": "周回監視・報告・帰投",
+      "entry": "patrol",
+      "nodes": [
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "speedFraction": 0.7,
+          "x": 40,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "control",
+          "x": 340,
+          "y": 70
+        },
+        {
+          "id": "home",
+          "kind": "return",
+          "x": 640,
+          "y": 70
+        },
+        {
+          "id": "wait",
+          "kind": "wait",
+          "seconds": 300,
+          "x": 640,
+          "y": 270
+        }
+      ],
+      "edges": [
+        {
+          "to": "report",
+          "when": "detected",
+          "from": "patrol"
+        },
+        {
+          "to": "home",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "home",
+          "when": "sendFailed",
+          "from": "report"
+        },
+        {
+          "to": "wait",
+          "when": "arrived",
+          "from": "home"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "cohort",
+      "name": "周回監視隊",
+      "behaviorId": "patrol-return",
+      "targets": [
+        "group:patrol"
+      ],
+      "route": [
+        {
+          "x": 6200.0,
+          "y": 4000.0,
+          "z": 800
+        },
+        {
+          "x": 6125.03681783595,
+          "y": 4569.401899225546,
+          "z": 800
+        },
+        {
+          "x": 5905.255888325765,
+          "y": 5100.0,
+          "z": 800
+        },
+        {
+          "x": 5555.634918610404,
+          "y": 5555.634918610404,
+          "z": 800
+        },
+        {
+          "x": 5100.0,
+          "y": 5905.255888325765,
+          "z": 800
+        },
+        {
+          "x": 4569.401899225546,
+          "y": 6125.03681783595,
+          "z": 800
+        },
+        {
+          "x": 4000.0,
+          "y": 6200.0,
+          "z": 800
+        },
+        {
+          "x": 3430.598100774454,
+          "y": 6125.03681783595,
+          "z": 800
+        },
+        {
+          "x": 2900.0000000000005,
+          "y": 5905.255888325765,
+          "z": 800
+        },
+        {
+          "x": 2444.3650813895956,
+          "y": 5555.634918610404,
+          "z": 800
+        },
+        {
+          "x": 2094.744111674235,
+          "y": 5100.0,
+          "z": 800
+        },
+        {
+          "x": 1874.96318216405,
+          "y": 4569.401899225546,
+          "z": 800
+        },
+        {
+          "x": 1800.0,
+          "y": 4000.0000000000005,
+          "z": 800
+        },
+        {
+          "x": 1874.9631821640496,
+          "y": 3430.5981007744554,
+          "z": 800
+        },
+        {
+          "x": 2094.744111674235,
+          "y": 2900.0,
+          "z": 800
+        },
+        {
+          "x": 2444.365081389595,
+          "y": 2444.3650813895956,
+          "z": 800
+        },
+        {
+          "x": 2899.999999999999,
+          "y": 2094.7441116742357,
+          "z": 800
+        },
+        {
+          "x": 3430.5981007744545,
+          "y": 1874.9631821640496,
+          "z": 800
+        },
+        {
+          "x": 3999.9999999999995,
+          "y": 1800.0,
+          "z": 800
+        },
+        {
+          "x": 4569.401899225544,
+          "y": 1874.9631821640496,
+          "z": 800
+        },
+        {
+          "x": 5100.0,
+          "y": 2094.744111674235,
+          "z": 800
+        },
+        {
+          "x": 5555.634918610404,
+          "y": 2444.365081389595,
+          "z": 800
+        },
+        {
+          "x": 5905.255888325764,
+          "y": 2899.999999999999,
+          "z": 800
+        },
+        {
+          "x": 6125.03681783595,
+          "y": 3430.5981007744545,
+          "z": 800
+        }
+      ],
+      "base": {
+        "x": 7000,
+        "y": 1000,
+        "z": 800
+      },
+      "spacing": "even",
+      "spacingDistance": 500,
+      "gain": 0.01
+    }
+  ],
+  "recording": {
+    "step": 1,
+    "interval": 5
+  },
+  "mission": {
+    "type": "detect",
+    "observerFaction": "friendly",
+    "targetFaction": "hostile",
+    "join": "any",
+    "deadline": 1200
+  },
+  "analysis": {
+    "factors": [
+      {
+        "target": "group:patrol",
+        "parameter": "capacity.population",
+        "values": [
+          4,
+          8,
+          16
+        ]
+      },
+      {
+        "target": "group:patrol",
+        "parameter": "extent.sense.radius",
+        "values": [
+          1200,
+          1800
+        ]
+      }
+    ],
+    "uncertainties": [],
+    "trials": 10,
+    "step": 10,
+    "requiredRate": 0.8
+  }
+}

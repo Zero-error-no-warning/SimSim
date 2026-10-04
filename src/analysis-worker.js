@@ -1,6 +1,6 @@
-import {trialScenario} from './parameters.js?v=0.6.0';
-import {Simulation} from './engine.js?v=0.6.0';
-import {prepareAnalysis,detectionSteps,summarizeRow} from './detection.js?v=0.6.0';
+import {trialScenario} from './parameters.js?v=0.7.0-dev';
+import {createSimulation} from './recorded-engine.js?v=0.7.0-dev';
+import {prepareAnalysis,detectionSteps,summarizeRow} from './detection.js?v=0.7.0-dev';
 let generation=0;
 self.onmessage=({data})=>{
   if(data.type==='cancel'){generation++;return;}
@@ -14,7 +14,7 @@ async function run(data,token) {
       const trials=[];
       for(let i=0;i<analysis.trials;i++) {
         if(token!==generation)return;
-        const trial=startTrial+i,{scenario:sample,sampled}=trialScenario(scenario,condition,trial),model=new Simulation(sample),generator=detectionSteps(model,sample.mission,analysis.step);
+        const trial=startTrial+i,{scenario:sample,sampled}=trialScenario(scenario,condition,trial),model=createSimulation(sample),generator=detectionSteps(model,sample.mission,analysis.step);
         let state=generator.next();
         while(!state.done) {
           if(performance.now()-lastYield>16){await new Promise(r=>setTimeout(r,0));lastYield=performance.now();if(token!==generation)return;}

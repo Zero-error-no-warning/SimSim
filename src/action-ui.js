@@ -1,4 +1,4 @@
-import {clone} from './engine.js?v=0.6.0';
+import {clone} from './engine.js?v=0.7.0-dev';
 const $=id=>document.getElementById(id);
 export class ActionUI {
   constructor({getScenario,getSelected,commit,showError,pause}) {

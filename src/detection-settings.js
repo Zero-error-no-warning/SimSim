@@ -1,4 +1,4 @@
-import {variableErrors} from './parameters.js?v=0.6.0';
+import {variableErrors} from './parameters.js?v=0.7.0-dev';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
