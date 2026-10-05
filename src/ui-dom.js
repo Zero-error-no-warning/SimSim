@@ -1,4 +1,4 @@
-export const UI_BUILD='20261005-startup-1';
+export const UI_BUILD='20261005-worker-wait-2';
 
 export function requireElement(id){
   const element=document.getElementById(id);

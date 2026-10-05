@@ -1,7 +1,7 @@
-import { removeAssignment,removeBehavior } from './editor.js?v=20261005-startup-1';
-import { clone,validateScenario } from './engine.js?v=20261005-startup-1';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-startup-1';
-import { requireElement } from './ui-dom.js?v=20261005-startup-1';
+import { removeAssignment,removeBehavior } from './editor.js?v=20261005-worker-wait-2';
+import { clone,validateScenario } from './engine.js?v=20261005-worker-wait-2';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-worker-wait-2';
+import { requireElement } from './ui-dom.js?v=20261005-worker-wait-2';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

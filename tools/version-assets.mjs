@@ -16,6 +16,6 @@ for(const file of fs.readdirSync(new URL('tests/',root)).filter(f=>f.endsWith('.
 const index=new URL('index.html',root);
 fs.writeFileSync(index,fs.readFileSync(index,'utf8').replace(/<html lang="ja"(?: data-simsim-build="[^"]*")?>/,'<html lang="ja" data-simsim-build="'+UI_BUILD+'">').replace(/(styles\.css|src\/bootstrap\.js)\?v=[^"\s]+/g,'$1?v='+UI_BUILD));
 const check=new URL('environment-check/check.js',root);
-fs.writeFileSync(check,fs.readFileSync(check,'utf8').replace(/\.\.\/src\/worker\.js\?v=[^'"]+/g,'../src/worker.js?v='+UI_BUILD));
+fs.writeFileSync(check,fs.readFileSync(check,'utf8').replace(/(\.\.\/src\/worker\.js|(?<![\w/])worker\.js)\?v=[^'"]+/g,'$1?v='+UI_BUILD));
 const checkHtml=new URL('environment-check/check.html',root);
 fs.writeFileSync(checkHtml,fs.readFileSync(checkHtml,'utf8').replace(/check\.js(?:\?v=[^"\s]+)?/g,'check.js?v='+UI_BUILD));

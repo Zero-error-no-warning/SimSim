@@ -1,14 +1,14 @@
-import { BehaviorUI } from './behavior-ui.js?v=20261005-startup-1';
-import { createSimulation } from './recorded-engine.js?v=20261005-startup-1';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-startup-1';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-startup-1';
-import { importScenario } from './scenario-import.js?v=20261005-startup-1';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-startup-1';
-import { restoreAnalysisResult } from './detection.js?v=20261005-startup-1';
-import { AnalysisUI } from './analysis-ui.js?v=20261005-startup-1';
-import { MapView } from './view.js?v=20261005-startup-1';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-startup-1';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-startup-1';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-worker-wait-2';
+import { createSimulation } from './recorded-engine.js?v=20261005-worker-wait-2';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-worker-wait-2';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-worker-wait-2';
+import { importScenario } from './scenario-import.js?v=20261005-worker-wait-2';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-worker-wait-2';
+import { restoreAnalysisResult } from './detection.js?v=20261005-worker-wait-2';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-worker-wait-2';
+import { MapView } from './view.js?v=20261005-worker-wait-2';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-worker-wait-2';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-worker-wait-2';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -23,22 +23,25 @@ const STATUS_NAMES={
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=20261005-startup-1',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261005-worker-wait-2',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
-let workerReady=false,timeout=null;
+let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
+function clearWorkerWait(){
+  clearTimeout(timeout);clearTimeout(waitNotice);
+}
 window.addEventListener('simsim-boot-failed',()=>{
-  clearTimeout(timeout);
+  clearWorkerWait();
   worker.terminate();
 },{once:true});
 worker.onerror=event=>{
   event.preventDefault();
   pause();
-  clearTimeout(timeout);
+  clearWorkerWait();
   showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'詳細メッセージなし')+'\n'+(event.filename||'src/worker.js')+':'+(event.lineno||0));
 };
 worker.onmessageerror=()=>{
-  clearTimeout(timeout);
+  clearWorkerWait();
   pause();
   showError('計算Workerの返信を読み取れませんでした。');
 };
@@ -46,7 +49,9 @@ worker.onmessage=({
   data
 })=>{
   workerReady=true;
-  clearTimeout(timeout);
+  clearWorkerWait();
+  if(workerWaitMessage&&$('error-text').textContent===workerWaitMessage&&$('error-dialog').open)$('error-dialog').close();
+  workerWaitMessage=null;
   if(data.revision!==revision)return;
   if(data.type==='recordingProgress'){
     $('recording-info').textContent='計算中 '+Math.round(data.time/data.duration*100)+'%';
@@ -64,7 +69,7 @@ worker.onmessage=({
   if(data.request<lastAccepted)return;
   lastAccepted=data.request;
   workerReady=true;
-  clearTimeout(timeout);
+  clearWorkerWait();
   snapshot=data.snapshot;
   $('play').disabled=!!snapshot.actionsPending;
   $('step').disabled=!!snapshot.actionsPending;
@@ -218,9 +223,18 @@ function currentUnit(){
 function post(type='seek',extra={
 }){
   // UI initialization errors must not be reported as worker timeouts.
-  if(!workerReady&&timeout===null)timeout=setTimeout(()=>{
-    if(!workerReady)showError('シナリオを計算Workerへ送信しましたが、12秒以内に返信がありませんでした。\n環境確認のWorkerは別の簡易プログラムです。src/worker.jsとその依存ファイルの配信を確認してください。');
-  },12000);
+  if(!workerReady&&timeout===null){
+    $('record-run').disabled=true;
+    $('recording-info').textContent='計算Workerを起動しています…';
+    waitNotice=setTimeout(()=>{
+      if(!workerReady)$('recording-info').textContent='計算Workerの起動を待っています。最大60秒待ちます…';
+    },10000);
+    timeout=setTimeout(()=>{
+      if(workerReady)return;
+      workerWaitMessage='シナリオを計算Workerへ送信しましたが、60秒以内に返信を確認できませんでした。\n起動の遅延か、配信・認証・環境制限かは未判定です。後から応答が届けば続行できます。\n最新版の環境確認で「SimSim本体の計算Worker」の結果を確認してください。';
+      showError(workerWaitMessage);
+    },60000);
+  }
   worker.postMessage({
     type,revision,request:++request,time,selected,showTrails:view.showTrails,scenario:type==='scenario'?scenario:undefined,...extra
   });

@@ -1,6 +1,6 @@
-import { trialScenario } from './parameters.js?v=20261005-startup-1';
-import { createSimulation } from './recorded-engine.js?v=20261005-startup-1';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261005-startup-1';
+import { trialScenario } from './parameters.js?v=20261005-worker-wait-2';
+import { createSimulation } from './recorded-engine.js?v=20261005-worker-wait-2';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261005-worker-wait-2';
 let generation=0;
 self.onmessage=({
   data

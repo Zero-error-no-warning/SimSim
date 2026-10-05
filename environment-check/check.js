@@ -9,12 +9,14 @@
   let running = false;
   let disposers = [];
   let runNumber = 0;
+  const workerWaitMs=60000;
   document.addEventListener('securitypolicyviolation', event => {
     policyMessages.add('CSP: ' + event.effectiveDirective + ' (' + event.disposition + ')');
     updateReport();
   });
   function updateReport() {
-    report.value = ['SimSim environment check v1.2', new Date().toISOString(),
+    report.value = ['SimSim environment check v1.3', new Date().toISOString(),
+      'Worker wait limit: 60 seconds; probes run one at a time',
       'Protocol: ' + location.protocol,
       'Secure context: ' + window.isSecureContext,
       'Browser: ' + navigator.userAgent,
@@ -24,32 +26,40 @@
   function setResult(id, state, detail) {
     results[id] = {state, detail};
     const element = document.getElementById(id + '-status');
-    element.textContent = {ok: '成功', fail: '失敗', pending: '確認中'}[state];
+    element.textContent = {ok: '成功', fail: '失敗', pending: '確認中',timeout:'時間切れ（判定保留）'}[state];
     element.className = state;
     document.getElementById(id + '-detail').textContent = detail;
     updateReport();
+  }
+  function waitForWorker(id,started,finish){
+    const timer=setInterval(()=>{
+      const elapsed=performance.now()-started;
+      if(elapsed>=workerWaitMs)finish('timeout','60秒以内に応答を確認できませんでした。起動遅延・配信・認証・環境制限のいずれかは、この結果だけでは判定できません。非対応と確定した結果ではありません。');
+      else if(elapsed>=10000)setResult(id,'pending','起動・応答を待っています（'+Math.round(elapsed/1000)+'秒）。最大60秒待ちます。');
+    },1000);
+    return ()=>clearInterval(timer);
   }
   function workerTest(id, options) {
     setResult(id, 'pending', 'Workerの起動・計算・配列転送を確認しています…');
     return new Promise(resolve => {
       let worker;
-      let timer;
+      let stopWaiting=()=>{};
       let finished = false;
       const started = performance.now();
       const finish = (state, detail) => {
         if (finished) return;
         finished = true;
-        clearTimeout(timer);
+        stopWaiting();
         if (worker) worker.terminate();
         setResult(id, state, detail);
         resolve();
       };
       try {
         if (typeof Worker !== 'function') throw new Error('Worker APIがありません。');
-        worker = new Worker(new URL('worker.js', document.baseURI), options);
+        worker = new Worker(new URL('worker.js?v=20261005-worker-wait-2', document.baseURI), options);
         worker.onerror = event => {
           event.preventDefault();
-          finish('fail', (event.message || 'Workerを起動できませんでした。') + '\nworker.jsの配信、JavaScriptのMIMEタイプ、CSPのworker-src、Consoleのエラーを確認してください。');
+          finish('fail', (event.message || 'Workerを起動できませんでした。') + '\n'+(event.filename||'worker.js')+':'+(event.lineno||0)+'\nworker.jsの配信、JavaScriptのMIMEタイプ、CSPのworker-srcを確認してください。');
         };
         worker.onmessageerror = () => finish('fail', 'Workerの返信を読み取れませんでした。');
         worker.onmessage = event => {
@@ -61,7 +71,7 @@
             finish('ok', 'Worker内の計算結果: 1² + 2² + 3² + 4² = 30\n配列の往復転送も成功。起動から応答まで ' + Math.round(performance.now() - started) + ' ms（性能評価ではありません）。');
           } catch (error) { finish('fail', error.message); }
         };
-        timer = setTimeout(() => finish('fail', '10秒以内に返信がありませんでした。ファイル配信・認証・Consoleのエラーを確認してください。'), 10000);
+        stopWaiting=waitForWorker(id,started,finish);
         const values = new Float64Array([1, 2, 3, 4]);
         worker.postMessage({buffer: values.buffer}, [values.buffer]);
         if (values.buffer.byteLength !== 0) throw new Error('送信時の配列転送が確認できませんでした。');
@@ -142,18 +152,19 @@
   function applicationWorkerTest(){
     setResult('application','pending','src/worker.jsと依存モジュールを読み込んでいます…');
     return new Promise(resolve=>{
-      let worker,timer,finished=false;
+      let worker,stopWaiting=()=>{},finished=false;
+      const started=performance.now();
       const finish=(state,detail)=>{
         if(finished)return;
-        finished=true;clearTimeout(timer);worker?.terminate();
+        finished=true;stopWaiting();worker?.terminate();
         setResult('application',state,detail);resolve();
       };
       try{
-        worker=new Worker(new URL('../src/worker.js?v=20261005-startup-1',document.baseURI),{type:'module',name:'SimSim application probe'});
+        worker=new Worker(new URL('../src/worker.js?v=20261005-worker-wait-2',document.baseURI),{type:'module',name:'SimSim application probe'});
         worker.onerror=event=>{event.preventDefault();finish('fail',(event.message||'本体Workerの読み込みに失敗しました。')+'\n'+(event.filename||'src/worker.js')+':'+(event.lineno||0));};
         worker.onmessageerror=()=>finish('fail','本体Workerの返信を読み取れませんでした。');
-        worker.onmessage=({data})=>{if(data.type==='pong')finish('ok','本体の計算Workerと依存モジュールを読み込み、応答を確認しました。画面の初期化やシナリオ計算の成否は別です。');};
-        timer=setTimeout(()=>finish('fail','本体Workerから10秒以内に応答がありません。SimSim本体と同じフォルダ構成で配置してください。'),10000);
+        worker.onmessage=({data})=>{if(data.type==='pong')finish('ok','本体の計算Workerと依存モジュールを読み込み、応答を確認しました（'+Math.round(performance.now()-started)+' ms）。画面の初期化やシナリオ計算の成否は別です。');};
+        stopWaiting=waitForWorker('application',started,finish);
         worker.postMessage({type:'ping'});
       }catch(error){finish('fail',error.name+': '+error.message);}
     });
@@ -178,12 +189,20 @@
     policyMessages.clear();
     runButton.disabled = true; copyButton.disabled = true;
     document.getElementById('copy-status').textContent = '';
-    summary.textContent = location.protocol === 'file:' ? 'ファイルとして開いています。社内ポータルのHTTP／HTTPS URLでも必ず確認してください。' : '確認中です。通常は数秒、応答がない場合は約10秒かかります。';
-    await Promise.all([workerTest('classic', {name:'SimSim classic probe'}), workerTest('module', {type:'module',name:'SimSim module probe'}),applicationWorkerTest(),jsonTest(),Promise.resolve().then(() => glTest('gl2','webgl2')),Promise.resolve().then(() => glTest('gl1','webgl'))]);
+    for(const id of ['classic','module','application','json','gl2','gl1'])setResult(id,'pending','確認の順番を待っています。');
+    summary.textContent = location.protocol === 'file:' ? 'ファイルとして開いています。社内ポータルのHTTP／HTTPS URLでも必ず確認してください。' : 'Workerを一つずつ確認しています。各Workerは最大60秒待ちます。';
+    // Avoid competing worker startups and animated GL probes in slow VDI sessions.
+    await workerTest('classic', {name:'SimSim classic probe'});
+    await workerTest('module', {type:'module',name:'SimSim module probe'});
+    await applicationWorkerTest();
+    await jsonTest();
+    glTest('gl2','webgl2');glTest('gl1','webgl');
     if (location.protocol === 'file:') {
       summary.textContent = '確認終了。ただしfile:での結果です。配信条件の確認には社内ポータルのURLから開いてください。';
-    } else if (results.classic.state === 'ok' && results.gl2.state === 'ok') {
-      summary.textContent = '通常のWorkerとWebGL 2の基本動作は成功しました。module WorkerとJSONの結果も確認してください。';
+    } else if(Object.values(results).some(r=>r.state==='timeout')){
+      summary.textContent='応答を待っても確認できない項目がありました。起動の遅延と環境の非対応は、この結果だけでは区別できません。各項目の詳細を確認してください。';
+    } else if (results.module.state === 'ok' && results.application.state === 'ok' && results.gl2.state === 'ok' && results.json.state==='ok') {
+      summary.textContent = '本体のmodule Worker・依存モジュール・WebGL 2・静的JSONの基本動作を確認できました。';
     } else {summary.textContent = '確認終了。失敗した項目の詳細を確認してください。';}
     runButton.disabled = false;copyButton.disabled = false;running = false;updateReport();
   }
