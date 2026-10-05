@@ -1,4 +1,4 @@
-export const UI_BUILD='20261005-desktop-7';
+export const UI_BUILD='20261005-state-measurement-8';
 
 export function requireElement(id){
   const element=document.getElementById(id);

@@ -49,7 +49,7 @@ export function expandGroups(scenario) {
           motion
         }
         :{
-        }),id,name:(group.name+' '+(index+1)).slice(0,120),groupId:group.id,initial:translate(group.template.initial),route:group.template.route.map(translate)
+        }),enabled:group.enabled!==false,id,name:(group.name+' '+(index+1)).slice(0,120),groupId:group.id,initial:translate(group.template.initial),route:group.template.route.map(translate)
       });
     }
   }

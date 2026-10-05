@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261005-desktop-7';
-import { sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
+import { editableDefinition } from './editor.js?v=20261005-state-measurement-8';
+import { sharedAssignment } from './shared-settings.js?v=20261005-state-measurement-8';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-desktop-7';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-state-measurement-8';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -479,7 +479,7 @@ export class MapView {
     disposal(this.sensorRangeGroup);
     this.sensorSphere=null;
     const unit=this.scenario.units.find(u=>u.id===this.selected);
-    if(unit?.sensor?.enabled){
+    if(unit?.enabled!==false&&unit?.sensor?.enabled){
       const material=new THREE.MeshBasicMaterial({
         color:'#80dbae',wireframe:true,transparent:true,opacity:.28,depthWrite:false
       });
@@ -507,7 +507,7 @@ export class MapView {
     const candidates=this.scenario.units.length>80?this.scenario.units.filter(u=>u.id===this.selected):this.scenario.units;
     for(const unit of candidates) {
       const label=document.createElement('div');
-      label.className='map-label '+unit.faction+(unit.id===this.selected?' selected':'');
+      label.className='map-label '+unit.faction+(unit.id===this.selected?' selected':'')+(unit.enabled===false?' inactive-unit':'');
       const name=document.createElement('span');
       name.textContent=unit.name;
       const detail=document.createElement('small');
@@ -545,7 +545,7 @@ export class MapView {
     this.batches=[];
     const styles=new Map();
     for(const unit of scenario.units) {
-      const key=[unit.domain,unit.faction,unit.manned].join('|');
+      const key=[unit.domain,unit.faction,unit.manned,unit.enabled!==false].join('|');
       if(!styles.has(key))styles.set(key,[]);
       styles.get(key).push(unit);
     }
@@ -635,14 +635,14 @@ export class MapView {
     canvas.height=96;
     const c=canvas.getContext('2d');
     c.fillStyle='#102437';
-    c.strokeStyle=selected?'#ffd18b':COLORS[unit.faction];
+    c.strokeStyle=selected?'#ffd18b':unit.enabled===false?'#788391':COLORS[unit.faction];
     c.lineWidth=4;
     c.beginPath();
     c.arc(48,48,37,0,Math.PI*2);
     c.fill();
     c.stroke();
-    c.fillStyle=COLORS[unit.faction];
-    c.strokeStyle=COLORS[unit.faction];
+    c.fillStyle=unit.enabled===false?'#788391':COLORS[unit.faction];
+    c.strokeStyle=unit.enabled===false?'#788391':COLORS[unit.faction];
     c.lineWidth=3;
     c.beginPath();
     if(unit.domain==='ground'){
@@ -803,7 +803,7 @@ export class MapView {
       if(label){
         const unit=this.markers.get(state.id)?.unit;
         label.querySelector('small').textContent=DOMAIN_NAMES[unit.domain]+' · '+({
-          standby:'イベント待ち',preparing:'出発準備',moving:'移動中',arrived:'到着',blocked:'停止',waiting:'時間待ち',idle:'待機'
+          disabled:'無効（計算対象外）',standby:'イベント待ち',preparing:'出発準備',moving:'移動中',arrived:'到着',blocked:'停止',waiting:'時間待ち',idle:'待機'
         })[state.status];
       }
     }

@@ -1,5 +1,5 @@
-import {resolveValue} from './behavior-parameters.js?v=20261005-desktop-7';
-import { sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
+import {resolveValue} from './behavior-parameters.js?v=20261005-state-measurement-8';
+import { sharedAssignment } from './shared-settings.js?v=20261005-state-measurement-8';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -72,6 +72,10 @@ export function setPosition(s,id,key,value) {
   for(const p of points)p[key]+=delta;
 }
 export function pruneReferences(s) {
+  if(s.mission?.type==='state'){
+    const a=s.behaviorAssignments?.find(a=>a.id===s.mission.assignmentId),g=s.behaviors?.find(g=>g.id===a?.behaviorId);
+    if(!g?.nodes.some(n=>n.id===s.mission.nodeId))delete s.mission;
+  }
   for(const key of ['factors','uncertainties'])if(s.analysis?.[key])s.analysis[key]=s.analysis[key].filter(b=>b.target==='scenario'?!!s.mission:b.target.startsWith('assignment:')?s.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?s.groups?.some(g=>g.id===b.target.slice(6)):s.units.some(u=>u.id===b.target.slice(5)));
 }
 export function removeAssignment(s,id) {
@@ -136,10 +140,11 @@ export function removeDefinition(s,id) {
     s.mission.responderIds=s.mission.responderIds.filter(id=>s.units.some(u=>u.id===id));
     if(!s.mission.responderIds.length)delete s.mission;
   }
-  if(s.mission&&![...s.units,...(s.groups??[]).map(g=>g.template)].some(u=>u.faction===s.mission.targetFaction))delete s.mission;
+  if(s.mission&&s.mission.type!=='state'&&![...s.units,...(s.groups??[]).map(g=>g.template)].some(u=>u.faction===s.mission.targetFaction))delete s.mission;
   if(s.behaviorAssignments)s.behaviorAssignments=s.behaviorAssignments.map(a=>({
     ...a,targets:a.targets.filter(t=>t.startsWith('group:')?s.groups?.some(g=>g.id===t.slice(6)):s.units.some(u=>u.id===t.slice(5)))
   })).filter(a=>a.targets.length);
+  pruneReferences(s);
   if(s.analysis){
     if(s.analysis.groupId&&!s.groups?.some(g=>g.id===s.analysis.groupId)){
       delete s.analysis.groupId;

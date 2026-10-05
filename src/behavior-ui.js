@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261005-desktop-7';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-desktop-7';
-import {isParameterRef} from './behavior-parameters.js?v=20261005-desktop-7';
-import {NavigationUI} from './navigation-ui.js?v=20261005-desktop-7';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-desktop-7';
-import { removeAssignment,removeBehavior } from './editor.js?v=20261005-desktop-7';
-import { clone,validateScenario } from './engine.js?v=20261005-desktop-7';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
-import { requireElement } from './ui-dom.js?v=20261005-desktop-7';
+import {ContextMenu} from './context-menu.js?v=20261005-state-measurement-8';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-state-measurement-8';
+import {isParameterRef} from './behavior-parameters.js?v=20261005-state-measurement-8';
+import {NavigationUI} from './navigation-ui.js?v=20261005-state-measurement-8';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-state-measurement-8';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261005-state-measurement-8';
+import { clone,validateScenario } from './engine.js?v=20261005-state-measurement-8';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-state-measurement-8';
+import { requireElement } from './ui-dom.js?v=20261005-state-measurement-8';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -53,6 +53,7 @@ export class BehaviorUI{
     $('behavior-close').onclick=()=>this.dialog.close();
     $('behavior-cancel').onclick=()=>this.dialog.close();
     $('behavior-apply').onclick=()=>this.apply();
+    $('node-measure').onclick=()=>this.measureSelected();
     $('graph-connect').onclick=()=>{
       this.connecting=this.connecting?null:{id:null};
       this.render();
@@ -155,6 +156,8 @@ export class BehaviorUI{
       g.edges=g.edges.filter(e=>e.from!==this.selected&&e.to!==this.selected);
       g.triggers=g.triggers.filter(t=>t.to!==this.selected);
       if(g.initial===this.selected)delete g.initial;
+      const m=this.draft.mission,a=this.draft.behaviorAssignments.find(a=>a.id===m?.assignmentId);
+      if(m?.type==='state'&&a?.behaviorId===g.id&&m.nodeId===this.selected){delete this.draft.mission;pruneReferences(this.draft);}
       this.selected=null;
       this.selectedTrigger=null;
       this.selectedEdge=null;
@@ -374,6 +377,14 @@ export class BehaviorUI{
     this.dialog.showModal();
     this.canvasView=null;
   }
+  measureSelected(){
+    const a=this.assignment(),g=this.graph(),n=g?.nodes.find(n=>n.id===this.selected);
+    if(!n||a?.behaviorId!==g?.id)return;
+    this.remember();
+    const m=this.draft.mission;
+    this.draft.mission={type:'state',assignmentId:a.id,nodeId:n.id,join:m?.type==='state'?m.join:'any',deadline:m?.deadline??this.draft.duration,...(m?.type==='state'&&m.join==='count'?{requiredCount:m.requiredCount}:{})};
+    this.render();
+  }
   apply(){
     try{
       for(const g of this.draft.behaviors){
@@ -457,7 +468,7 @@ export class BehaviorUI{
     if(id==='node-sensor'&&n)n.sensor=$('node-sensor').checked;
     if(a){
       if(id==='assignment-name')a.name=$('assignment-name').value;
-      if(id==='assignment-behavior'){a.behaviorId=$('assignment-behavior').value;delete a.parameters;this.graphId=a.behaviorId;}
+      if(id==='assignment-behavior'){if(this.draft.mission?.type==='state'&&this.draft.mission.assignmentId===a.id){delete this.draft.mission;pruneReferences(this.draft);}a.behaviorId=$('assignment-behavior').value;delete a.parameters;this.graphId=a.behaviorId;}
       if(id==='assignment-targets')a.targets=[...$('assignment-targets').selectedOptions].map(o=>o.value);
       if(id==='assignment-spacing')a.spacing=$('assignment-spacing').value;
       if(id==='assignment-distance')a.spacingDistance=Number($('assignment-distance').value);
@@ -587,6 +598,7 @@ export class BehaviorUI{
       add('種類を編集',()=>$(node?'node-kind':'trigger-event').focus());
       const n=this.graph().nodes.find(n=>n.id===this.selected);
       add('ここから接続',()=>{this.connecting={id:null};this.connectNode(node?.dataset.node??trigger.dataset.trigger,!!trigger);},!!n?.kind&&!NODE_EVENTS[n.kind]?.length);
+      if(node)add('計測対象にする',()=>$('node-measure').click(),$('node-measure').disabled);
       if(node)add('初期状態にする',()=>{this.remember();this.graph().initial=this.selected;this.render();},this.graph().initial===this.selected);
       add('複製　Ctrl+D',()=>this.duplicateSelected());
       add('削除　Delete',()=>this.deleteSelection(),!!node&&this.graph().nodes.length===1);
@@ -711,6 +723,10 @@ export class BehaviorUI{
     $('node-selected').textContent=n?(NODE_KINDS[n.kind]??'未設定の状態'):'';
     select('node-kind',[['','種類を選択してください'],...Object.entries(NODE_KINDS)],n?.kind);
     $('node-initial').checked=!!n&&this.graph()?.initial===n.id;
+    const measured=this.draft.mission?.type==='state'&&this.draft.mission.assignmentId===a?.id&&this.draft.mission.nodeId===n?.id;
+    $('node-measure').disabled=!n||!n.kind||a?.behaviorId!==this.graph()?.id;
+    $('node-measure').textContent=measured?'計測対象に設定済み':'この状態を計測対象にする';
+    $('node-measure-note').textContent=a?.behaviorId===this.graph()?.id?'タスク「'+a.name+'」の初回到達を計測します。人数条件・期限は分析で設定できます。':'この挙動を使うタスクを担当タブで選択してください。';
     $('node-route-fields').hidden=!['follow','patrol'].includes(n?.kind);
     const u=this.mapUnit(),legacyRoute=u?routeFor(this.draft,a,{kind:n?.kind},u):null;
     select('node-route',[['','担当の既存経路'+(legacyRoute?'（'+legacyRoute.points.length+'点）':'')],...this.draft.routes.map(r=>[r.id,r.name+'（'+r.points.length+'点）'])],n?.routeId??'');
@@ -836,6 +852,11 @@ export class BehaviorUI{
       if(!n.trigger&&g.initial===n.id){
         add('rect',{x:x+120,y:y-13,width:82,height:23,rx:8,class:'initial-badge'},undefined,group);
         add('text',{x:x+131,y:y+3,class:'initial-label'},'初期状態',group);
+      }
+      const goal=this.draft.mission,task=this.draft.behaviorAssignments.find(a=>a.id===goal?.assignmentId);
+      if(!n.trigger&&goal?.type==='state'&&task?.behaviorId===g.id&&goal.nodeId===n.id){
+        add('rect',{x:x+8,y:y-13,width:88,height:23,rx:8,class:'measurement-badge'},undefined,group);
+        add('text',{x:x+19,y:y+3,class:'measurement-label'},'計測対象',group);
       }
       group.setAttribute('tabindex','0');group.setAttribute('role','button');
       group.setAttribute('aria-label',(n.trigger?'イベント：':'状態：')+(n.trigger?TRIGGER_EVENTS[n.event]:NODE_KINDS[n.kind]));

@@ -1,5 +1,5 @@
-import { sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
-import { random01,streamKey } from './random.js?v=20261005-desktop-7';
+import { sharedAssignment } from './shared-settings.js?v=20261005-state-measurement-8';
+import { random01,streamKey } from './random.js?v=20261005-state-measurement-8';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={
@@ -260,7 +260,7 @@ export function trialScenario(source,condition,trial,{
   scenario.groups=scenario.groups?.filter(g=>g.count!==0);
   if(scenario.behaviorAssignments)scenario.behaviorAssignments=scenario.behaviorAssignments.map(a=>({
     ...a,targets:a.targets.filter(t=>!t.startsWith('group:')||scenario.groups?.some(g=>g.id===t.slice(6)))
-  })).filter(a=>a.targets.length);
+  })).filter(a=>a.targets.length||scenario.mission?.type==='state'&&scenario.mission.assignmentId===a.id);
   if(scenario.analysis){
     const present=b=>b.target==='scenario'?!!scenario.mission:b.target.startsWith('assignment:')?scenario.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?scenario.groups?.some(g=>g.id===b.target.slice(6)):scenario.units.some(u=>u.id===b.target.slice(5));
     for(const key of ['factors','uncertainties'])scenario.analysis[key]=scenario.analysis[key]?.filter(present);

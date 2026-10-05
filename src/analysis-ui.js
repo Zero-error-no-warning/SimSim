@@ -1,10 +1,11 @@
-import { TRIGGER_EVENTS } from './shared-settings.js?v=20261005-desktop-7';
-import { RECORD_MODEL } from './recording.js?v=20261005-desktop-7';
-import { numericScale } from './chart-scale.js?v=20261005-desktop-7';
-import { clone,validateScenario } from './engine.js?v=20261005-desktop-7';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-desktop-7';
-import { ParameterEditor } from './parameter-ui.js?v=20261005-desktop-7';
-import { requireElement } from './ui-dom.js?v=20261005-desktop-7';
+import {stateMembers} from './state-measurement.js?v=20261005-state-measurement-8';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261005-state-measurement-8';
+import { RECORD_MODEL } from './recording.js?v=20261005-state-measurement-8';
+import { numericScale } from './chart-scale.js?v=20261005-state-measurement-8';
+import { clone,validateScenario } from './engine.js?v=20261005-state-measurement-8';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-state-measurement-8';
+import { ParameterEditor } from './parameter-ui.js?v=20261005-state-measurement-8';
+import { requireElement } from './ui-dom.js?v=20261005-state-measurement-8';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -15,7 +16,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-desktop-7',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-state-measurement-8',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -63,11 +64,13 @@ export class AnalysisUI {
       $('analysis-dialog').showModal();
     };
     $('analysis-close').onclick=()=>$('analysis-dialog').close();
-    for(const id of ['mission-enabled','mission-type','mission-responders','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
+    for(const id of ['mission-enabled','mission-type','mission-assignment','mission-state','mission-count','mission-responders','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
+      if(id.startsWith('mission-')&&id!=='mission-enabled')$('mission-enabled').checked=true;
+      if(id==='mission-assignment')this.stateOptions($('mission-assignment').value);
       if(id==='mission-observer'&&$('mission-observer').value===$('mission-target').value)$('mission-target').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-observer').value);
       if(id==='mission-target'&&$('mission-observer').value===$('mission-target').value)$('mission-observer').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-target').value);
       try{
-        const next=this.readConfig(id);this.commit(next,'成功条件・分析設定を変更しました。');
+        const next=this.readConfig(id);this.commit(next,'計測対象・分析設定を変更しました。');
       }catch(error){
         showError(error.message);this.renderConfig();
       }
@@ -86,6 +89,7 @@ export class AnalysisUI {
         this.renderResults();
       }
     };
+    $('state-time-condition').onchange=()=>this.renderStateDistribution();
     $('chart-axis').onchange=()=>this.renderChart();
     $('chart-log').onchange=()=>this.renderChart();
     $('analysis-export').onclick=()=>this.export();
@@ -146,7 +150,11 @@ export class AnalysisUI {
       factors:[],trials:100,step:10,requiredRate:.95
     });
     $('mission-enabled').checked=!!s.mission;
-    $('mission-type').value=m.type??'detect';
+    const type=m.type??(s.behaviorAssignments?.length?'state':'detect');
+    $('mission-type').value=type;this.stateOptions(m.assignmentId,m.nodeId);
+    $('state-measure-fields').hidden=type!=='state';$('mission-factions').hidden=type==='state';
+    $('mission-count-field').hidden=type!=='state'||m.join!=='count';$('mission-count').value=m.requiredCount??1;
+    $('mission-join').options[2].hidden=type!=='state';$('mission-join').options[2].disabled=type!=='state';
     $('responder-field').hidden=m.type!=='arrive';
     const responders=$('mission-responders');
     responders.replaceChildren();
@@ -156,17 +164,17 @@ export class AnalysisUI {
       option.selected=chosen.includes(u.id);
       responders.append(option);
     }
-    $('mission-join').options[0].textContent=m.type==='arrive'?'対応ユニットのうち一つが到着':'対象のうち一つを探知';
-    $('mission-join').options[1].textContent=m.type==='arrive'?'対応ユニットすべてが到着':'対象すべてを探知';
-    $('mission-observer').value=m.observerFaction;
-    $('mission-target').value=m.targetFaction;
+    $('mission-join').options[0].textContent=type==='state'?'担当のうち一つが状態へ到達':type==='arrive'?'対応ユニットのうち一つが到着':'対象のうち一つを探知';
+    $('mission-join').options[1].textContent=type==='state'?'有効な担当すべてが状態へ到達':type==='arrive'?'対応ユニットすべてが到着':'対象すべてを探知';
+    $('mission-observer').value=m.observerFaction??'friendly';
+    $('mission-target').value=m.targetFaction??'hostile';
     $('mission-join').value=m.join;
     $('mission-deadline').value=+(m.deadline/60).toFixed(3);
     $('mission-deadline').dataset.display=$('mission-deadline').value;
     $('mission-deadline').dataset.seconds=m.deadline;
     $('mission-deadline').title=m.deadline+'秒';
     $('mission-deadline').max=s.duration/60;
-    $('mission-target-note').textContent=m.targetIds?'対象ID指定: '+m.targetIds.join(', ')+'（対象陣営の変更で解除）':'対象側の陣営に属する全ユニットを評価します。';
+    $('mission-target-note').textContent=type==='state'?'計算に使用する担当 '+stateMembers(s,{...m,type:'state',assignmentId:$('mission-assignment').value}).length+' 個。無効な担当は計測対象に含めません。':m.targetIds?'対象ID指定: '+m.targetIds.join(', ')+'（対象陣営の変更で解除）':'対象側の陣営に属する全ユニットを評価します。';
     $('analysis-trials').value=a.trials;
     $('analysis-step').value=s.recording.step;
     $('analysis-step').disabled=false;
@@ -180,12 +188,28 @@ export class AnalysisUI {
     });
     $('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
   }
+  stateOptions(assignmentId,nodeId){
+    const s=this.getScenario(),list=$('mission-assignment'),old=assignmentId??list.value;
+    list.replaceChildren();for(const a of s.behaviorAssignments??[])list.append(new Option(a.name,a.id));
+    if([...list.options].some(o=>o.value===old))list.value=old;
+    const a=s.behaviorAssignments?.find(a=>a.id===list.value),g=s.behaviors?.find(g=>g.id===a?.behaviorId),nodes=$('mission-state');
+    nodes.replaceChildren();for(const n of g?.nodes??[])nodes.append(new Option((NODE_KINDS[n.kind]??'未設定')+' ['+n.id+']',n.id));
+    if([...nodes.options].some(o=>o.value===(nodeId??g?.initial)))nodes.value=nodeId??g.initial;
+  }
   readConfig(changedId='') {
     const next=clone(this.getScenario());
     if($('mission-enabled').checked){
       next.mission={
         ...next.mission,type:$('mission-type').value,observerFaction:$('mission-observer').value,targetFaction:$('mission-target').value,join:$('mission-join').value,deadline:$('mission-deadline').value===$('mission-deadline').dataset.display?Number($('mission-deadline').dataset.seconds):Math.round(Number($('mission-deadline').value)*60*1e6)/1e6
       };
+      if(next.mission.type==='state'){
+        next.mission.assignmentId=$('mission-assignment').value;next.mission.nodeId=$('mission-state').value;
+        if(next.mission.join==='count')next.mission.requiredCount=Number($('mission-count').value);else delete next.mission.requiredCount;
+        for(const key of ['observerFaction','targetFaction','targetIds','responderIds'])delete next.mission[key];
+      }else{
+        for(const key of ['assignmentId','nodeId','requiredCount'])delete next.mission[key];
+        if(next.mission.join==='count')next.mission.join='any';
+      }
       if(next.mission.type==='arrive')next.mission.responderIds=[...$('mission-responders').selectedOptions].map(o=>o.value);
       else delete next.mission.responderIds;
       if(changedId==='mission-target')delete next.mission.targetIds;
@@ -231,11 +255,14 @@ export class AnalysisUI {
     $('analysis-restore').disabled=!this.base||this.running;
   }
   renderResults() {
+    const state=(this.base??this.getScenario())?.mission?.type==='state';
+    $('analysis-observed-heading').textContent=state?'1つ以上状態へ到達した試行':'1つ以上探知した試行';
+    $('analysis-rate-heading').textContent=state?'条件を満たした到達率':'成立率';$('analysis-time-heading').textContent=state?'初回成立時刻の中央値':'成立時刻の中央値';$('analysis-members-heading').hidden=!state;
     $('analysis-rows').replaceChildren();
     for(const row of this.rows) {
       const tr=document.createElement('tr');
       if((row.condition?.id??row.count)===this.highlightCount)tr.className='selected-result';
-      for(const value of [row.condition?.label??row.count,row.successes+' / '+row.total,row.trials.filter(t=>t.detectedCount>0).length+' / '+row.total,percent(row.rate),percent(row.rate===null?null:1-row.rate),percent(row.low)+'–'+percent(row.high),minutes(row.median),row.invalidTrials]){
+      for(const value of [row.condition?.label??row.count,row.successes+' / '+row.total,row.trials.filter(t=>state?t.stateReachedCount>0:t.detectedCount>0).length+' / '+row.total,percent(row.rate),percent(row.rate===null?null:1-row.rate),percent(row.low)+'–'+percent(row.high),minutes(row.median),...(state?[(row.trials.reduce((n,t)=>n+t.stateReachedCount,0)/row.total).toFixed(2)]:[]),row.invalidTrials]){
         const td=document.createElement('td');
         td.textContent=value;
         tr.append(td);
@@ -261,7 +288,7 @@ export class AnalysisUI {
         }
         =trialScenario(this.base,condition,trial.trial);
         this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
-        this.seek(trial.successTime??next.mission.deadline);
+        this.seek(trial.successTime??next.mission?.deadline??next.duration);
         $('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');
         this.highlightCount=condition.id;
         this.renderResults();
@@ -271,9 +298,22 @@ export class AnalysisUI {
       tr.append(td);
       $('analysis-rows').append(tr);
     }
-    this.renderChart();
+    this.renderChart();this.renderStateDistribution();
     const requirement=this.base?.analysis.requiredRate??.95;
     $('analysis-summary').textContent=this.rows.length?'要求 '+percent(requirement)+' · 点推定で達成した条件: '+this.rows.filter(r=>r.rate>=requirement).length+' / '+this.rows.length+' · 区間下限でも達成: '+this.rows.filter(r=>r.low>=requirement).length+'。中央値は成功試行だけを集計。'+(this.running?'途中結果です。':''):'成功率と95%信頼区間を表示します。';
+  }
+  renderStateDistribution(){
+    const panel=$('state-time-distribution'),state=(this.base??this.getScenario())?.mission?.type==='state';panel.hidden=!state||!this.rows.length;
+    const select=$('state-time-condition'),previous=select.value;select.replaceChildren();for(const r of this.rows)select.append(new Option(r.condition?.label??'基準条件',r.condition?.id??String(r.count)));
+    if([...select.options].some(o=>o.value===previous))select.value=previous;
+    const row=this.rows.find(r=>(r.condition?.id??String(r.count))===select.value),holder=$('state-time-chart');holder.replaceChildren();if(!state||!row)return;
+    const times=row.trials.filter(t=>t.success).map(t=>t.successTime).sort((a,b)=>a-b),deadline=(this.base??this.getScenario()).mission.deadline;
+    const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 640 240');svg.setAttribute('role','img');svg.setAttribute('aria-label','指定状態への到達条件が初めて成立する時刻と累積到達率');
+    const add=(tag,attrs,text)=>{const el=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;svg.append(el);return el;},x=t=>55+560*t/deadline,y=p=>200-165*p;
+    for(const p of [0,.5,1]){add('line',{x1:55,x2:615,y1:y(p),y2:y(p),stroke:'#34536d'});add('text',{x:48,y:y(p)+4,'text-anchor':'end',fill:'#a9c5da','font-size':12},percent(p));}
+    for(const t of [0,deadline/2,deadline])add('text',{x:x(t),y:221,'text-anchor':'middle',fill:'#a9c5da','font-size':12},minutes(t));
+    let d='M55 200';times.forEach((t,i)=>{d+=' H'+x(t)+' V'+y((i+1)/row.total);});d+=' H615';add('path',{d,fill:'none',stroke:'#70d9ff','stroke-width':2});holder.append(svg);
+    $('state-time-note').textContent='横軸：初回成立時刻、縦軸：全試行に対する累積到達率。未到達の試行も分母に含めます。期限内成立 '+times.length+' / '+row.total+'、未成立 '+(row.total-times.length)+'。';
   }
   renderChart() {
     const host=$('analysis-chart'),legend=$('analysis-chart-legend'),axis=$('chart-axis');
@@ -368,10 +408,14 @@ export class AnalysisUI {
     const mission=this.getSnapshot()?.mission,el=$('mission-status');
     if(!mission){
       el.className='';
-      el.textContent=this.getSnapshot()?.missionError?'評価できません: '+this.getSnapshot().missionError:this.getSnapshot()?.executionState==='running'?'計算中…':this.getSnapshot()?.actionsPending?'未計算 · 計算を実行してください':this.getScenario()?.mission?'未計算':'成功条件は未設定';
+      el.textContent=this.getSnapshot()?.missionError?'評価できません: '+this.getSnapshot().missionError:this.getSnapshot()?.executionState==='running'?'計算中…':this.getSnapshot()?.actionsPending?'未計算 · 計算を実行してください':this.getScenario()?.mission?'未計算':'計測条件は未設定';
     }
     else {
       el.className=mission.status;
+      if(this.getScenario()?.mission?.type==='state'){
+        const m=this.getScenario().mission,a=this.getScenario().behaviorAssignments.find(a=>a.id===m.assignmentId),g=this.getScenario().behaviors.find(g=>g.id===a?.behaviorId),n=g?.nodes.find(n=>n.id===m.nodeId);
+        el.textContent=({'pending':'計測中','success':'到達条件成立','failure':'期限までに未到達'})[mission.status]+' · '+(a?.name??'タスク')+' → '+(NODE_KINDS[n?.kind]??m.nodeId)+' ['+m.nodeId+'] · 到達 '+mission.stateReachedCount+' / '+mission.stateTargetCount+' · 期限 '+minutes(mission.deadline);return;
+      }
       el.textContent=({
         pending:'評価中',success:'成功条件成立',failure:'期限までに未成立'
       })[mission.status]+' · 探知 '+mission.detectedCount+' / '+mission.targetCount+(this.getScenario()?.mission?.type==='arrive'?' · 到着 '+mission.reachedCount+' / '+mission.responderCount:'')+' · 期限 '+minutes(mission.deadline);

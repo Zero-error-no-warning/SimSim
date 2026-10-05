@@ -1,9 +1,10 @@
-import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261005-desktop-7';
-import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261005-desktop-7';
-import { clone,validateScenario } from './engine.js?v=20261005-desktop-7';
-import { missionErrors,analysisErrors } from './detection-settings.js?v=20261005-desktop-7';
-export { terrainVisible,contactProbability } from './contact.js?v=20261005-desktop-7';
-import { importScenario } from './scenario-import.js?v=20261005-desktop-7';
+import {stateSummary,validateStateResult} from './state-measurement.js?v=20261005-state-measurement-8';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261005-state-measurement-8';
+import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261005-state-measurement-8';
+import { clone,validateScenario } from './engine.js?v=20261005-state-measurement-8';
+import { missionErrors,analysisErrors } from './detection-settings.js?v=20261005-state-measurement-8';
+export { terrainVisible,contactProbability } from './contact.js?v=20261005-state-measurement-8';
+import { importScenario } from './scenario-import.js?v=20261005-state-measurement-8';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
   if(!(model instanceof RecordedSimulation)&&model.source.version!==3&&step!==undefined){
@@ -27,7 +28,7 @@ export function snapshotMission(result,mission,time) {
   const reachedCount=(result.actionEvents??[]).filter(e=>e.type==='arrived'&&e.time<=time&&mission.responderIds?.includes(e.unitId)).length;
   const success=result.successTime!==null&&result.successTime<=time;
   return {
-    events,detectedCount,targetCount:result.targetCount,reachedCount,responderCount:result.responderCount??0,status:success?'success':time>=mission.deadline?'failure':'pending',deadline:mission.deadline
+    ...(mission.type==='state'?stateSummary(result.stateEntries,mission,result.stateTargetCount,time):{}),events,detectedCount,targetCount:result.targetCount,reachedCount,responderCount:result.responderCount??0,status:success?'success':time>=mission.deadline?'failure':'pending',deadline:mission.deadline
   };
 }
 export function wilson(successes,total) {
@@ -86,15 +87,16 @@ export function restoreAnalysisResult(payload) {
     for(const t of row.trials) {
       if(!t||!Number.isInteger(t.trial)||t.trial<startTrial||t.trial>=startTrial+analysis.trials||ids.has(t.trial)||typeof t.success!=='boolean')throw new Error('分析結果の試行番号・成否が不正です。');
       ids.add(t.trial);
-      for(const [key,min,max] of [['targetCount',1,2000],['detectedCount',0,2000],['invalidUnits',0,2000],['constrainedPaths',0,2000]])if(!Number.isInteger(t[key])||t[key]<min||t[key]>max)throw new Error('分析結果の'+key+'が不正です。');
-      if(t.detectedCount>t.targetCount||scenario.mission.type!=='arrive'&&t.success!==(scenario.mission.join==='any'?t.detectedCount>0:t.detectedCount===t.targetCount))throw new Error('分析結果の探知数と成否が一致していません。');
+      for(const [key,min,max] of [['targetCount',0,2000],['detectedCount',0,2000],['invalidUnits',0,2000],['constrainedPaths',0,2000]])if(!Number.isInteger(t[key])||t[key]<min||t[key]>max)throw new Error('分析結果の'+key+'が不正です。');
+      if(t.detectedCount>t.targetCount||scenario.mission.type==='detect'&&t.success!==(t.targetCount>0&&(scenario.mission.join==='any'?t.detectedCount>0:t.detectedCount===t.targetCount)))throw new Error('分析結果の探知数と成否が一致していません。');
       const generated=trialScenario(scenario,condition,t.trial);
       if((!Array.isArray(t.sampled)||t.sampled.length!==generated.sampled.length||new Set(t.sampled.map(b=>bindingKey(b??{
       }))).size!==t.sampled.length||generated.sampled.some(b=>!t.sampled.some(v=>v&&bindingKey(v)===bindingKey(b)&&v.value===b.value))))throw new Error('分析結果の抽出値がシード・分布と一致しません。');
       if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>=0&&t.successTime<=generated.scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
-      if(scenario.mission.type==='arrive'&&(!Number.isInteger(t.reachedCount)||t.reachedCount<0||t.reachedCount>scenario.mission.responderIds.length||t.success!==(scenario.mission.join==='any'?t.reachedCount>0:t.reachedCount===scenario.mission.responderIds.length)))throw new Error('到着数と成否が一致していません。');
+      if(scenario.mission.type==='state')validateStateResult(generated.scenario,t);
+      if(scenario.mission.type==='arrive'&&(!Number.isInteger(t.reachedCount)||t.reachedCount<0||t.reachedCount>generated.scenario.mission.responderIds.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length||t.success!==(scenario.mission.join==='any'?t.reachedCount>0:t.reachedCount>0&&t.reachedCount===generated.scenario.mission.responderIds.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length)))throw new Error('到着数と成否が一致していません。');
       trials.push({
-        reachedCount:t.reachedCount??0,responderCount:scenario.mission.responderIds?.length??0,trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled
+        ...(scenario.mission.type==='state'?{stateEntries:t.stateEntries,stateTargetCount:t.stateTargetCount,stateReachedCount:t.stateReachedCount}:{}),reachedCount:t.reachedCount??0,responderCount:generated.scenario.mission.responderIds?.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length??0,trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled
       });
     }
     trials.sort((a,b)=>a.trial-b.trial);

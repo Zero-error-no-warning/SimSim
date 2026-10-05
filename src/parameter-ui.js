@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261005-desktop-7';
-import { requireElement } from './ui-dom.js?v=20261005-desktop-7';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261005-state-measurement-8';
+import { requireElement } from './ui-dom.js?v=20261005-state-measurement-8';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

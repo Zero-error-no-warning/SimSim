@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {clone,validateScenario} from '../src/engine.js?v=20261005-desktop-7';
-import {importScenario} from '../src/scenario-import.js?v=20261005-desktop-7';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261005-desktop-7';
+import {clone,validateScenario} from '../src/engine.js?v=20261005-state-measurement-8';
+import {importScenario} from '../src/scenario-import.js?v=20261005-state-measurement-8';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261005-state-measurement-8';
 const unit=(id,faction,x=0)=>({id,name:id,domain:'surface',faction,manned:false,speed:10,initial:{x,y:0,z:0},route:[{x:x+500,y:0,z:0}],routeMode:'once'});
 const base={version:3,unitsSystem:'SI',title:'Trigger regression',duration:100,seed:'trigger-test',
  terrain:{columns:5,rows:3,spacing:1000,origin:{x:-1000,y:-1000},seaLevel:0,elevations:Array(15).fill(-500)},

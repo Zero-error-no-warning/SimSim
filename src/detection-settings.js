@@ -1,4 +1,4 @@
-import { variableErrors } from './parameters.js?v=20261005-desktop-7';
+import { variableErrors } from './parameters.js?v=20261005-state-measurement-8';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
@@ -20,10 +20,12 @@ export function missionErrors(m,duration) {
   if(m===undefined)return [];
   const errors=[];
   if(!m||typeof m!=='object'||Array.isArray(m))return ['missionはオブジェクトにしてください。'];
-  if(!['detect','arrive'].includes(m.type))errors.push('mission.typeはdetectまたはarriveにしてください。');
+  if(!['detect','arrive','state'].includes(m.type))errors.push('mission.typeはdetect・arrive・stateにしてください。');
   if(m.type==='arrive'&&(!Array.isArray(m.responderIds)||!m.responderIds.length||m.responderIds.length>2000||m.responderIds.some(id=>typeof id!=='string')||new Set(m.responderIds).size!==m.responderIds.length))errors.push('mission.responderIdsに到着を評価する単体ユニットIDを指定してください。');
-  if(!FACTIONS.includes(m.observerFaction)||!FACTIONS.includes(m.targetFaction)||m.observerFaction===m.targetFaction)errors.push('観測側と対象側には異なる陣営を指定してください。');
-  if(!['any','all'].includes(m.join))errors.push('mission.joinはanyまたはallにしてください。');
+  if(m.type!=='state'&&(!FACTIONS.includes(m.observerFaction)||!FACTIONS.includes(m.targetFaction)||m.observerFaction===m.targetFaction))errors.push('観測側と対象側には異なる陣営を指定してください。');
+  if(!(m.type==='state'?['any','all','count']:['any','all']).includes(m.join))errors.push('mission.joinはany・all（状態計測ではcountも可）にしてください。');
+  if(m.type==='state'&&(typeof m.assignmentId!=='string'||typeof m.nodeId!=='string'))errors.push('計測するタスクと状態を選択してください。');
+  if(m.join==='count'&&(!Number.isInteger(m.requiredCount)||m.requiredCount<1||m.requiredCount>2000))errors.push('到達を必要とする担当数は1～2000です。');
   if(!finite(m.deadline)||m.deadline<=0||m.deadline>duration)errors.push('mission.deadlineは0より大きく終了時刻以下にしてください。');
   if(m.targetIds!==undefined&&(!Array.isArray(m.targetIds)||!m.targetIds.length||m.targetIds.length>2000||m.targetIds.some(id=>typeof id!=='string')||new Set(m.targetIds).size!==m.targetIds.length))errors.push('mission.targetIdsは重複しない対象IDの配列にしてください。');
   return errors;

@@ -1,16 +1,16 @@
-import {ContextMenu} from './context-menu.js?v=20261005-desktop-7';
-import {TerrainUI} from './terrain-ui.js?v=20261005-desktop-7';
-import { BehaviorUI } from './behavior-ui.js?v=20261005-desktop-7';
-import { createSimulation } from './recorded-engine.js?v=20261005-desktop-7';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-desktop-7';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-desktop-7';
-import { importScenario } from './scenario-import.js?v=20261005-desktop-7';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-desktop-7';
-import { restoreAnalysisResult } from './detection.js?v=20261005-desktop-7';
-import { AnalysisUI } from './analysis-ui.js?v=20261005-desktop-7';
-import { MapView } from './view.js?v=20261005-desktop-7';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-desktop-7';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-desktop-7';
+import {ContextMenu} from './context-menu.js?v=20261005-state-measurement-8';
+import {TerrainUI} from './terrain-ui.js?v=20261005-state-measurement-8';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-state-measurement-8';
+import { createSimulation } from './recorded-engine.js?v=20261005-state-measurement-8';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-state-measurement-8';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-state-measurement-8';
+import { importScenario } from './scenario-import.js?v=20261005-state-measurement-8';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-state-measurement-8';
+import { restoreAnalysisResult } from './detection.js?v=20261005-state-measurement-8';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-state-measurement-8';
+import { MapView } from './view.js?v=20261005-state-measurement-8';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-state-measurement-8';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-state-measurement-8';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -26,7 +26,8 @@ const STATUS_NAMES={
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=20261005-desktop-7',import.meta.url),{
+STATUS_NAMES.disabled='無効（計算対象外）';
+const worker=new Worker(new URL('./worker.js?v=20261005-state-measurement-8',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -380,21 +381,21 @@ function renderUnits({
   for(const group of scenario.groups??[]) {
     const b=document.createElement('button');
     b.className='group-item';
-    b.textContent=group.name+' · '+group.count+'個 · 編集';
+    b.textContent=(group.enabled===false?'無効 · ':'')+group.name+' · '+group.count+'個 · 編集';
     b.dataset.group=group.id;
     b.addEventListener('click',()=>openGroup(group.id));
     $('group-list').append(b);
   }
   for(const unit of visible) {
     const button=document.createElement('button');
-    button.className='unit-item'+(unit.id===selected?' selected':'');
+    button.className='unit-item'+(unit.id===selected?' selected':'')+(unit.enabled===false?' inactive-unit':'');
     button.dataset.id=unit.id;
     const symbol=document.createElement('span');
     symbol.className='unit-symbol '+unit.faction;
     symbol.textContent=SYMBOLS[unit.domain];
     const description=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');
     name.textContent=unit.name;
-    detail.textContent=DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人')+' · '+Math.round(unit.speed*3.6)+' km/h';
+    detail.textContent=(unit.enabled===false?'無効 · ':'')+DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人')+' · '+Math.round(unit.speed*3.6)+' km/h';
     description.append(name,detail);
     button.append(symbol,description);
     button.addEventListener('click',()=>select(unit.id));
@@ -425,6 +426,8 @@ function renderInspector() {
   };
   for(const [id,key,factor,def] of motionFields)$(id).value=(m[key]??def)*factor;
   renderSensor('unit',unit);
+  $('unit-enabled').checked=(d?.group??unit).enabled!==false;
+  $('unit-enabled-note').textContent=unit.groupId?'この群全体の有効／無効を切り替えます。':unit.enabled===false?'編集用に表示しています。移動・センサー・通信・計測・記録の計算対象から外れます。':'無効にしても設定を保持します。作成済みの群は独立して動作します。';
   $('unit-name').value=unit.name;
   $('unit-domain').value=unit.domain;
   $('unit-faction').value=unit.faction;
@@ -528,6 +531,10 @@ function bindUnit(id,mutate,message) {
     commit(next=>mutate(next.units.find(u=>u.id===selected),input.value),message);
   });
 }
+function setUnitEnabled(id,enabled){
+  commit(next=>{const d=definition(next,id);if(d)(d.group??d.unit).enabled=enabled;},enabled?'計算対象に戻しました。再計算してください。':'計算対象から外しました。設定は編集用に保持しています。');
+}
+$('unit-enabled').onchange=()=>setUnitEnabled(selected,$('unit-enabled').checked);
 bindUnit('unit-name',(u,value)=>u.name=value.trim(),'名称を変更しました。');
 bindUnit('unit-faction',(u,value)=>u.faction=value,'陣営を変更しました。');
 bindUnit('unit-manned',(u,value)=>u.manned=value==='true','運用区分を変更しました。');
@@ -618,7 +625,7 @@ $('group-form').addEventListener('submit',event=>{
   if(!source){
     showError('ひな型が見つかりません。');return;
   }
-  const template=clone(source);template.communication=readCommunication('group');template.sensor={
+  const template=clone(source);delete template.enabled;template.communication=readCommunication('group');template.sensor={
     ...template.sensor,...readSensor('group')
   };template.detectability=Number($('group-detectability').value);template.motion={
     ...template.motion
@@ -816,7 +823,8 @@ function openMapMenu(context){
   }else if(d){
     selectedWaypoint=null;
     add(d.group?'この群の設定':'ユニットの設定',()=>{if(d.group)openGroup(d.group.id);else{$('properties').scrollIntoView({block:'start'});$('unit-name').focus();}});
-    add('担当タスクを編集',()=>behaviorUI.open());separator();
+    add('担当タスクを編集',()=>behaviorUI.open());
+    add((d.group??d.unit).enabled===false?'計算に使用する（有効化）':'計算から外す（無効化）',()=>setUnitEnabled(selected,(d.group??d.unit).enabled===false));separator();
     add('経由点を追加',()=>setEditMode('route'));
     add('周回経路を作成（中心 → 半径）',()=>setEditMode('circle-center'));
     add('初期位置を指定',()=>setEditMode('place'));

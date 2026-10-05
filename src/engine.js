@@ -1,8 +1,9 @@
-import { readParameter } from './parameters.js?v=20261005-desktop-7';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-desktop-7';
-import { actionErrors } from './action-settings.js?v=20261005-desktop-7';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-desktop-7';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-desktop-7';
+import {stateGoalErrors} from './state-measurement.js?v=20261005-state-measurement-8';
+import { readParameter } from './parameters.js?v=20261005-state-measurement-8';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-state-measurement-8';
+import { actionErrors } from './action-settings.js?v=20261005-state-measurement-8';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-state-measurement-8';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-state-measurement-8';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -38,6 +39,7 @@ export function validateScenario(value) {
       errors.push('groupはオブジェクトにしてください。');
       continue;
     }
+    if(g.enabled!==undefined&&typeof g.enabled!=='boolean')errors.push('group.enabledはbooleanにしてください。');
     if(typeof g.id!=='string'||! /^[a-zA-Z0-9_-]{1,50}$/.test(g.id)||groupIds.has(g.id)) errors.push('group.idは重複しない英数字・_・-（50文字以下）にしてください。');
     groupIds.add(g.id);
     if(typeof g.name!=='string'||!g.name.trim()||g.name.length>100) errors.push('group.nameは1～100文字にしてください。');
@@ -61,6 +63,7 @@ export function validateScenario(value) {
       if(value.version===3&&u.behavior)errors.push(prefix+': 旧行動ルールは読み込み時にノードへ変換してください。');
       if (!DOMAINS.includes(u.domain)) errors.push(prefix+': domainが不正です。');
       if (!['friendly','hostile','neutral'].includes(u.faction)) errors.push(prefix+': factionが不正です。');
+      if(u.enabled!==undefined&&typeof u.enabled!=='boolean')errors.push(prefix+': enabledはbooleanにしてください。');
       if (typeof u.manned !== 'boolean') errors.push(prefix+': mannedはbooleanにしてください。');
       if (!finite(u.speed) || u.speed < 0 || u.speed > 1500) errors.push(prefix+': speedは0～1500m/sにしてください。');
       if (!pointValid(u.initial)) errors.push(prefix+': initialのx,y,zが必要です。');
@@ -83,7 +86,7 @@ export function validateScenario(value) {
       if(new Set(expanded.map(u=>u.id)).size!==total)errors.push('生成ユニットのidが単体ユニットと重複しています。');
     }
   }
-  errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration),...sharedErrors(value));
+  errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration),...sharedErrors(value),...stateGoalErrors(value));
   if(value.mission?.type==='arrive'&&value.mission.responderIds?.some(id=>!value.units?.some(u=>u.id===id)))errors.push('到着評価の対象となる単体ユニットが見つかりません。');
   if(value.version===3&&!errors.length)for(const b of [...(value.analysis?.factors??[]),...(value.analysis?.uncertainties??[])]){
     try{
@@ -174,7 +177,7 @@ export class Simulation {
     this.nodeCount=0;
     
     this.terrain=new Terrain(this.scenario.terrain);
-    this.paths=deferPaths?new Map():new Map(this.scenario.units.map(u=>[u.id,this.compile(u)]));
+    this.paths=deferPaths?new Map():new Map(this.scenario.units.filter(u=>u.enabled!==false).map(u=>[u.id,this.compile(u)]));
   }
   compile(unit) {
     const start=this.terrain.project(unit.initial,unit.domain);
@@ -276,6 +279,7 @@ export class Simulation {
     };
   }
   evaluateUnit(u,time,limitTime=true) {
+    if(u.enabled===false)return {id:u.id,position:{...u.initial},status:'disabled',heading:0,distance:0,routeDistance:0,error:null,errorAt:null,actualSpeed:0,startDelay:0,eta:null};
     const elapsed=Math.max(0,Number(time)||0),t=limitTime?Math.min(this.scenario.duration,elapsed):elapsed;
     const path=this.paths.get(u.id),actualSpeed=path.actualSpeed??u.speed;
     const delay=path.delay??0,rawTravel=actualSpeed*Math.max(0,t-delay);

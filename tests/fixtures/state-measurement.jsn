@@ -1,0 +1,199 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "State measurement",
+  "duration": 30,
+  "seed": "measurement",
+  "terrain": {
+    "columns": 5,
+    "rows": 5,
+    "spacing": 1000,
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "template",
+      "name": "編集用のひな形",
+      "enabled": false,
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 100,
+      "initial": {
+        "x": 1000,
+        "y": 1000,
+        "z": 0
+      },
+      "route": [
+        {
+          "x": 2000,
+          "y": 1000,
+          "z": 0
+        }
+      ],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 5000,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "surface"
+        ],
+        "terrainLOS": false
+      }
+    }
+  ],
+  "groups": [
+    {
+      "id": "group",
+      "name": "群",
+      "count": 2,
+      "placement": "grid",
+      "width": 0,
+      "height": 0,
+      "template": {
+        "id": "template",
+        "name": "編集用のひな形",
+        "enabled": false,
+        "domain": "surface",
+        "faction": "friendly",
+        "manned": false,
+        "speed": 100,
+        "initial": {
+          "x": 1000,
+          "y": 1000,
+          "z": 0
+        },
+        "route": [
+          {
+            "x": 2000,
+            "y": 1000,
+            "z": 0
+          }
+        ],
+        "routeMode": "once",
+        "sensor": {
+          "enabled": true,
+          "range": 5000,
+          "probabilityPerMinute": 1,
+          "domains": [
+            "surface"
+          ],
+          "terrainLOS": false
+        }
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "g",
+      "name": "待機して到達",
+      "initial": "a",
+      "triggers": [
+        {
+          "id": "again",
+          "event": "time",
+          "seconds": 20,
+          "to": "a",
+          "once": true
+        }
+      ],
+      "nodes": [
+        {
+          "id": "a",
+          "kind": "wait",
+          "seconds": 3,
+          "x": 100,
+          "y": 100
+        },
+        {
+          "id": "b",
+          "kind": "wait",
+          "seconds": 3,
+          "x": 400,
+          "y": 100
+        }
+      ],
+      "edges": [
+        {
+          "from": "a",
+          "to": "b",
+          "when": "elapsed"
+        },
+        {
+          "from": "b",
+          "to": "a",
+          "when": "elapsed"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "t",
+      "name": "群のタスク",
+      "behaviorId": "g",
+      "targets": [
+        "group:group"
+      ],
+      "spacing": "none"
+    }
+  ],
+  "mission": {
+    "type": "state",
+    "assignmentId": "t",
+    "nodeId": "b",
+    "join": "all",
+    "deadline": 30
+  },
+  "recording": {
+    "step": 10,
+    "interval": 10
+  },
+  "analysis": {
+    "factors": [
+      {
+        "target": "group:group",
+        "parameter": "capacity.population",
+        "values": [
+          0,
+          2
+        ]
+      }
+    ],
+    "trials": 2,
+    "step": 10,
+    "requiredRate": 0.95
+  }
+}

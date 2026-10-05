@@ -1,4 +1,4 @@
-import('./app.js?v=20261005-desktop-7').catch(error => {
+import('./app.js?v=20261005-state-measurement-8').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

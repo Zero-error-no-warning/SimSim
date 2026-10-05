@@ -1,4 +1,4 @@
-import {Terrain} from './engine.js?v=20261005-desktop-7';
+import {Terrain} from './engine.js?v=20261005-state-measurement-8';
 // Edit the existing elevation grid; display exaggeration never changes SI data.
 export function paintTerrain(data,point,{mode,radius,amount=50,target=0}){
   if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))throw Error('地形ブラシの位置が不正です。');

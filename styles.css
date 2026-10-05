@@ -1425,3 +1425,12 @@ body { min-width:1100px; }
 .terrain-size-fields { display:flex; align-items:end; gap:10px; padding-top:8px; }
 .terrain-size-fields span { color:var(--muted); font-size:12px; }
 #terrain-size-error { color:#ffbb9f; margin:6px 0 0; font-size:12px; }
+
+.inactive-unit { opacity:.62; }
+.unit-item.inactive-unit { border-style:dashed; }
+.behavior-node rect.measurement-badge { fill:#654927; stroke:#e3be73; stroke-width:1; pointer-events:none; }
+.behavior-node text.measurement-label { font:12px sans-serif; fill:#fff0c9; }
+#state-time-chart svg { display:block; width:100%; height:auto; background:#102437; border:1px solid var(--edge); border-radius:8px; }
+#state-time-distribution { margin-top:20px; }
+#state-time-distribution[hidden] { display:none; }
+#node-measure-note { display:block; margin-top:8px; }

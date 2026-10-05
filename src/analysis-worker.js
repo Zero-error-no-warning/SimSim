@@ -1,6 +1,6 @@
-import { trialScenario } from './parameters.js?v=20261005-desktop-7';
-import { createSimulation } from './recorded-engine.js?v=20261005-desktop-7';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261005-desktop-7';
+import { trialScenario } from './parameters.js?v=20261005-state-measurement-8';
+import { createSimulation } from './recorded-engine.js?v=20261005-state-measurement-8';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261005-state-measurement-8';
 let generation=0;
 self.onmessage=({
   data
@@ -38,7 +38,7 @@ async function run(data,token) {
         }
         const result=state.value;
         trials.push({
-          reachedCount:result.reachedCount??0,responderCount:result.responderCount??0,trial,sampled,success:result.success,successTime:result.successTime,detectedCount:result.detectedCount,targetCount:result.targetCount,invalidUnits:result.invalidUnits,constrainedPaths:result.constrainedPaths
+          ...(sample.mission?.type==='state'?{stateEntries:result.stateEntries,stateTargetCount:result.stateTargetCount,stateReachedCount:result.stateReachedCount}:{}),reachedCount:result.reachedCount??0,responderCount:result.responderCount??0,trial,sampled,success:result.success,successTime:result.successTime,detectedCount:result.detectedCount,targetCount:result.targetCount,invalidUnits:result.invalidUnits,constrainedPaths:result.constrainedPaths
         });
         completed++;
         if(performance.now()-lastProgress>120||i===analysis.trials-1){

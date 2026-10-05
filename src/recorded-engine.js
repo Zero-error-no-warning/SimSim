@@ -1,11 +1,12 @@
-import {resolveGraph} from './behavior-parameters.js?v=20261005-desktop-7';
-import { Simulation } from './engine.js?v=20261005-desktop-7';
-import { importScenario } from './scenario-import.js?v=20261005-desktop-7';
-import { random01, streamKey } from './random.js?v=20261005-desktop-7';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-desktop-7';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-desktop-7';
-import { graphTriggers } from './shared-settings.js?v=20261005-desktop-7';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-desktop-7';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261005-state-measurement-8';
+import {resolveGraph} from './behavior-parameters.js?v=20261005-state-measurement-8';
+import { Simulation } from './engine.js?v=20261005-state-measurement-8';
+import { importScenario } from './scenario-import.js?v=20261005-state-measurement-8';
+import { random01, streamKey } from './random.js?v=20261005-state-measurement-8';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-state-measurement-8';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-state-measurement-8';
+import { graphTriggers } from './shared-settings.js?v=20261005-state-measurement-8';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-state-measurement-8';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -51,7 +52,7 @@ export class RecordedSimulation extends Simulation {
     const graphs=new Map(this.source.behaviors.map(g=>[g.id,g]));
     this.states=[];
     this.byId=new Map();
-    for (const u of [...this.scenario.units].sort((a,b)=>a.id.localeCompare(b.id))) {
+    for (const u of this.scenario.units.filter(u=>u.enabled!==false).sort((a,b)=>a.id.localeCompare(b.id))) {
       const assignment=this.assignments.find(a=>a.targets.includes('unit:'+u.id)||u.groupId&&a.targets.includes('group:'+u.groupId));
       const graph=assignment?resolveGraph(graphs.get(assignment.behaviorId),assignment):null;
       const initialNode=graph?.nodes.find(n=>n.id===graph.initial),chosen=routeFor(this.source,assignment,initialNode,u);
@@ -71,6 +72,7 @@ export class RecordedSimulation extends Simulation {
       this.byId.set(u.id,s);
       for (const n of graph?.nodes??[]) if (!this.nodeNames.includes(graph.id+':'+n.id)) this.nodeNames.push(graph.id+':'+n.id);
     }
+    this.inactiveUnits=this.scenario.units.filter(u=>u.enabled===false).map(u=>super.evaluateUnit(u,0));
     for (const a of this.assignments) {
       const members=this.states.filter(s=>s.assignment===a);
       members.forEach((s,i)=>{
@@ -227,7 +229,7 @@ export class RecordedSimulation extends Simulation {
   evaluate(time) {
     const t=Math.max(0,Math.min(this.source.duration,Number(time)||0));
     if (!this.frames) return {
-      time:0,units:this.states.map(s=>this.stateSnapshot(s)),actionsPending:true,recordingPending:true
+      time:0,units:[...this.states.map(s=>this.stateSnapshot(s)),...this.inactiveUnits],actionsPending:true,recordingPending:true
     };
     let l=0,r=this.frames.length-1;
     while(l<r){
@@ -246,8 +248,8 @@ export class RecordedSimulation extends Simulation {
     });
     const result=this.result,events=result.events.filter(e=>e.time<=t),mission=this.source.mission;
     return {
-      time:t,units,actionEvents:result.actionEvents.filter(e=>e.time<=t),mission:mission?{
-        events,detectedCount:new Set(events.map(e=>e.targetId)).size,targetCount:result.targetCount,reachedCount:new Set(result.actionEvents.filter(e=>e.type==='arrived'&&e.time<=t&&mission.responderIds?.includes(e.unitId)).map(e=>e.unitId)).size,responderCount:result.responderCount,status:result.successTime!==null&&result.successTime<=t?'success':t>=mission.deadline?'failure':'pending',deadline:mission.deadline
+      time:t,units:[...units,...this.inactiveUnits],actionEvents:result.actionEvents.filter(e=>e.time<=t),mission:mission?{
+        ...(mission.type==='state'?stateSummary(result.stateEntries,mission,result.stateTargetCount,t):{}),events,detectedCount:new Set(events.map(e=>e.targetId)).size,targetCount:result.targetCount,reachedCount:new Set(result.actionEvents.filter(e=>e.type==='arrived'&&e.time<=t&&mission.responderIds?.includes(e.unitId)).map(e=>e.unitId)).size,responderCount:result.responderCount,status:result.successTime!==null&&result.successTime<=t?'success':t>=mission.deadline?'failure':'pending',deadline:mission.deadline
       }
       :undefined,recording:{
         frames:this.frames.length,bytes:this.recordBytes,computeCount:this.computeCount,step:this.source.recording.step,interval:this.source.recording.interval
@@ -318,11 +320,13 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   if(model.computeCount)throw Error('計算済みです。新しい試行を作成してください。');
   model.computeCount++;
   const states=model.states,events=[...model.initialEvents],detected=new Map(),pairs=new Set(),messages=[],frames=record?[]:null;
-  const targets=states.filter(s=>s.unit.faction!=='neutral'),goalTargets=mission?.targetIds?mission.targetIds.map(id=>model.byId.get(id)):states.filter(s=>mission?s.unit.faction===mission.targetFaction:s.unit.faction!=='neutral');
-  if(mission&&(!goalTargets.length||goalTargets.some(s=>!s||s.unit.faction!==mission.targetFaction)))throw Error('成功条件に合う対象がありません。');
-  const responders=mission?.type==='arrive'?mission.responderIds:[];
+  const targets=states.filter(s=>s.unit.faction!=='neutral'),goalTargets=mission?.type==='state'?[]:mission?.targetIds?mission.targetIds.map(id=>model.byId.get(id)).filter(Boolean):states.filter(s=>mission?s.unit.faction===mission.targetFaction:s.unit.faction!=='neutral');
+  if(mission&&mission.type!=='state'&&mission.targetIds?.some(id=>!model.scenario.units.some(u=>u.id===id&&u.faction===mission.targetFaction)))throw Error('成功条件に合う対象がありません。');
+  if(mission?.type==='detect'&&!model.scenario.units.some(u=>u.faction===mission.targetFaction))throw Error('成功条件に合う対象がありません。');
+  const responders=mission?.type==='arrive'?mission.responderIds.filter(id=>model.byId.has(id)):[];
+  const stateTracker=mission?.type==='state'?new StateTracker(mission,states.filter(s=>s.assignment?.id===mission.assignmentId).map(s=>s.unit.id)):null;
   const result={
-    success:false,successTime:null,targetCount:goalTargets.length,detectedCount:0,responderCount:responders.length,reachedCount:0,events:[],actionEvents:events,invalidUnits:states.filter(s=>s.error).length,constrainedPaths:0
+    success:false,successTime:null,targetCount:mission?.type==='state'?targets.length:goalTargets.length,detectedCount:0,responderCount:responders.length,reachedCount:0,events:[],actionEvents:events,invalidUnits:states.filter(s=>s.error).length,constrainedPaths:0
   };
   let candidateChecks=0,lastRecord=0,lastContact=0;
   const range=Math.max(1,...states.filter(s=>s.unit.sensor?.enabled).map(s=>s.unit.sensor.range));
@@ -454,6 +458,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     }
   }
   immediate(0);
+  if(stateTracker)Object.assign(result,stateTracker.update(events));
   if(record)model.record(0,frames);
   for(let start=0;start<horizon;){
     const nextContact=Math.min(horizon,(Math.floor((start+1e-8)/dt)+1)*dt,mission?.deadline>start?mission.deadline:Infinity);
@@ -581,7 +586,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       contacts.sort((a,b)=>a.unitId.localeCompare(b.unitId)||a.targetId.localeCompare(b.targetId));
       for(const e of contacts){
         const s=model.byId.get(e.unitId);
-        if((!mission||s.unit.faction===mission.observerFaction&&goalTargets.some(x=>x.unit.id===e.targetId))&&!detected.has(e.targetId)){
+        if((!mission||mission.type==='state'||s.unit.faction===mission.observerFaction&&goalTargets.some(x=>x.unit.id===e.targetId))&&!detected.has(e.targetId)){
           detected.set(e.targetId,e);
           result.events.push(e);
         }
@@ -594,8 +599,9 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     if(events.length+messages.length>100000)throw Error('行動イベントが10万件を超えました。');
     result.detectedCount=result.events.filter(e=>!mission||e.time<=mission.deadline).length;
     result.reachedCount=new Set(events.filter(e=>e.type==='arrived'&&responders.includes(e.unitId)&&(!mission||e.time<=mission.deadline)).map(e=>e.unitId)).size;
+    if(stateTracker)Object.assign(result,stateTracker.update(events));
     const successes=mission?.type==='arrive'?result.reachedCount:result.detectedCount,needed=mission?.join==='all'?(mission.type==='arrive'?responders.length:goalTargets.length):1;
-    if(mission&&end<=mission.deadline&&successes>=needed&&result.successTime===null){
+    if(mission&&mission.type!=='state'&&needed>0&&end<=mission.deadline&&successes>=needed&&result.successTime===null){
       result.success=true;
       result.successTime=end;
     }
