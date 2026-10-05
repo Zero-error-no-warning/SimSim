@@ -6209,15 +6209,8 @@
         }
       ],
       "edges": [],
-      "triggers": [
-        {
-          "id": "scene-start",
-          "event": "scenarioStart",
-          "to": "patrol",
-          "x": 40,
-          "y": 70
-        }
-      ]
+      "triggers": [],
+      "initial": "patrol"
     }
   ],
   "behaviorAssignments": [

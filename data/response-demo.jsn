@@ -6293,15 +6293,8 @@
           "resume": true
         }
       ],
-      "triggers": [
-        {
-          "id": "scene-start",
-          "event": "scenarioStart",
-          "to": "follow",
-          "x": 40,
-          "y": 70
-        }
-      ]
+      "triggers": [],
+      "initial": "follow"
     },
     {
       "id": "import-unit-response-uav",
@@ -6377,15 +6370,8 @@
           "resume": true
         }
       ],
-      "triggers": [
-        {
-          "id": "scene-start",
-          "event": "scenarioStart",
-          "to": "follow",
-          "x": 40,
-          "y": 70
-        }
-      ]
+      "triggers": [],
+      "initial": "follow"
     }
   ],
   "behaviorAssignments": [

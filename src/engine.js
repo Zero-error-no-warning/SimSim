@@ -1,8 +1,8 @@
-import { readParameter } from './parameters.js?v=20261005-select-after-create-3';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-select-after-create-3';
-import { actionErrors } from './action-settings.js?v=20261005-select-after-create-3';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-select-after-create-3';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-select-after-create-3';
+import { readParameter } from './parameters.js?v=20261005-state-events-4';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-state-events-4';
+import { actionErrors } from './action-settings.js?v=20261005-state-events-4';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-state-events-4';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-state-events-4';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];

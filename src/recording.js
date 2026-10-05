@@ -1,6 +1,6 @@
-export { RECORD_MODEL } from './recorded-engine.js?v=20261005-select-after-create-3';
-import { clone } from './engine.js?v=20261005-select-after-create-3';
-import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261005-select-after-create-3';
+export { RECORD_MODEL } from './recorded-engine.js?v=20261005-state-events-4';
+import { clone } from './engine.js?v=20261005-state-events-4';
+import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261005-state-events-4';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);
@@ -27,7 +27,7 @@ export function recordingPayload(model) {
   return payload;
 }
 const position = p => p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
-const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','triggered']);
+const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered']);
 export function restoreRecording(payload) {
   if(payload?.type!=='SimSim-recording'||payload.version!==2||payload.model!==RECORD_MODEL||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
   const model=new RecordedSimulation(payload.source),n=model.states.length;
@@ -61,10 +61,16 @@ export function restoreRecording(payload) {
       if(e.type==='detected'&&(!e.targetId||!position(e.targetPosition)||!position(e.observerPosition)))throw Error('探知情報が不正です。');
       if(e.type==='received'&&(!e.senderId||!position(e.sourcePosition)||!position(e.receiverPosition)))throw Error('受信情報が不正です。');
       const s=model.byId.get(e.unitId);
-      if(e.type==='triggered'&&!s.graph?.triggers.some(t=>t.id===e.triggerId&&t.event===e.event&&t.to===e.nodeId))throw Error('起動イベントの条件が不正です。');
+      if(e.type==='initialized'&&(e.time!==0||s.graph?.initial!==e.nodeId))throw Error('初期状態の記録が不正です。');
+      if(e.type==='triggered'&&!s.graph?.triggers.some(t=>t.id===e.triggerId&&t.event===e.event&&t.to===e.nodeId)
+        && !(e.event==='scenarioStart'&&e.time===0&&s.graph?.initial===e.nodeId&&payload.source.behaviors?.find(g=>g.id===s.graph.id)?.triggers?.some(t=>t.id===e.triggerId&&t.event==='scenarioStart'&&t.to===e.nodeId)))throw Error('起動イベントの条件が不正です。');
       if(e.nodeId!==undefined&&!s.graph?.nodes.some(n=>n.id===e.nodeId))throw Error('イベントのノードが不正です。');
     }
   }
   model.result=clone(r);
+  // A replay keeps its original frames; normalize legacy initial-event names for resaving.
+  for(const list of [model.result.events,model.result.actionEvents])for(const e of list)if(e.type==='triggered'&&e.event==='scenarioStart'){
+    e.type='initialized';delete e.event;delete e.triggerId;
+  }
   return model;
 }

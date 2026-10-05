@@ -1,9 +1,9 @@
-import { Simulation } from './engine.js?v=20261005-select-after-create-3';
-import { importScenario } from './scenario-import.js?v=20261005-select-after-create-3';
-import { random01, streamKey } from './random.js?v=20261005-select-after-create-3';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-select-after-create-3';
-import { graphTriggers } from './shared-settings.js?v=20261005-select-after-create-3';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-select-after-create-3';
+import { Simulation } from './engine.js?v=20261005-state-events-4';
+import { importScenario } from './scenario-import.js?v=20261005-state-events-4';
+import { random01, streamKey } from './random.js?v=20261005-state-events-4';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-state-events-4';
+import { graphTriggers } from './shared-settings.js?v=20261005-state-events-4';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-state-events-4';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -55,7 +55,7 @@ export class RecordedSimulation extends Simulation {
       const s={
         unit:u,assignment,graph,path,node:null,nodeTime:0,position:{
           ...path.nodes[0]
-        },heading:0,status:'idle',distance:0,progress:0,segment:-1,error:path.errorAt==='初期位置'?path.error:null,fired:new Set(),triggerFired:new Set(),activated:false,observation:null,trace:[],routeStarted:null,routePaused:0
+        },heading:0,status:'idle',distance:0,progress:0,segment:-1,error:path.errorAt==='初期位置'?path.error:null,fired:new Set(),triggerFired:new Set(),triggerTimes:new Map(),activated:false,observation:null,trace:[],routeStarted:null,routePaused:0
       };
       this.states.push(s);
       this.byId.set(u.id,s);
@@ -66,8 +66,11 @@ export class RecordedSimulation extends Simulation {
       members.forEach((s,i)=>{
         s.initialPhase=mod((a.phase??0)+(a.spacing==='none'?(s.unit.motion?.loopStart??0):i/members.length),1);
         s.status=s.error?'blocked':'standby';
-        // No execution node exists before a trigger fires.
-        this.activate(s,'scenarioStart',0,this.initialEvents);
+        if(s.graph.initial){
+          s.activated=true;
+          this.enter(s,s.graph.initial,0,true);
+          this.initialEvents.push({type:'initialized',time:0,unitId:s.unit.id,nodeId:s.graph.initial});
+        }
       });
     }
     for (const s of this.states) if (!s.graph) Object.assign(s,super.evaluateUnit(s.unit,0));
@@ -117,9 +120,8 @@ export class RecordedSimulation extends Simulation {
   }
   activate(s, event, t, events, payload) {
     if(!s?.graph || s.status==='blocked')return false;
-    const trigger=graphTriggers(s.graph).find(x=>x.event===event && (event!=='time'||Math.abs(x.seconds-t)<1e-8)
-      && (!s.triggerFired.has(x.id) || x.once===false && !['scenarioStart','time'].includes(event))
-      && ((x.policy??'idle')==='interrupt' || !s.node || s.node.kind==='stop'));
+    const trigger=graphTriggers(s.graph).find(x=>x.event===event && (event!=='time'||Math.abs(this.nextTriggerTime(s,x)-t)<1e-8)
+      && (!s.triggerFired.has(x.id) || x.once===false));
     if(!trigger)return false;
     const key=s.unit.id+'|trigger|'+trigger.id;
     if(payload?.trace?.includes(key))return false;
@@ -127,14 +129,19 @@ export class RecordedSimulation extends Simulation {
     else {s.observation=null;s.trace=[];}
     if(s.trace.length>64)throw Error('情報の中継が64段を超えました。');
     s.triggerFired.add(trigger.id);
-    const from=s.node?.id,initial=!s.activated&&event==='scenarioStart';
+    s.triggerTimes.set(trigger.id,t);
+    const from=s.node?.id;
     s.activated=true;
-    this.enter(s,trigger.to,t,initial);
+    this.enter(s,trigger.to,t);
     events.push({type:'triggered',time:t,unitId:s.unit.id,triggerId:trigger.id,event,nodeId:trigger.to});
     events.push({type:'nodeChanged',time:t,unitId:s.unit.id,from:from??null,nodeId:trigger.to});
     if(s.node.parameter==='preparation')events.push({type:'preparing',time:t,unitId:s.unit.id,nodeId:s.node.id});
-    if(!initial&&s.node.kind==='follow')events.push({type:'departed',time:t,unitId:s.unit.id,nodeId:s.node.id});
+    if(s.node.kind==='follow')events.push({type:'departed',time:t,unitId:s.unit.id,nodeId:s.node.id});
     return true;
+  }
+  nextTriggerTime(s,trigger){
+    if(!s.triggerFired.has(trigger.id))return trigger.seconds;
+    return trigger.once===false?(s.triggerTimes.get(trigger.id)??0)+trigger.seconds:Infinity;
   }
   transition(s, when, t, events, payload) {
     if (!s?.graph || s.status==='blocked') return false;
@@ -316,7 +323,10 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   }
   function immediate(t) {
     let changed=false;
-    for(const s of states)changed=model.activate(s,'time',t,events)||changed;
+    for(const s of states)for(let i=0;i<(s.graph?.triggers.length??0);i++){
+      if(!model.activate(s,'time',t,events))break;
+      changed=true;
+    }
     const settle=s=>{
       for(let depth=0;depth<64;depth++){
         if(s.status==='blocked')return;
@@ -356,7 +366,10 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         const seconds=s.node.parameter==='preparation'?s.assignment.preparation??s.node.seconds:s.node.seconds;
         if(s.nodeTime+seconds>start+1e-8)nextEvent=Math.min(nextEvent,s.nodeTime+seconds);
       }
-      for(const trigger of s.graph?.triggers??[])if(trigger.event==='time'&&!s.triggerFired.has(trigger.id)&&trigger.seconds>start+1e-8)nextEvent=Math.min(nextEvent,trigger.seconds);
+      for(const trigger of s.graph?.triggers??[])if(trigger.event==='time'){
+        const at=model.nextTriggerTime(s,trigger);
+        if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
+      }
       if((!s.graph||s.node?.kind==='follow')&&!s.path.periodic&&s.path.length&&s.path.actualSpeed&&!s.routeArrived){
         const at=(s.graph?s.routeStarted??0:0)+s.path.delay+s.path.length/s.path.actualSpeed;
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);

@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261005-select-after-create-3';
-import { requireElement } from './ui-dom.js?v=20261005-select-after-create-3';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261005-state-events-4';
+import { requireElement } from './ui-dom.js?v=20261005-state-events-4';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

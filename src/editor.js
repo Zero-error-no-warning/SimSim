@@ -1,4 +1,4 @@
-import { sharedAssignment } from './shared-settings.js?v=20261005-select-after-create-3';
+import { sharedAssignment } from './shared-settings.js?v=20261005-state-events-4';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

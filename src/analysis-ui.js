@@ -1,10 +1,10 @@
-import { TRIGGER_EVENTS } from './shared-settings.js?v=20261005-select-after-create-3';
-import { RECORD_MODEL } from './recording.js?v=20261005-select-after-create-3';
-import { numericScale } from './chart-scale.js?v=20261005-select-after-create-3';
-import { clone,validateScenario } from './engine.js?v=20261005-select-after-create-3';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-select-after-create-3';
-import { ParameterEditor } from './parameter-ui.js?v=20261005-select-after-create-3';
-import { requireElement } from './ui-dom.js?v=20261005-select-after-create-3';
+import { TRIGGER_EVENTS } from './shared-settings.js?v=20261005-state-events-4';
+import { RECORD_MODEL } from './recording.js?v=20261005-state-events-4';
+import { numericScale } from './chart-scale.js?v=20261005-state-events-4';
+import { clone,validateScenario } from './engine.js?v=20261005-state-events-4';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-state-events-4';
+import { ParameterEditor } from './parameter-ui.js?v=20261005-state-events-4';
+import { requireElement } from './ui-dom.js?v=20261005-state-events-4';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -15,7 +15,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-select-after-create-3',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-state-events-4',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -396,7 +396,7 @@ export class AnalysisUI {
       row.className='event-item'+(event.type==='sendFailed'?' failed':'');
       const text=document.createElement('span'),button=document.createElement('button');
       const details={
-        triggered:name(event.unitId)+' · '+(TRIGGER_EVENTS[event.event]??'起動条件')+'で挙動開始',detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 経路終点に到着'
+        initialized:name(event.unitId)+' · 初期状態に入る',triggered:name(event.unitId)+' · '+(TRIGGER_EVENTS[event.event]??'イベント')+'で状態遷移',detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 経路終点に到着'
       };
       text.textContent=minutes(event.time)+' · '+(details[event.type]??(event.type==='nodeChanged'?'挙動切替 '+name(event.unitId)+' → '+event.nodeId:event.type==='elapsed'?'待機終了 '+name(event.unitId):event.type));
       button.textContent='この時刻';

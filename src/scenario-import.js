@@ -1,5 +1,5 @@
-import { validateScenario } from './engine.js?v=20261005-select-after-create-3';
-import { normalizedAnalysis } from './parameters.js?v=20261005-select-after-create-3';
+import { validateScenario } from './engine.js?v=20261005-state-events-4';
+import { normalizedAnalysis } from './parameters.js?v=20261005-state-events-4';
 // Compatibility ends here: the application and workers execute version 3 only.
 export function importScenario(value) {
   const s = validateScenario(value);
@@ -61,7 +61,7 @@ export function importScenario(value) {
         }
       });
       s.behaviors.push({
-        id, name: u.name + 'の挙動', triggers: [{id:'scene-start',event:'scenarioStart',to:start}], nodes, edges
+        id, name: u.name + 'の挙動', initial:start, triggers: [], nodes, edges
       });
       s.behaviorAssignments.push({
         id, name: u.name + 'のタスク', behaviorId: id, targets: [target], spacing: 'none', preparation: b.preparation

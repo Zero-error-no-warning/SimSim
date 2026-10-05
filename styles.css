@@ -1272,12 +1272,6 @@ fieldset:disabled {
   fill:#aec5d4;
   font:12px sans-serif
 }
-.behavior-port {
-  fill:#79d9fd;
-  stroke:#0d2234;
-  stroke-width:3;
-  cursor:crosshair
-}
 .behavior-edge {
   fill:none;
   stroke:#73c6e8;
@@ -1587,3 +1581,11 @@ h3 {
 }
 
 @media(max-width:700px) { .behavior-layout { grid-template-columns:1fr; } #behavior-canvas { height:320px; } #behavior-minimap { width:120px; height:75px; } }
+
+#graph-connect[aria-pressed="true"] { background:#48643c; border-color:#acd58d; }
+.behavior-node.connecting>rect:first-child { stroke:#aadf91; stroke-width:4; }
+.behavior-node.initial-node:not(.selected):not(.connecting)>rect:first-child { stroke:#a8d7a2; }
+.behavior-node rect.initial-badge { fill:#28553b; stroke:#9ed394; stroke-width:1; pointer-events:none; }
+.behavior-node text.initial-label { font:12px sans-serif; fill:#e7ffe1; }
+.behavior-node:focus-visible>rect:first-child { stroke:#ffd18b; }
+.behavior-node { outline:none; }
