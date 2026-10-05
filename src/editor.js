@@ -1,5 +1,5 @@
-import {resolveValue} from './behavior-parameters.js?v=20261005-parameters-terrain-6';
-import { sharedAssignment } from './shared-settings.js?v=20261005-parameters-terrain-6';
+import {resolveValue} from './behavior-parameters.js?v=20261005-desktop-7';
+import { sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

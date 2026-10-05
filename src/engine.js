@@ -1,8 +1,8 @@
-import { readParameter } from './parameters.js?v=20261005-parameters-terrain-6';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-parameters-terrain-6';
-import { actionErrors } from './action-settings.js?v=20261005-parameters-terrain-6';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-parameters-terrain-6';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-parameters-terrain-6';
+import { readParameter } from './parameters.js?v=20261005-desktop-7';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-desktop-7';
+import { actionErrors } from './action-settings.js?v=20261005-desktop-7';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-desktop-7';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-desktop-7';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -24,6 +24,7 @@ export function validateScenario(value) {
     errors.push('terrainのcolumns・rowsは2～513の整数にしてください。');
   } else {
     if (!finite(t.spacing) || t.spacing < 1 || t.spacing > 10000) errors.push('terrain.spacingは1～10000mにしてください。');
+    if (t.spacingY !== undefined && (!finite(t.spacingY) || t.spacingY < 1 || t.spacingY > 10000)) errors.push('terrain.spacingYは1～10000mにしてください。');
     if (!t.origin || !finite(t.origin.x) || !finite(t.origin.y)) errors.push('terrain.originのx・yが必要です。');
     if (!Array.isArray(t.elevations) || t.elevations.length !== t.columns*t.rows || t.elevations.some(h => !finite(h) || h < -12000 || h > 10000)) errors.push('terrain.elevationsは格子数と同じ長さの標高配列（-12000～10000m）にしてください。');
     if (!finite(t.seaLevel)) errors.push('terrain.seaLevelが必要です。');
@@ -100,14 +101,15 @@ export class Terrain {
     this.minX = data.origin.x;
     this.minY = data.origin.y;
     this.maxX = this.minX+(data.columns-1)*data.spacing;
-    this.maxY = this.minY+(data.rows-1)*data.spacing;
+    this.maxY = this.minY+(data.rows-1)*(data.spacingY??data.spacing);
+    this.cellSize=Math.min(data.spacing,data.spacingY??data.spacing);
   }
   contains(x,y) {
     return finite(x) && finite(y) && x >= this.minX && x <= this.maxX && y >= this.minY && y <= this.maxY;
   }
   height(x,y) {
     if (!this.contains(x,y)) return null;
-    const d=this.data, gx=(x-this.minX)/d.spacing, gy=(y-this.minY)/d.spacing;
+    const d=this.data, gx=(x-this.minX)/d.spacing, gy=(y-this.minY)/(d.spacingY??d.spacing);
     const ix=Math.min(d.columns-2,Math.floor(gx)), iy=Math.min(d.rows-2,Math.floor(gy));
     const fx=gx-ix, fy=gy-iy, at=(dx,dy)=>d.elevations[(iy+dy)*d.columns+ix+dx];
     return (at(0,0)*(1-fx)+at(1,0)*fx)*(1-fy)+(at(0,1)*(1-fx)+at(1,1)*fx)*fy;
@@ -193,7 +195,7 @@ export class Simulation {
     if(unit.route.length && unit.routeMode==='loop')points.push(start.point);
     const nominalLength=points.slice(1).reduce((d,p,i)=>d+distance(points[i],p),0);
     if(nominalLength>0 && ((motion.horizontal??0)+(motion.vertical??0)+(motion.commonHorizontal??0)>0)) {
-      const generated=[start.point],scale=motion.scale??2000,step=Math.min(125,this.scenario.terrain.spacing/4,scale/8);
+      const generated=[start.point],scale=motion.scale??2000,step=Math.min(125,this.terrain.cellSize/4,scale/8);
       let along=0;
       for(let i=1;i<points.length;i++) {
         const a=points[i-1],b=points[i],length=distance(a,b),count=Math.max(1,Math.ceil(length/step));
@@ -219,7 +221,7 @@ export class Simulation {
       // Sample/project the whole reference loop before choosing a departure point.
       // Retain invalid sections: after rotation the usual constraint check stops at the
       // first obstacle reached from this departure, rather than at the reference anchor.
-      const sampled=[points[0]],spacing=Math.min(125,this.scenario.terrain.spacing/4);
+      const sampled=[points[0]],spacing=Math.min(125,this.terrain.cellSize/4);
       for(let i=1;i<points.length;i++) {
         const a=points[i-1],b=points[i],count=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/spacing));
         if(count>20000)return {
@@ -241,7 +243,7 @@ export class Simulation {
     }
     const actualForward=points.slice();
     if (unit.route.length && unit.routeMode==='pingpong') points.push(...actualForward.slice(0,-1).reverse());
-    const sampleDistance=Math.min(125,this.scenario.terrain.spacing/4);
+    const sampleDistance=Math.min(125,this.terrain.cellSize/4);
     for(let index=1;index<points.length;index++) {
       const a=points[index-1],b=points[index];
       const samples=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/sampleDistance));

@@ -128,7 +128,7 @@ try {
   assert.equal(await page.locator('#graph-connect').getAttribute('aria-pressed'),'false');
   await connect(temporaryWait,temporaryWait);await page.locator('#edge-condition').selectOption('elapsed');
   assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
-  await clickLine(2);assert.equal(await page.locator('#edge-condition').inputValue(),'elapsed');await page.locator('#edge-delete').click();
+  await clickLine(2);assert.equal(await page.locator('#edge-condition').inputValue(),'elapsed');await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');
   await connect(temporaryWait,'patrol');await page.locator('#edge-condition').selectOption('elapsed');
   // Changing a state retains connections, but incompatible conditions need editing.
   await page.locator('#behavior-canvas [data-node="'+temporaryWait+'"] > rect:first-child').click();
@@ -137,7 +137,7 @@ try {
   assert((await page.locator('#behavior-canvas [data-edge="2"]').textContent()).includes('条件を設定'));
   await page.locator('#node-kind').selectOption('wait');
   await clickLine(2);await page.locator('#edge-condition').selectOption('elapsed');
-  await page.locator('#edge-delete').click();assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),2);
+  await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),2);
   await page.locator('#behavior-undo').click();assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
   // Completed drafts use the existing persisted model and reopen with conditions.
   await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
@@ -170,12 +170,12 @@ try {
   await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
   await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   await page.locator('#behavior-canvas .trigger-node rect').click();assert.equal(await page.locator('#trigger-once').inputValue(),'repeat');
-  await page.locator('#trigger-delete').click();assert.equal(await page.locator('#behavior-canvas .trigger-node').count(),0);
-  await page.locator('#behavior-canvas [data-node="'+temporaryWait+'"] > rect:first-child').click();await page.locator('#node-delete').click();
+  await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas .trigger-node').count(),0);
+  await page.locator('#behavior-canvas [data-node="'+temporaryWait+'"] > rect:first-child').click();await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');
   await addNode('node-add');await page.locator('#node-kind').selectOption('stop');await page.locator('#behavior-fit').click();
   await page.locator('#graph-connect').click();await page.locator('#behavior-canvas .behavior-node.selected > rect:first-child').click();
   assert((await page.locator('#behavior-instruction').textContent()).includes('終了状態から'));
-  await page.locator('#graph-connect').click();await page.locator('#node-delete').click();
+  await page.locator('#graph-connect').click();await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');
   await page.locator('#behavior-fit').click();
   if(process.env.SIMSIM_GRAPH_SCREENSHOT)await page.locator('#behavior-dialog').screenshot({path:process.env.SIMSIM_GRAPH_SCREENSHOT});
   await page.locator('#task-edit-tab').click();
@@ -207,23 +207,23 @@ try {
   assert((await page.locator('#analysis-progress').innerText()).includes('24 / 24'));
   await page.getByRole('button',{name:'再現',exact:true}).first().click();
   await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
-  // Narrow-screen layout and display controls retain their state.
+  // Compact desktop layout and display controls retain their state.
   if(await page.locator('#analysis-dialog').isVisible())await page.locator('#analysis-close').click();
   await page.locator('.map-toolbar .menu-popover summary').click();await page.locator('#show-labels').uncheck();
   await page.locator('#viewtop').click();assert(!(await page.locator('#show-labels').isChecked()));
-  await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.setViewportSize({width:1200,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.locator('.unit-item[data-id="patrol-uuv__1"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert(await page.locator('#behavior-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));
   await addNode('node-add');await page.locator('#node-kind').selectOption('wait');await page.locator('#behavior-fit').click();
-  const mobileWait=await page.locator('#behavior-canvas .behavior-node.selected').getAttribute('data-node');
-  await connect('patrol',mobileWait);await page.locator('#edge-condition').selectOption('received');
+  const compactWait=await page.locator('#behavior-canvas .behavior-node.selected').getAttribute('data-node');
+  await connect('patrol',compactWait);await page.locator('#edge-condition').selectOption('received');
   await clickLine(0);assert.equal(await page.locator('#edge-condition').inputValue(),'received');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.locator('#behavior-cancel').click();
   assert.deepEqual(errors,[]);
   if(process.env.SIMSIM_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_SCREENSHOT,fullPage:true});
-  console.log('PASS: offline CSP; desktop/mobile create-before-configure; draft validation; clickable wires and labels; edge condition Undo/Redo; duplicate-condition protection; state-kind edits retain wires; graph definition save/reopen; initial state and event editing; port-free directed connections and self-loops; zoom/pan/fit/minimap; scaled drag; calculation/record seek/reopen; Monte Carlo/replay; no browser errors');
+  console.log('PASS: offline CSP; desktop create-before-configure; draft validation; clickable wires and labels; edge condition Undo/Redo; duplicate-condition protection; state-kind edits retain wires; graph definition save/reopen; initial state and event editing; port-free directed connections and self-loops; zoom/pan/fit/minimap; scaled drag; calculation/record seek/reopen; Monte Carlo/replay; no browser errors');
 } finally {
   await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});
 }

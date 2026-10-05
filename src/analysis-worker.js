@@ -1,6 +1,6 @@
-import { trialScenario } from './parameters.js?v=20261005-parameters-terrain-6';
-import { createSimulation } from './recorded-engine.js?v=20261005-parameters-terrain-6';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261005-parameters-terrain-6';
+import { trialScenario } from './parameters.js?v=20261005-desktop-7';
+import { createSimulation } from './recorded-engine.js?v=20261005-desktop-7';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261005-desktop-7';
 let generation=0;
 self.onmessage=({
   data

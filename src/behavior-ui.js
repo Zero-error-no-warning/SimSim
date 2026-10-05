@@ -1,11 +1,12 @@
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-parameters-terrain-6';
-import {isParameterRef} from './behavior-parameters.js?v=20261005-parameters-terrain-6';
-import {NavigationUI} from './navigation-ui.js?v=20261005-parameters-terrain-6';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-parameters-terrain-6';
-import { removeAssignment,removeBehavior } from './editor.js?v=20261005-parameters-terrain-6';
-import { clone,validateScenario } from './engine.js?v=20261005-parameters-terrain-6';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-parameters-terrain-6';
-import { requireElement } from './ui-dom.js?v=20261005-parameters-terrain-6';
+import {ContextMenu} from './context-menu.js?v=20261005-desktop-7';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-desktop-7';
+import {isParameterRef} from './behavior-parameters.js?v=20261005-desktop-7';
+import {NavigationUI} from './navigation-ui.js?v=20261005-desktop-7';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-desktop-7';
+import { removeAssignment,removeBehavior } from './editor.js?v=20261005-desktop-7';
+import { clone,validateScenario } from './engine.js?v=20261005-desktop-7';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
+import { requireElement } from './ui-dom.js?v=20261005-desktop-7';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -17,6 +18,23 @@ export class BehaviorUI{
     this.dialog=$('behavior-dialog');
     this.svg=$('behavior-canvas');
     this.minimap=$('behavior-minimap');
+    const menu=document.createElement('div');menu.id='behavior-menu';menu.setAttribute('aria-label','ノード図の操作');this.dialog.append(menu);this.menu=new ContextMenu(menu);
+    this.svg.addEventListener('contextmenu',e=>{
+      e.preventDefault();if(this.panMoved)return;
+      const context={target:this.contextTarget??e.target,clientX:e.clientX,clientY:e.clientY};
+      if(this.pan?.button===2){this.pendingMenu=context;return;}this.openMenu(context);
+    });
+    this.svg.addEventListener('keydown',e=>{
+      if(e.key==='ContextMenu'||e.shiftKey&&e.key==='F10'){
+        e.preventDefault();const r=(e.target===this.svg?this.svg:e.target).getBoundingClientRect();this.openMenu({target:e.target,clientX:r.x+r.width/2,clientY:r.y+r.height/2});
+      }
+    });
+    this.dialog.addEventListener('close',()=>{this.menu.close(false);this.spaceHeld=false;this.svg.classList.remove('camera-ready');});
+    window.addEventListener('keyup',e=>{if(e.code==='Space'){this.spaceHeld=false;this.svg.classList.remove('camera-ready');}});
+    window.addEventListener('blur',()=>{
+      this.spaceHeld=false;this.pan=null;this.pendingMenu=null;this.svg.classList.remove('camera-ready');
+      if(this.drag){if(this.drag.recorded)this.draft=this.past.pop();this.drag=null;this.render();}
+    });
     this.navigation=new NavigationUI({getDraft:()=>this.draft,getUnit:()=>this.mapUnit(),remember:()=>this.remember(),render:()=>this.render(),pickRoute:()=>{this.navigationMode='route';this.dialog.close();this.pickRoute();},pickPoint:()=>{this.navigationMode='point';this.dialog.close();this.pickBase();}});
     this.parameters=new BehaviorParameterUI(this);
     $('route-new').onclick=()=>this.openResource('route',false,true);
@@ -40,7 +58,19 @@ export class BehaviorUI{
       this.render();
     };
     this.dialog.addEventListener('keydown',e=>{
-      if(e.key==='Escape'&&this.connecting){e.preventDefault();this.connecting=null;this.render();}
+      if(e.defaultPrevented)return;
+      if(e.key==='Escape'&&this.connecting){e.preventDefault();this.connecting=null;this.render();return;}
+      if(e.code==='Space'&&!e.ctrlKey&&!e.metaKey&&!$('graph-editor').hidden&&this.svg.matches(':hover')&&!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)){
+        e.preventDefault();this.svg.focus({preventScroll:true});this.spaceHeld=true;this.svg.classList.add('camera-ready');return;
+      }
+      if($('graph-editor').hidden||['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName)||e.target.isContentEditable)return;
+      const modifier=e.ctrlKey||e.metaKey;
+      if(e.code==='Space'&&!modifier){e.preventDefault();this.spaceHeld=true;this.svg.classList.add('camera-ready');}
+      if(modifier&&e.key.toLowerCase()==='z'){e.preventDefault();$(e.shiftKey?'behavior-redo':'behavior-undo').click();}
+      if(modifier&&e.key.toLowerCase()==='y'){e.preventDefault();$('behavior-redo').click();}
+      if(modifier&&e.key.toLowerCase()==='d'){e.preventDefault();this.duplicateSelected();}
+      if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();this.deleteSelection();}
+      if(e.key.toLowerCase()==='f'){e.preventDefault();$('behavior-fit').click();}
     });
     this.dialog.addEventListener('cancel',e=>{if(this.connecting){e.preventDefault();this.connecting=null;this.render();}});
     $('behavior-zoom-in').onclick=()=>this.zoom(.75);
@@ -176,7 +206,7 @@ export class BehaviorUI{
       this.canvasView=null;
       this.connecting=null;
       }
-      const g=this.graph(),needsRoute=g.nodes.some(n=>n.kind==='patrol'),t=this.draft.terrain,r=Math.min(1000,(t.columns-1)*t.spacing/4,(t.rows-1)*t.spacing/4),cx=t.origin.x+(t.columns-1)*t.spacing/2,cy=t.origin.y+(t.rows-1)*t.spacing/2;
+      const g=this.graph(),needsRoute=g.nodes.some(n=>n.kind==='patrol'),t=this.draft.terrain,r=Math.min(1000,(t.columns-1)*t.spacing/4,(t.rows-1)*(t.spacingY??t.spacing)/4),cx=t.origin.x+(t.columns-1)*t.spacing/2,cy=t.origin.y+(t.rows-1)*(t.spacingY??t.spacing)/2;
       const route=source.route.length>=2?[source.initial,...source.route]:[{
         x:cx-r,y:cy-r,z:source.initial.z
       },{
@@ -263,7 +293,8 @@ export class BehaviorUI{
     this.svg.addEventListener('pointerdown',e=>this.down(e));
     this.svg.addEventListener('pointermove',e=>this.move(e));
     this.svg.addEventListener('pointerup',()=>{
-      this.drag=null;this.pan=null;
+      this.drag=null;this.pan=null;this.svg.focus({preventScroll:true});
+      if(this.pendingMenu){const context=this.pendingMenu;this.pendingMenu=null;if(!this.panMoved)this.openMenu(context);}
     });
     this.svg.addEventListener('pointercancel',()=>{
       if(this.drag){
@@ -290,6 +321,7 @@ export class BehaviorUI{
     return prefix+'-'+index;
   }
   newPosition(trigger){
+    if(this.addPosition){const p=this.addPosition;this.addPosition=null;return {x:Math.max(0,Math.min(3790,p.x)),y:Math.max(0,Math.min(3928,p.y))};}
     const v=this.canvasView??{x:0,y:0,w:1000,h:450},items=this.items();
     const x=Math.max(0,Math.min(3790,v.x+v.w/2-105-(trigger?240:0))),y=Math.max(0,Math.min(3928,v.y+v.h/2-36));
     for(let i=0;i<30;i++){
@@ -505,34 +537,66 @@ export class BehaviorUI{
     return p.matrixTransform(this.svg.getScreenCTM().inverse());
   }
   down(e){
-    if(e.button!==0)return;
+    if(![0,1,2].includes(e.button))return;
+    this.menu.close(false);this.panMoved=false;this.pendingMenu=null;this.contextTarget=e.button===2?e.target:null;this.svg.focus({preventScroll:true});
+    if(e.button!==0||this.spaceHeld){
+      if(!this.canvasView)return;
+      e.preventDefault();const p=this.coord(e);
+      this.pan={x:p.x,y:p.y,view:{...this.canvasView},matrix:this.svg.getScreenCTM().inverse(),screenX:e.clientX,screenY:e.clientY,button:e.button};
+      this.svg.setPointerCapture(e.pointerId);return;
+    }
     const node=e.target.closest('[data-node]'),trigger=e.target.closest('[data-trigger]');
+    if(e.shiftKey&&(node||trigger)&&!this.connecting)this.connecting={id:null};
     if(this.connecting&&(node||trigger)){
       this.connectNode(node?.dataset.node??trigger.dataset.trigger,!!trigger);return;
     }
     const connection=e.target.closest('[data-edge]'),startLine=e.target.closest('[data-start-line]');
-    if(connection||startLine){
-      this.selectConnection(connection?Number(connection.dataset.edge):null,startLine?.dataset.startLine);
-      return;
-    }
+    if(connection||startLine){this.selectConnection(connection?Number(connection.dataset.edge):null,startLine?.dataset.startLine);return;}
     if(!node&&!trigger){
       if(!this.canvasView)return;
-      this.connecting=null;
-      this.selected=null;this.selectedTrigger=null;this.selectedEdge=null;
+      this.connecting=null;this.selected=null;this.selectedTrigger=null;this.selectedEdge=null;
       const p=this.coord(e);
-      this.pan={x:p.x,y:p.y,view:{...this.canvasView},matrix:this.svg.getScreenCTM().inverse()};
-      this.svg.setPointerCapture(e.pointerId);
-      this.render();
-      return;
+      this.pan={x:p.x,y:p.y,view:{...this.canvasView},matrix:this.svg.getScreenCTM().inverse(),screenX:e.clientX,screenY:e.clientY,button:e.button};
+      this.svg.setPointerCapture(e.pointerId);this.render();return;
     }
-    this.connecting=null;
-    this.selected=node?.dataset.node??null;
-    this.selectedTrigger=trigger?.dataset.trigger??null;
-    this.selectedEdge=null;
-    const n=this.items().find(n=>n.trigger? n.id===this.selectedTrigger:n.id===this.selected),p=this.coord(e);
+    this.connecting=null;this.selected=node?.dataset.node??null;this.selectedTrigger=trigger?.dataset.trigger??null;this.selectedEdge=null;
+    const n=this.items().find(n=>n.trigger?n.id===this.selectedTrigger:n.id===this.selected),p=this.coord(e);
     this.drag={id:n.id,trigger:n.trigger,x:p.x-n.x,y:p.y-n.y,recorded:false};
-    this.svg.setPointerCapture(e.pointerId);
+    this.svg.setPointerCapture(e.pointerId);this.render();
+  }
+  deleteSelection(){
+    if(this.selectedEdge!==null)$('edge-delete').click();
+    else if(this.selectedTrigger)$('trigger-delete').click();
+    else if(this.selected)$('node-delete').click();
+  }
+  duplicateSelected(){
+    const g=this.graph(),trigger=!!this.selectedTrigger,n=trigger?g?.triggers.find(t=>t.id===this.selectedTrigger):g?.nodes.find(n=>n.id===this.selected);
+    if(!n)return;this.remember();const copy={...clone(n),id:this.newId(trigger?'trigger':'node'),x:Math.min(3790,n.x+40),y:Math.min(3928,n.y+85)};
+    (trigger?g.triggers:g.nodes).push(copy);this.selected=trigger?null:copy.id;this.selectedTrigger=trigger?copy.id:null;this.selectedEdge=null;this.reveal(copy);this.render();
+  }
+  openMenu(e){
+    if(!this.graph())return;
+    const target=e.target,edge=target.closest('[data-edge]'),line=target.closest('[data-start-line]'),node=target.closest('[data-node]'),trigger=target.closest('[data-trigger]');
+    const position=this.coord(e),items=[],add=(label,action,disabled=false)=>items.push({label,action,disabled});
+    this.connecting=null;this.selected=node?.dataset.node??null;this.selectedTrigger=trigger?.dataset.trigger??line?.dataset.startLine??null;this.selectedEdge=edge?Number(edge.dataset.edge):null;
     this.render();
+    if(edge||line){
+      add('遷移条件を編集',()=>$(edge?'edge-condition':'trigger-event').focus());
+      add('線を削除　Delete',()=>{if(edge)$('edge-delete').click();else{this.remember();delete this.graph().triggers.find(t=>t.id===this.selectedTrigger).to;this.render();}});
+    }else if(node||trigger){
+      add('種類を編集',()=>$(node?'node-kind':'trigger-event').focus());
+      const n=this.graph().nodes.find(n=>n.id===this.selected);
+      add('ここから接続',()=>{this.connecting={id:null};this.connectNode(node?.dataset.node??trigger.dataset.trigger,!!trigger);},!!n?.kind&&!NODE_EVENTS[n.kind]?.length);
+      if(node)add('初期状態にする',()=>{this.remember();this.graph().initial=this.selected;this.render();},this.graph().initial===this.selected);
+      add('複製　Ctrl+D',()=>this.duplicateSelected());
+      add('削除　Delete',()=>this.deleteSelection(),!!node&&this.graph().nodes.length===1);
+    }else{
+      add('ここに状態ノードを作る',()=>{this.addPosition=position;$('node-add').click();});
+      add('ここにイベントノードを作る',()=>{this.addPosition=position;$('trigger-add').click();});
+      items.push(null);add('経路を作る',()=>$('route-new').click());add('目的地を作る',()=>$('destination-new').click());
+    }
+    items.push(null);add('元に戻す　Ctrl+Z',()=>$('behavior-undo').click(),!this.past.length);add('やり直す　Ctrl+Shift+Z',()=>$('behavior-redo').click(),!this.future.length);add('全体を表示　F',()=>$('behavior-fit').click());
+    this.menu.open(e.clientX,e.clientY,items,this.svg);
   }
   connectNode(id,trigger){
     const g=this.graph();
@@ -566,6 +630,7 @@ export class BehaviorUI{
   }
   move(e){
     if(this.pan){
+      if(Math.hypot(e.clientX-this.pan.screenX,e.clientY-this.pan.screenY)>5)this.panMoved=true;
       const screen=this.svg.createSVGPoint();
       screen.x=e.clientX;screen.y=e.clientY;
       const p=screen.matrixTransform(this.pan.matrix),v=this.pan.view;
@@ -758,7 +823,7 @@ export class BehaviorUI{
       add('path',{d,class:'behavior-edge'+(edge.trigger?' trigger-edge':!edge.when?' unconfigured':''),'marker-end':edge.trigger?'url(#trigger-arrow)':'url(#behavior-arrow)'},undefined,group);
       add('path',{d,class:'behavior-edge-hit'},undefined,group);
       if(!edge.trigger)add('text',{x:lx,y:ly,class:'edge-label'},edge.when==='near'?(isParameterRef(edge.destinationId)?this.parameters.label(edge.destinationId):this.draft.destinations.find(d=>d.id===edge.destinationId)?.name??'目的地未設定')+' '+this.parameters.label(edge.distance)+'m以内（'+(edge.distanceMode==='horizontal'?'水平':'絶対')+'）':EDGE_EVENTS[edge.when]??'条件を設定',group);
-      group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();this.selectConnection(edge.trigger?null:edge.index,edge.trigger?edge.from:undefined);}});
+      group.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();this.selectConnection(edge.trigger?null:edge.index,edge.trigger?edge.from:undefined);}});
     }
     for(const n of items){
       const x=n.x,y=n.y,attrs=n.trigger?{'data-trigger':n.id}:{'data-node':n.id};
@@ -774,7 +839,7 @@ export class BehaviorUI{
       }
       group.setAttribute('tabindex','0');group.setAttribute('role','button');
       group.setAttribute('aria-label',(n.trigger?'イベント：':'状態：')+(n.trigger?TRIGGER_EVENTS[n.event]:NODE_KINDS[n.kind]));
-      group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();if(this.connecting)this.connectNode(n.id,!!n.trigger);else{this.selected=n.trigger?null:n.id;this.selectedTrigger=n.trigger?n.id:null;this.selectedEdge=null;this.render();}}});
+      group.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(this.connecting)this.connectNode(n.id,!!n.trigger);else{this.selected=n.trigger?null:n.id;this.selectedTrigger=n.trigger?n.id:null;this.selectedEdge=null;this.render();}}});
     }
     // Include the viewport so its rectangle remains visible when panning beyond the graph.
     const mx=Math.min(minX,v.x),my=Math.min(minY,v.y),mw=Math.max(maxX,v.x+v.w)-mx,mh=Math.max(maxY,v.y+v.h)-my;

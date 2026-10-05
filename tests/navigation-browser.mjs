@@ -76,9 +76,9 @@ try{
   await page.locator('#timeline').evaluate(el=>{el.value=100;el.dispatchEvent(new Event('input',{bubbles:true}));});
   await page.locator('#events-open').click();assert((await page.locator('#event-list').textContent()).includes('探知'));await page.locator('#events-close').click();
   const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record.saveAs(path.join(folder,'record.jsn'));await page.locator('#file').setInputFiles(path.join(folder,'record.jsn'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
-  await page.setViewportSize({width:390,height:844});await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();await page.locator('#node-destination-edit').click();
+  await page.setViewportSize({width:1200,height:900});await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();await page.locator('#node-destination-edit').click();
   assert(await page.locator('#navigation-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.equal(await page.locator('#navigation-unit').inputValue(),'target');await page.locator('#navigation-cancel').click();await page.locator('#behavior-cancel').click();
   assert.deepEqual(errors,[]);
-  console.log('PASS: node-first named routes and destinations, map drawing/picking, transactional cancel and Undo, resource editing and referenced deletion guards, moving-unit selection, proximity edges/events, definition/Worker/record round-trip, event history and mobile layout');
+  console.log('PASS: node-first named routes and destinations, map drawing/picking, transactional cancel and Undo, resource editing and referenced deletion guards, moving-unit selection, proximity edges/events, definition/Worker/record round-trip, event history and compact desktop layout');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));fs.rmSync(folder,{recursive:true,force:true});}

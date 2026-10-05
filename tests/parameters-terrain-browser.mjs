@@ -17,7 +17,7 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 let browser;
 try{
   browser=await chromium.launch({headless:true,...(process.env.SIMSIM_BROWSER_EXECUTABLE?{executablePath:process.env.SIMSIM_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
-  const page=await browser.newPage({viewport:{width:1500,height:1000},hasTouch:true}),errors=[];
+  const page=await browser.newPage({viewport:{width:1500,height:1000}}),errors=[];
   page.on('pageerror',error=>errors.push(error.message));page.on('console',event=>{if(event.type()==='error')errors.push(event.text());});
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
@@ -54,8 +54,9 @@ try{
   const terrain=await save('terrain.jsn');assert(terrain.terrain.elevations.some((v,i)=>v!==saved.terrain.elevations[i]));assert((await page.locator('#recording-info').textContent()).includes('未計算'));
   await page.locator('#undo').click();assert.deepEqual((await save('terrain-undo.jsn')).terrain,saved.terrain);await page.locator('#redo').click();assert.deepEqual((await save('terrain-redo.jsn')).terrain,terrain.terrain);
   await page.locator('#terrain-edit').click();canvas=await page.locator('#map canvas').boundingBox();await page.mouse.click(canvas.x+canvas.width*.5,canvas.y+canvas.height*.5);await page.keyboard.press('Escape');assert(await page.locator('#terrain-panel').isHidden());assert.deepEqual((await save('terrain-cancel.jsn')).terrain,terrain.terrain);
-  await page.setViewportSize({width:390,height:844});await page.locator('#terrain-edit').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(await page.locator('#terrain-panel').evaluate(el=>el.scrollWidth<=el.clientWidth));canvas=await page.locator('#map canvas').boundingBox();await page.touchscreen.tap(canvas.x+canvas.width*.5,canvas.y+canvas.height*.5);assert(await page.locator('#terrain-undo').isEnabled());await page.locator('#terrain-cancel').click();
+  await page.setViewportSize({width:1200,height:900});await page.locator('#terrain-edit').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(await page.locator('#terrain-panel').evaluate(el=>el.scrollWidth<=el.clientWidth));
+  await page.locator('#terrain-cancel').click();
   await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node('a').click();await page.locator('#node-route-binding').selectOption('__new__');assert(await page.locator('#behavior-parameter-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));await page.locator('#behavior-parameter-cancel').click();await page.locator('#behavior-cancel').click();
   assert.deepEqual(errors,[]);
-  console.log('PASS: placeholder creation/reuse, missing binding errors, assignment defaults/overrides, protected deletion, nearest entry, save/reopen, Worker, terrain brush preview/Undo/Redo/apply/cancel, invalidated recordings and desktop/mobile layout');
+  console.log('PASS: placeholder creation/reuse, missing binding errors, assignment defaults/overrides, protected deletion, nearest entry, save/reopen, Worker, terrain brush preview/Undo/Redo/apply/cancel, invalidated recordings and desktop layout');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));fs.rmSync(folder,{recursive:true,force:true});}

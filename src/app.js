@@ -1,18 +1,20 @@
-import {TerrainUI} from './terrain-ui.js?v=20261005-parameters-terrain-6';
-import { BehaviorUI } from './behavior-ui.js?v=20261005-parameters-terrain-6';
-import { createSimulation } from './recorded-engine.js?v=20261005-parameters-terrain-6';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-parameters-terrain-6';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-parameters-terrain-6';
-import { importScenario } from './scenario-import.js?v=20261005-parameters-terrain-6';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-parameters-terrain-6';
-import { restoreAnalysisResult } from './detection.js?v=20261005-parameters-terrain-6';
-import { AnalysisUI } from './analysis-ui.js?v=20261005-parameters-terrain-6';
-import { MapView } from './view.js?v=20261005-parameters-terrain-6';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-parameters-terrain-6';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-parameters-terrain-6';
+import {ContextMenu} from './context-menu.js?v=20261005-desktop-7';
+import {TerrainUI} from './terrain-ui.js?v=20261005-desktop-7';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-desktop-7';
+import { createSimulation } from './recorded-engine.js?v=20261005-desktop-7';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-desktop-7';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-desktop-7';
+import { importScenario } from './scenario-import.js?v=20261005-desktop-7';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-desktop-7';
+import { restoreAnalysisResult } from './detection.js?v=20261005-desktop-7';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-desktop-7';
+import { MapView } from './view.js?v=20261005-desktop-7';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-desktop-7';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-desktop-7';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
+const mapMenu=new ContextMenu($('map-menu'));
 const FACTION_NAMES={
   friendly:'味方',hostile:'相手側',neutral:'中立'
 };
@@ -24,7 +26,7 @@ const STATUS_NAMES={
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=20261005-parameters-terrain-6',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261005-desktop-7',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -285,7 +287,7 @@ function applyScenario(next,{
   $('timeline').max=scenario.duration;
   $('duration-label').textContent=+(scenario.duration/60).toFixed(1)+'分';
   const t=scenario.terrain;
-  $('terrain-info').textContent=((t.columns-1)*t.spacing/1000).toFixed(0)+' × '+((t.rows-1)*t.spacing/1000).toFixed(0)+' km · 格子 '+t.spacing+' m';
+  $('terrain-info').textContent=Number(((t.columns-1)*t.spacing/1000).toFixed(6))+' × '+Number(((t.rows-1)*(t.spacingY??t.spacing)/1000).toFixed(6))+' km · '+t.columns+' × '+t.rows+' 格子';
   document.querySelector('.map-title').textContent=scenario.title;
   analysisUI.onScenario({
     keepResults
@@ -396,6 +398,8 @@ function renderUnits({
     description.append(name,detail);
     button.append(symbol,description);
     button.addEventListener('click',()=>select(unit.id));
+    button.addEventListener('contextmenu',event=>{event.preventDefault();openMapMenu({x:event.clientX,y:event.clientY,id:unit.id});});
+    button.addEventListener('keydown',event=>{if(event.key==='ContextMenu'||event.shiftKey&&event.key==='F10'){event.preventDefault();const r=button.getBoundingClientRect();openMapMenu({x:r.right,y:r.top,id:unit.id});}});
     $('unit-list').appendChild(button);
   }
   // Map selection can add a member beyond the first 80. Retain the user's viewport.
@@ -514,7 +518,7 @@ function setEditMode(mode) {
   $('route-edit').classList.toggle('active',mode==='route');
   $('place').textContent=mode==='place'?'指定を終了':currentUnit()?.routeMode==='loop'?'地図で基準点を指定':'地図で初期位置を指定';
   $('route-edit').textContent=mode==='route'?'✓ 経由点の追加を終了':'＋ 地図で経由点を追加';
-  $('map-instruction').textContent=mode==='terrain'?'ドラッグで地形編集 · 右ドラッグで視点移動 · 適用で確定 · Escで取消':mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · 背景ドラッグで視点操作':'クリックで選択 · 背景ドラッグで視点操作 · ホイールで拡大';
+  $('map-instruction').textContent=mode==='terrain'?'左ドラッグで地形編集 · Space＋ドラッグで視点操作 · 右クリックでブラシ・適用 · Escで取消':mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · Space＋ドラッグで視点操作':'クリックで選択 · Space＋ドラッグで視点操作 · ホイールで拡大';
 }
 function bindUnit(id,mutate,message) {
   $(id).addEventListener('change',()=>{
@@ -790,74 +794,44 @@ $('authoring-toggle').onclick=()=>{
   setEditMode(null);
 };
 $('focus-selection').onclick=()=>view.focusSelected();
-$('map-operations').onclick=()=>{
-  const rect=$('map-operations').getBoundingClientRect();
-  openMapMenu({
-    x:rect.left,y:rect.bottom,id:selected
-  });
-};
 $('new-scenario').onclick=()=>{
   setEditMode(null);
   commit(next=>newScenario(next),'現在の地形を使って新しいシナリオを作成しました。右クリックからユニットを配置できます。');
   setAuthoring(true);
 };
-function closeMapMenu(){
-  $('map-menu').hidden=true;
-  $('map-menu').replaceChildren();
-}
+function closeMapMenu(){mapMenu.close();}
 function openMapMenu(context){
-  closeMapMenu();
-  if(context.id&&model.scenario.units.some(u=>u.id===context.id))select(context.id);
-  const menu=$('map-menu'),d=definition(scenario,selected);
-  const add=(label,action)=>{
-    const button=document.createElement('button');
-    button.textContent=label;
-    button.type='button';
-    button.setAttribute('role','menuitem');
-    button.onclick=()=>{
-      closeMapMenu();
-      action();
-    };
-    menu.append(button);
-  };
-  if(context.handle?.index>=0){
-    selectedWaypoint={
-      id:context.handle.id,index:context.handle.index
-    };
-    add('経由点 '+(context.handle.index+1)+' を削除',deleteSelected);
-  }
-  if(d&&context.id){
-    add(d.group?'群の設定を開く':'ユニットの設定を開く',()=>d.group?openGroup(d.group.id):$('properties').scrollIntoView({
-      block:'start',behavior:'smooth'
-    }));
-    add('担当タスクを編集',()=>behaviorUI.open());
+  if(!scenario)return;
+  if(!terrainUI.active&&context.id&&model.scenario.units.some(u=>u.id===context.id)&&context.id!==selected)select(context.id);
+  const items=[],d=context.id?definition(scenario,context.id):null;
+  const add=(label,action,disabled=false)=>items.push({label,action,disabled}),separator=()=>items.push(null);
+  if(terrainUI.active){
+    for(const [value,label] of [['raise','高くする'],['lower','低くする'],['flatten','標高をそろえる'],['smooth','平滑化']])add(label,()=>{$('terrain-brush-mode').value=value;terrainUI.fields();});
+    separator();add('一筆を元に戻す　Ctrl+Z',()=>terrainUI.history(false),!terrainUI.past.length);add('一筆をやり直す　Ctrl+Shift+Z',()=>terrainUI.history(true),!terrainUI.future.length);
+    separator();add('地形を適用',()=>terrainUI.apply());add('地形編集を取り消す　Esc',()=>terrainUI.cancel());
+  }else if(context.handle?.index>=0){
+    selectedWaypoint={id:context.handle.id,index:context.handle.index};
+    add('経由点 '+(context.handle.index+1)+' を削除　Delete',deleteSelected);
     add('経由点を追加',()=>setEditMode('route'));
-    add('中心と半径で周回経路を作成',()=>setEditMode('circle-center'));
-    add(d.group?'群を複製して配置':'複製して配置',()=>beginPlacement(d.unit.domain,d.group??d.unit));
-    if(!d.group)add('このユニットから群を作る',()=>openGroup());
-    add('選択対象を画面中央へ',()=>view.focusSelected());
-    add(d.group?'群を削除':'ユニットを削除',()=>{
-      selectedWaypoint=null;deleteSelected();
-    });
+  }else if(d){
+    selectedWaypoint=null;
+    add(d.group?'この群の設定':'ユニットの設定',()=>{if(d.group)openGroup(d.group.id);else{$('properties').scrollIntoView({block:'start'});$('unit-name').focus();}});
+    add('担当タスクを編集',()=>behaviorUI.open());separator();
+    add('経由点を追加',()=>setEditMode('route'));
+    add('周回経路を作成（中心 → 半径）',()=>setEditMode('circle-center'));
+    add('初期位置を指定',()=>setEditMode('place'));
+    add('複製して配置　Ctrl+D',()=>beginPlacement(d.unit.domain,d.group??d.unit));
+    if(!d.group)add('この設定から群を作成',()=>openGroup());
+    separator();add('選択対象へ移動　F',()=>view.focusSelected());add(d.group?'群を削除　Delete':'ユニットを削除　Delete',deleteSelected);
+  }else{
+    selectedWaypoint=null;
+    for(const [domain,label] of [['subsurface','水中ユニットを配置'],['surface','水上ユニットを配置'],['air','航空ユニットを配置'],['ground','地上ユニットを配置']])add(label,()=>beginPlacement(domain));
+    separator();add('地形を編集',()=>terrainUI.open());add('挙動を編集',()=>behaviorUI.open(null,true));
   }
-  for(const domain of ['ground','surface','subsurface','air'])add(SYMBOLS[domain]+' '+DOMAIN_NAMES[domain]+'ユニットを配置',()=>beginPlacement(domain));
-  add(authoring?'再生・視点操作へ':'配置編集へ',()=>{
-    setEditMode(null);setAuthoring(!authoring);setEditMode(null);
-  });
-  menu.hidden=false;
-  const width=menu.offsetWidth,height=menu.offsetHeight;
-  menu.style.left=Math.max(4,Math.min(innerWidth-width-4,context.x))+'px';
-  menu.style.top=Math.max(4,Math.min(innerHeight-height-4,context.y))+'px';
-  menu.querySelector('button')?.focus();
+  separator();add('全体を表示',()=>view.fit());
+  if(!terrainUI.active)add(authoring?'配置編集を終了':'配置編集を開始',()=>{setEditMode(null);setAuthoring(!authoring);setEditMode(null);});
+  mapMenu.open(context.x,context.y,items);
 }
-$('map-menu').addEventListener('keydown',event=>{
-  const buttons=[...$('map-menu').querySelectorAll('button')],index=buttons.indexOf(document.activeElement);if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
-    event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();
-  }
-});
-document.addEventListener('pointerdown',event=>{
-  if(!$('map-menu').contains(event.target)&&event.target!==$('map-operations'))closeMapMenu();
-});
 $('undo').addEventListener('click',()=>{
   if(!undo.length)return;redo.push(clone(scenario));const next=undo.pop();dirty=true;applyScenario(next,{
     message:'直前の編集を元に戻しました。'
@@ -962,6 +936,7 @@ $('sample-picker').addEventListener('change',()=>{
   const file=$('sample-picker').value;if(file)loadDemo(false,file).catch(error=>showError(error.message));$('sample-picker').value='';
 });
 window.addEventListener('keydown',event=>{
+  if(document.querySelector('dialog[open]')||event.defaultPrevented)return;
   if(event.key==='Escape'){
     if(editMode==='shared-route'){
       event.preventDefault();behaviorUI.finishRoute();
@@ -978,6 +953,7 @@ window.addEventListener('keydown',event=>{
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){
     event.preventDefault();if(terrainUI.active)terrainUI.history(true);else $('redo').click();
   }
+  if(terrainUI.active)return;
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){
     event.preventDefault();const d=definition(scenario,selected);if(d)beginPlacement(d.unit.domain,d.group??d.unit);
   }
@@ -987,8 +963,8 @@ window.addEventListener('keydown',event=>{
   if(event.key==='Delete'||event.key==='Backspace'){
     event.preventDefault();deleteSelected();
   }
-  if(event.code==='Space'){
-    event.preventDefault();$('play').click();
+  if(event.code==='Space'&&(event.ctrlKey||event.metaKey)){
+    event.preventDefault();if(!terrainUI.active)$('play').click();
   }
 });
 window.addEventListener('beforeunload',event=>{

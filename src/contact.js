@@ -1,5 +1,5 @@
 export function terrainVisible(terrain,a,b) {
-  const distance=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(distance/Math.min(125,terrain.data.spacing/4)));
+  const distance=Math.hypot(b.x-a.x,b.y-a.y),steps=Math.max(1,Math.ceil(distance/Math.min(125,terrain.cellSize/4)));
   for(let i=0;i<=steps;i++) {
     const f=i/steps,x=a.x+(b.x-a.x)*f,y=a.y+(b.y-a.y)*f,z=a.z+(b.z-a.z)*f,h=terrain.height(x,y);
     if(h===null||z<h-1e-6)return false;

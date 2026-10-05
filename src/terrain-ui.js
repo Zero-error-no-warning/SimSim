@@ -1,10 +1,11 @@
-import {paintTerrain} from './terrain-editor.js?v=20261005-parameters-terrain-6';
-import {requireElement} from './ui-dom.js?v=20261005-parameters-terrain-6';
+import {paintTerrain,resizeTerrain} from './terrain-editor.js?v=20261005-desktop-7';
+import {requireElement} from './ui-dom.js?v=20261005-desktop-7';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){
     Object.assign(this,{getScenario,view,setMode,commit,notify});this.active=false;
     $('terrain-edit').onclick=()=>this.active?this.cancel():this.open();
+    $('terrain-resize').onclick=()=>this.resize();
     $('terrain-apply').onclick=()=>this.apply();$('terrain-cancel').onclick=()=>this.cancel();
     $('terrain-undo').onclick=()=>this.history(false);$('terrain-redo').onclick=()=>this.history(true);
     for(const id of ['terrain-brush-mode','terrain-brush-radius','terrain-brush-amount','terrain-brush-target'])$(id).onchange=()=>this.fields();
@@ -14,10 +15,41 @@ export class TerrainUI{
     this.draft=structuredClone(this.getScenario().terrain);this.past=[];this.future=[];this.strokeBefore=null;this.active=true;
     this.showWater=this.view.showWater;this.view.showWater=false;this.view.water.visible=false;$('show-water').checked=false;
     this.setMode('terrain');$('terrain-panel').hidden=false;$('terrain-edit').classList.add('active');
-    $('terrain-brush-radius').value=Math.max(this.draft.spacing*3,500);$('terrain-brush-radius').min=this.draft.spacing/2;
-    this.fields();this.notify('地形をドラッグして編集 · 適用で確定 · Escで取消');
+    this.sizeFields();const cell=Math.min(this.draft.spacing,this.draft.spacingY??this.draft.spacing);
+    $('terrain-brush-radius').value=Math.max(cell*3,500);$('terrain-brush-radius').min=cell/2;
+    this.fields();this.notify('左ドラッグで地形編集 · Space＋ドラッグで視点操作 · 右クリックでブラシ・適用 · Escで取消');
+  }
+  sizeFields(){
+    const d=this.draft;
+    for(const [id,cells,spacing] of [['terrain-width',d.columns-1,d.spacing],['terrain-height',d.rows-1,d.spacingY??d.spacing]]){
+      $(id).value=Number((cells*spacing/1000).toFixed(6));$(id).min=cells/1000;$(id).max=cells*10;
+    }
+    const minimum=Math.min(d.spacing,d.spacingY??d.spacing)/2;if(Number($('terrain-brush-radius').value)<minimum)$('terrain-brush-radius').value=minimum*2;
+    $('terrain-size-error').hidden=true;
+  }
+  resize(){
+    this.view.cancelTerrainStroke();
+    try{
+      if(!['terrain-width','terrain-height'].every(id=>$(id).value.trim()&&$(id).checkValidity()))throw Error('幅・高さは表示されている入力範囲の数値で指定してください。');
+      const next=resizeTerrain(this.draft,Number($('terrain-width').value)*1000,Number($('terrain-height').value)*1000),s=this.getScenario();
+      if(Math.abs(next.spacing-this.draft.spacing)<1e-8&&Math.abs((next.spacingY??next.spacing)-(this.draft.spacingY??this.draft.spacing))<1e-8)return true;
+      const maxX=next.origin.x+(next.columns-1)*next.spacing,maxY=next.origin.y+(next.rows-1)*(next.spacingY??next.spacing);
+      const points=[],add=(name,list)=>{for(const p of list??[])if(p)points.push({name,p});};
+      for(const u of [...s.units,...(this.view.scenario?.units??[])])add(u.name,[u.initial,...u.route]);
+      for(const g of s.groups??[])add(g.name,[g.template.initial,...g.template.route]);
+      for(const r of s.routes??[])add(r.name,r.points);
+      for(const d of s.destinations??[])if(d.kind==='point')add(d.name,[d.point]);
+      for(const a of s.behaviorAssignments??[])add(a.name,[...(a.route??[]),a.base]);
+      const oldMaxX=this.draft.origin.x+(this.draft.columns-1)*this.draft.spacing,oldMaxY=this.draft.origin.y+(this.draft.rows-1)*(this.draft.spacingY??this.draft.spacing);
+      const excluded=points.find(({p})=>p.x>=next.origin.x&&p.y>=next.origin.y&&p.x<=oldMaxX&&p.y<=oldMaxY&&(p.x>maxX||p.y>maxY));
+      if(excluded)throw Error('「'+excluded.name+'」の位置・経路・目的地が新しい領域の外になります。先に領域内へ移動するか、削除してください。');
+      this.past.push(structuredClone(this.draft));if(this.past.length>25)this.past.shift();this.future=[];this.draft=next;
+      this.view.previewTerrain(next);this.view.fit();this.sizeFields();this.fields();
+      this.notify('領域サイズをプレビューしました。グリッド数は固定です。適用で確定、取消で元に戻します。');return true;
+    }catch(error){$('terrain-size-error').textContent=error.message;$('terrain-size-error').hidden=false;return false;}
   }
   fields(){
+    const minimum=Math.min(this.draft.spacing,this.draft.spacingY??this.draft.spacing)/2;$('terrain-brush-radius').min=minimum;
     const mode=$('terrain-brush-mode').value;
     $('terrain-brush-target').parentElement.hidden=mode!=='flatten';$('terrain-brush-amount').parentElement.hidden=mode==='flatten';
     $('terrain-brush-amount-label').textContent=mode==='smooth'?'平滑化の強さ（%）':'一筆の変化量（m）';
@@ -28,7 +60,7 @@ export class TerrainUI{
   }
   buttons(){
     $('terrain-undo').disabled=!this.past.length;$('terrain-redo').disabled=!this.future.length;
-    $('terrain-edit-info').textContent='格子 '+this.draft.spacing+'m · 標高は海面の高さとは別に指定 · '+(this.valid?'ブラシ範囲は円で表示':'ブラシの数値を確認してください');
+    $('terrain-edit-info').textContent='領域 '+Number(((this.draft.columns-1)*this.draft.spacing/1000).toFixed(6))+' × '+Number(((this.draft.rows-1)*(this.draft.spacingY??this.draft.spacing)/1000).toFixed(6))+' km · '+this.draft.columns+' × '+this.draft.rows+' 格子（固定） · '+(this.valid?'ブラシ範囲は円で表示':'ブラシの数値を確認してください');
   }
   stroke(phase,point){
     if(!this.active)return;
@@ -36,7 +68,7 @@ export class TerrainUI{
       if(!this.valid)return;this.strokeBefore=[...this.draft.elevations];this.lastPoint=null;
     }
     if((phase==='start'||phase==='move')&&point&&this.strokeBefore){
-      const length=this.lastPoint?Math.hypot(point.x-this.lastPoint.x,point.y-this.lastPoint.y):0,spacing=Math.max(this.draft.spacing/2,this.brush.radius/4);
+      const length=this.lastPoint?Math.hypot(point.x-this.lastPoint.x,point.y-this.lastPoint.y):0,spacing=Math.max(Math.min(this.draft.spacing,this.draft.spacingY??this.draft.spacing)/2,this.brush.radius/4);
       if(this.lastPoint&&length<spacing)return;
       const count=Math.max(1,Math.ceil(length/spacing)),previous=this.lastPoint??point;
       for(let i=1;i<=count;i++)paintTerrain(this.draft,{x:previous.x+(point.x-previous.x)*i/count,y:previous.y+(point.y-previous.y)*i/count},this.brush);
@@ -45,14 +77,14 @@ export class TerrainUI{
     if(phase==='end'||phase==='cancel'){
       if(this.strokeBefore){
         if(phase==='cancel'){this.draft.elevations=this.strokeBefore;this.view.previewTerrain(this.draft);}
-        else if(this.draft.elevations.some((v,i)=>v!==this.strokeBefore[i])){this.past.push(this.strokeBefore);if(this.past.length>25)this.past.shift();this.future=[];}
+        else if(this.draft.elevations.some((v,i)=>v!==this.strokeBefore[i])){this.past.push({...structuredClone(this.draft),elevations:this.strokeBefore});if(this.past.length>25)this.past.shift();this.future=[];}
       }
       this.strokeBefore=null;this.lastPoint=null;this.buttons();
     }
   }
   history(forward){
     const from=forward?this.future:this.past,to=forward?this.past:this.future;if(!from.length)return;
-    to.push(this.draft.elevations);this.draft.elevations=from.pop();this.view.previewTerrain(this.draft);this.buttons();
+    this.view.cancelTerrainStroke();to.push(structuredClone(this.draft));this.draft=from.pop();this.view.previewTerrain(this.draft);this.sizeFields();this.fields();
   }
   close(){
     this.view.cancelTerrainStroke();this.active=false;$('terrain-panel').hidden=true;$('terrain-edit').classList.remove('active');
@@ -61,7 +93,7 @@ export class TerrainUI{
   }
   cancel(){if(!this.active)return;this.close();this.notify('地形編集を取り消しました。');}
   apply(){
-    if(!this.active)return;this.stroke('end');const data=this.draft;this.close();
+    if(!this.active)return;this.stroke('end');if(!this.resize())return;const data=this.draft;this.close();
     this.commit(next=>next.terrain=data,'地形を変更しました。計算を実行してください。');
   }
 }

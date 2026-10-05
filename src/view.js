@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261005-parameters-terrain-6';
-import { sharedAssignment } from './shared-settings.js?v=20261005-parameters-terrain-6';
+import { editableDefinition } from './editor.js?v=20261005-desktop-7';
+import { sharedAssignment } from './shared-settings.js?v=20261005-desktop-7';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-parameters-terrain-6';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-desktop-7';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -74,14 +74,28 @@ export class MapView {
     const canvas=this.renderer.domElement;
     canvas.tabIndex=0;
     canvas.setAttribute('aria-label','シナリオの地図・直接編集');
+    window.addEventListener('keydown',event=>{
+      if(event.code!=='Space'||event.ctrlKey||event.metaKey||event.altKey||['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)||!(document.activeElement===canvas||canvas.matches(':hover'))||document.querySelector('dialog[open]'))return;
+      event.preventDefault();canvas.focus({preventScroll:true});this.spaceHeld=true;this.cameraButtons();
+    });
+    window.addEventListener('keyup',event=>{if(event.code==='Space'){this.spaceHeld=false;if(!this.cameraGesture)this.cameraButtons();}});
+    const releaseSpace=()=>{this.spaceHeld=false;this.element.classList.remove('camera-ready');if(!this.cameraGesture)this.cameraButtons();};
+    canvas.addEventListener('blur',releaseSpace);window.addEventListener('blur',()=>{releaseSpace();this.cancelDrag();this.cameraGesture=null;this.cameraButtons();});
+    canvas.addEventListener('keydown',event=>{
+      if(event.key==='ContextMenu'||event.shiftKey&&event.key==='F10'){
+        event.preventDefault();const rect=canvas.getBoundingClientRect();
+        this.onContext?.({x:rect.x+rect.width/2,y:rect.y+rect.height/2,id:this.selected});
+      }
+    });
     canvas.addEventListener('pointerdown',event=>this.pointerDown(event),true);
     canvas.addEventListener('pointerup',event=>this.pointerUp(event),true);
-    canvas.addEventListener('pointercancel',()=>this.cancelDrag());
+    canvas.addEventListener('pointercancel',()=>{this.cameraGesture=null;this.down=null;this.cameraButtons();this.cancelDrag();});
     canvas.addEventListener('lostpointercapture',()=>this.cancelDrag());
     canvas.addEventListener('contextmenu',event=>{
-      event.preventDefault();if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)return;this.updatePointer(event);const handle=this.authoring?this.pickHandle(event):null,unit=this.pickUnit(event);this.onContext?.({
-        x:event.clientX,y:event.clientY,id:unit??handle?.id,handle,point:this.pointFor(null)
-      });
+      event.preventDefault();if(this.spaceHeld||this.cameraGesture?.space)return;
+      if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)return;
+      if(this.cameraGesture){this.pendingMenu={clientX:event.clientX,clientY:event.clientY};return;}
+      this.openContext(event);
     });
     canvas.addEventListener('pointermove',event=>this.pointerMove(event),true);
     canvas.addEventListener('pointerleave',()=>{
@@ -90,6 +104,10 @@ export class MapView {
     canvas.addEventListener('webglcontextlost',event=>{
       event.preventDefault();const boot=document.getElementById('boot');boot.hidden=false;boot.textContent='WebGLの描画が停止しました。ページを再読み込みしてください。シナリオは保存ボタンで取得できます。';
     });
+  }
+  openContext(event){
+    this.updatePointer(event);const handle=this.authoring?this.pickHandle(event):null,unit=this.pickUnit(event);
+    this.onContext?.({x:event.clientX,y:event.clientY,id:unit??handle?.id,handle,point:this.pointFor(null)});
   }
   editableUnit(){
     return editableDefinition(this.scenario,this.selected)?.unit;
@@ -150,9 +168,14 @@ export class MapView {
       event.stopImmediatePropagation();
       return;
     }
+    this.pendingMenu=null;
     this.down={
       x:event.clientX,y:event.clientY,pointerId:event.pointerId
     };
+    if(event.button===1||event.button===2||event.button===0&&this.spaceHeld){
+      if(event.button===1)event.preventDefault();
+      this.cameraGesture={pointerId:event.pointerId,space:this.spaceHeld};this.cameraButtons();this.clearTerrainBrush();return;
+    }
     if(event.button===0&&this.editMode==='terrain'){
       event.stopImmediatePropagation();event.preventDefault();this.updatePointer(event);
       const point=this.mapPoint();if(!point)return;
@@ -177,6 +200,7 @@ export class MapView {
     this.renderer.domElement.setPointerCapture(event.pointerId);
   }
   pointerMove(event) {
+    if(this.cameraGesture)return;
     this.updatePointer(event);
     if(this.editMode==='terrain'){
       const point=this.mapPoint();this.terrainBrush(point);
@@ -252,6 +276,11 @@ export class MapView {
     this.routes.add(this.dragPreview);
   }
   pointerUp(event) {
+    if(this.cameraGesture?.pointerId===event.pointerId){
+      this.cameraGesture=null;queueMicrotask(()=>{
+        this.cameraButtons();if(this.pendingMenu){const context=this.pendingMenu;this.pendingMenu=null;if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<=5)this.openContext(context);}
+      });return;
+    }
     if(this.terrainStroke!==undefined){
       event.stopImmediatePropagation();if(event.pointerId!==this.terrainStroke)return;
       this.terrainStroke=undefined;this.controls.enabled=true;this.onTerrainStroke?.('end');
@@ -313,6 +342,8 @@ export class MapView {
   }
   previewTerrain(data){
     this.terrainPreviewData=data;this.terrain=new Terrain(data);this.terrainKey=null;
+    const layout=[data.columns,data.rows,data.spacing,data.spacingY??data.spacing,data.origin.x,data.origin.y].join('|');
+    if(layout!==this.meshTerrainLayout){this.buildTerrain(data);return;}
     const geometry=this.terrainMesh.geometry,position=geometry.getAttribute('position'),color=geometry.getAttribute('color');
     const deep=new THREE.Color('#244960'),shallow=new THREE.Color('#397c87'),lowland=new THREE.Color('#5c896c'),peak=new THREE.Color('#d9d6b6');
     for(let i=0;i<data.elevations.length;i++){
@@ -368,8 +399,22 @@ export class MapView {
     this.controls.minZoom=.35;
     this.controls.maxZoom=30;
     this.controls.screenSpacePanning=this.mode==='top';
-    this.controls.enableRotate=this.mode==='3d'&&!this.editMode;
-    if(this.editMode) this.controls.mouseButtons.LEFT=null;
+    this.controls.enableRotate=this.mode==='3d';
+    this.controls.mouseButtons.MIDDLE=THREE.MOUSE.PAN;
+    this.cameraLimits();
+    this.controls.touches.ONE=null;this.controls.touches.TWO=null;
+    this.cameraButtons();
+  }
+  cameraLimits(){
+    if(!this.terrain)return;
+    const span=Math.max(1,this.terrain.maxX-this.terrain.minX,this.terrain.maxY-this.terrain.minY);
+    this.controls.minDistance=Math.max(.5,span*.002);this.controls.maxDistance=span*20;
+    for(const camera of [this.camera3d,this.cameraTop]){camera.near=Math.max(.01,span/100000);camera.far=Math.max(700000,span*100);camera.updateProjectionMatrix();}
+  }
+  cameraButtons(){
+    const space=this.spaceHeld||this.cameraGesture?.space;
+    this.controls.mouseButtons.LEFT=space||!this.editMode?(this.mode==='top'?THREE.MOUSE.PAN:THREE.MOUSE.ROTATE):null;
+    this.element.classList.toggle('camera-ready',!!this.spaceHeld);
   }
   resize() {
     const width=this.element.clientWidth,height=this.element.clientHeight;
@@ -385,6 +430,7 @@ export class MapView {
   }
   fit() {
     if(!this.terrain)return;
+    this.cameraLimits();
     const t=this.terrain,cx=(t.minX+t.maxX)/2,cy=(t.minY+t.maxY)/2;
     const width=t.maxX-t.minX,height=t.maxY-t.minY,span=Math.max(width,height);
     const aspect=Math.max(.35,this.element.clientWidth/this.element.clientHeight),distance=span*Math.max(1,1.25/aspect);
@@ -527,13 +573,14 @@ export class MapView {
     this.markerScale=new THREE.Vector3();
     this.setSelected(selected);
   }
-  buildTerrain() {
+  buildTerrain(d=this.scenario.terrain) {
     disposal(this.environment);
-    const d=this.scenario.terrain,positions=[],colors=[],indices=[];
+    this.meshTerrainLayout=[d.columns,d.rows,d.spacing,d.spacingY??d.spacing,d.origin.x,d.origin.y].join('|');
+    const positions=[],colors=[],indices=[];
     const deep=new THREE.Color('#244960'),shallow=new THREE.Color('#397c87'),lowland=new THREE.Color('#5c896c'),peak=new THREE.Color('#d9d6b6');
     for(let row=0;row<d.rows;row++)for(let col=0;col<d.columns;col++) {
       const h=d.elevations[row*d.columns+col];
-      positions.push(d.origin.x+col*d.spacing,h*this.exaggeration,-(d.origin.y+row*d.spacing));
+      positions.push(d.origin.x+col*d.spacing,h*this.exaggeration,-(d.origin.y+row*(d.spacingY??d.spacing)));
       const color=h<=d.seaLevel?deep.clone().lerp(shallow,Math.max(0,1-(d.seaLevel-h)/1000)):lowland.clone().lerp(peak,Math.min(1,(h-d.seaLevel)/1000));
       colors.push(color.r,color.g,color.b);
       if(row<d.rows-1&&col<d.columns-1){

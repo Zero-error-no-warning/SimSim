@@ -1,11 +1,11 @@
-import {resolveGraph} from './behavior-parameters.js?v=20261005-parameters-terrain-6';
-import { Simulation } from './engine.js?v=20261005-parameters-terrain-6';
-import { importScenario } from './scenario-import.js?v=20261005-parameters-terrain-6';
-import { random01, streamKey } from './random.js?v=20261005-parameters-terrain-6';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-parameters-terrain-6';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-parameters-terrain-6';
-import { graphTriggers } from './shared-settings.js?v=20261005-parameters-terrain-6';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-parameters-terrain-6';
+import {resolveGraph} from './behavior-parameters.js?v=20261005-desktop-7';
+import { Simulation } from './engine.js?v=20261005-desktop-7';
+import { importScenario } from './scenario-import.js?v=20261005-desktop-7';
+import { random01, streamKey } from './random.js?v=20261005-desktop-7';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-desktop-7';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-desktop-7';
+import { graphTriggers } from './shared-settings.js?v=20261005-desktop-7';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-desktop-7';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -294,7 +294,7 @@ function moveTo(model,s,destination,speed,dt) {
     s.error=checked.error;
     return false;
   }
-  const length=dist(s.position,checked.point),travel=Math.min(length,speed*dt),p=mix(s.position,checked.point,length?travel/length:1),steps=Math.max(1,Math.ceil(travel/Math.min(125,model.terrain.data.spacing/4)));
+  const length=dist(s.position,checked.point),travel=Math.min(length,speed*dt),p=mix(s.position,checked.point,length?travel/length:1),steps=Math.max(1,Math.ceil(travel/Math.min(125,model.terrain.cellSize/4)));
   for(let i=1;i<=steps;i++){
     const q=model.terrain.project(mix(s.position,p,i/steps),s.unit.domain);
     if(q.error){

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {paintTerrain} from '../src/terrain-editor.js?v=20261005-parameters-terrain-6';
-import {Terrain} from '../src/engine.js?v=20261005-parameters-terrain-6';
-import {terrainVisible} from '../src/contact.js?v=20261005-parameters-terrain-6';
+import {paintTerrain} from '../src/terrain-editor.js?v=20261005-desktop-7';
+import {Terrain} from '../src/engine.js?v=20261005-desktop-7';
+import {terrainVisible} from '../src/contact.js?v=20261005-desktop-7';
 const data={columns:7,rows:7,spacing:100,origin:{x:0,y:0},seaLevel:0,elevations:Array(49).fill(-100)};
 const original=structuredClone(data);const center={x:300,y:300};
 assert(paintTerrain(data,center,{mode:'raise',radius:200,amount:300}));assert.equal(data.elevations[24],200);assert.equal(data.elevations[0],-100);assert.equal(data.elevations[22],-100);
@@ -13,3 +13,17 @@ paintTerrain(data,center,{mode:'smooth',radius:200,amount:100});assert(data.elev
 paintTerrain(data,center,{mode:'raise',radius:200,amount:1e6});assert.equal(data.elevations[24],10000);paintTerrain(data,center,{mode:'lower',radius:200,amount:1e6});assert.equal(data.elevations[24],-12000);
 assert.throws(()=>paintTerrain(data,center,{mode:'raise',radius:1,amount:10}),/ブラシ/);
 console.log('PASS: terrain brush bounds/falloff, raise/lower/flatten/smooth, SI heights, domain constraints and sensor terrain occlusion');
+
+const {resizeTerrain}=await import('../src/terrain-editor.js?v=20261005-desktop-7');
+const slope={...structuredClone(original),elevations:Array.from({length:49},(_,i)=>i%7+Math.floor(i/7)*10)};
+const resized=resizeTerrain(slope,600,1200),rect=new Terrain(resized);
+assert.equal(resized.columns,7);assert.equal(resized.rows,7);assert.equal(resized.spacing,100);assert.equal(resized.spacingY,200);
+assert.equal(rect.maxX,600);assert.equal(rect.maxY,1200);assert.equal(rect.height(150,200),21.5);assert.equal(rect.height(300,1100),63);assert.equal(rect.height(300,1201),null);
+assert.deepEqual(resized.origin,slope.origin);assert.deepEqual(slope.elevations,Array.from({length:49},(_,i)=>i%7+Math.floor(i/7)*10));
+const brush={...resized,elevations:Array(49).fill(0)};paintTerrain(brush,{x:300,y:600},{mode:'raise',radius:250,amount:100});
+assert.equal(brush.elevations[24],100);assert.equal(brush.elevations[10],0);assert(brush.elevations[23]>brush.elevations[17]);
+const ridge={...resized,elevations:Array.from({length:49},(_,i)=>Math.floor(i/7)===3?200:0)};
+assert(!terrainVisible(new Terrain(ridge),{x:300,y:0,z:100},{x:300,y:1200,z:100}));
+assert.throws(()=>resizeTerrain(slope,0,100),/領域サイズ/);assert.throws(()=>resizeTerrain(slope,60001,100),/領域サイズ/);
+assert(!('spacingY' in resizeTerrain(resized,600,600)));
+console.log('PASS: fixed-count rectangular resize, exact independent dimensions, interpolation/edge fill, circular brush and sensor occlusion with unequal grid intervals');

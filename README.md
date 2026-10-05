@@ -4,6 +4,8 @@
 
 開発ブランチ: `feat/shared-behavior-replay`。GitHub Pages: https://zero-error-no-warning.github.io/SimSim/ 。社内ポータルでは、このブランチの **Code → Download ZIP** を展開し、ファイル一式を同じ構成で静的HTTPサーバに置いてください。JavaScriptモジュールをJavaScriptのMIMEタイプで配信する必要があります。データはJSON内容の `.jsn` です。`file:` 起動には対応しません。
 
+PCのマウス・キーボード操作向けです（画面幅1100px以上）。Space＋ドラッグで視点操作、右クリックで対象別の操作を開きます。「地形・領域編集」では地形ブラシと領域サイズ（km × km）を変更できます。グリッド数は固定です。
+
 ## 最初の操作
 
 1. 起動時の「島間通過・周回UUV」サンプルで **計算** を押す。
