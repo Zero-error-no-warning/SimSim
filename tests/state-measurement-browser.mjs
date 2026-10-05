@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-const source=JSON.parse(fs.readFileSync(new URL('./fixtures/state-measurement.jsn',import.meta.url)));
+const source=JSON.parse(fs.readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-navigation-'));
 const server=http.createServer((req,res)=>{
@@ -24,7 +24,7 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
 
-  const input=path.join(folder,'input.jsn');fs.writeFileSync(input,JSON.stringify(source));await page.locator('#file').setInputFiles(input);
+  const input=path.join(folder,'input.txt');fs.writeFileSync(input,JSON.stringify(source));await page.locator('#file').setInputFiles(input);
   assert.equal(await page.locator('.map-toolbar #analysis-open').count(),1);assert.equal(await page.locator('header #analysis-open').count(),0);
   await page.locator('.unit-item[data-id="template"]').click();assert(!(await page.locator('#unit-enabled').isChecked()));assert((await page.locator('.unit-item[data-id="template"]').textContent()).includes('無効'));
   await page.locator('#unit-enabled').check();assert(await page.locator('#unit-enabled').isChecked());await page.locator('#undo').click();assert(!(await page.locator('#unit-enabled').isChecked()));
@@ -36,19 +36,20 @@ try{
   // Deleting a measured state removes its stale goal; undo restores both.
   await node('b').click();await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas .measurement-label').count(),0);await page.locator('#behavior-undo').click();
   await node('b').click();await page.locator('#node-measure').click();await page.locator('#behavior-apply').click();assert(await page.locator('#behavior-dialog').isHidden());
-  const save=async(name,button='save')=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#'+button).click()]);const file=path.join(folder,name);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
-  const saved=await save('scenario.jsn');assert.equal(saved.units[0].enabled,false);assert.equal(saved.mission.nodeId,'b');assert.equal(saved.groups[0].enabled,undefined);
+  const save=async(name,button='save')=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#'+button).click()]);assert(download.suggestedFilename().endsWith('.txt'));const file=path.join(folder,name);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
+  const saved=await save('scenario.txt');assert.equal(saved.units[0].enabled,false);assert.equal(saved.mission.nodeId,'b');assert.equal(saved.groups[0].enabled,undefined);
+  assert((await page.locator('#file').getAttribute('accept')).includes('.txt'));assert((await page.locator('#file').getAttribute('accept')).includes('.jsn'));fs.copyFileSync(path.join(folder,'scenario.txt'),path.join(folder,'legacy.jsn'));await page.locator('#file').setInputFiles(path.join(folder,'legacy.jsn'));
   await page.locator('#analysis-open').click();assert.equal(await page.locator('#mission-type').inputValue(),'state');assert(await page.locator('#mission-factions').isHidden());assert.equal(await page.locator('#mission-assignment').inputValue(),'t');assert.equal(await page.locator('#mission-state').inputValue(),'b');
   await page.locator('#mission-join').selectOption('count');assert(await page.locator('#mission-count').isVisible());await page.locator('#mission-count').fill('2');await page.locator('#mission-count').press('Tab');
   await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#analysis-rows tr').length===2,{},{timeout:60000});
   const text=await page.locator('#analysis-rows').textContent();assert(text.includes('0 / 2')&&text.includes('2 / 2'),text);assert(await page.locator('#state-time-distribution').isVisible());assert.equal(await page.locator('#state-time-chart svg').count(),1);
   await page.locator('#state-time-condition').selectOption({index:1});assert((await page.locator('#state-time-note').textContent()).includes('期限内成立 2 / 2'));
   if(process.env.SIMSIM_MEASUREMENT_SCREENSHOT){await page.waitForTimeout(400);await page.screenshot({path:process.env.SIMSIM_MEASUREMENT_SCREENSHOT});}
-  const analysis=await save('analysis.jsn','analysis-export');assert.equal(analysis.rows[1].trials[0].stateReachedCount,2);assert.equal(analysis.rows[1].trials[0].successTime,3);
-  await page.locator('#analysis-close').click();await page.locator('#file').setInputFiles(path.join(folder,'analysis.jsn'));assert(await page.locator('#analysis-dialog').isVisible());assert((await page.locator('#analysis-progress').textContent()).includes('再計算なし'));await page.locator('#analysis-close').click();
+  const analysis=await save('analysis.txt','analysis-export');assert.equal(analysis.rows[1].trials[0].stateReachedCount,2);assert.equal(analysis.rows[1].trials[0].successTime,3);
+  await page.locator('#analysis-close').click();await page.locator('#file').setInputFiles(path.join(folder,'analysis.txt'));await page.locator('#analysis-dialog').waitFor({state:'visible'});assert(await page.locator('#analysis-dialog').isVisible());assert((await page.locator('#analysis-progress').textContent()).includes('再計算なし'));await page.locator('#analysis-close').click();
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});await page.locator('#timeline').evaluate(el=>{el.value=30;el.dispatchEvent(new Event('input',{bubbles:true}));});
-  const recorded=await save('record.jsn','record-save');assert.equal(recorded.unitIds.includes('template'),false);assert.equal(recorded.result.stateReachedCount,2);await page.locator('#file').setInputFiles(path.join(folder,'record.jsn'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
+  const recorded=await save('record.txt','record-save');assert.equal(recorded.unitIds.includes('template'),false);assert.equal(recorded.result.stateReachedCount,2);await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
   await page.locator('.unit-item[data-id="template"]').click();assert(!(await page.locator('#unit-enabled').isChecked()));assert((await page.locator('#state-status').textContent()).includes('無効'));
-  await page.locator('#analysis-open').click();await page.locator('#mission-state').selectOption('a');await page.locator('#analysis-close').click();await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});assert.equal((await save('initial-record.jsn','record-save')).result.successTime,0);
+  await page.locator('#analysis-open').click();await page.locator('#mission-state').selectOption('a');await page.locator('#analysis-close').click();await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});assert.equal((await save('initial-record.txt','record-save')).result.successTime,0);
   assert.deepEqual(errors,[]);console.log('PASS: measurement toolbar, state/node selection and badge, Undo/Redo/deletion, single/group disabling, template independence, count-zero comparison, cumulative time chart, exports, replay, initial time zero and no browser errors');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));fs.rmSync(folder,{recursive:true,force:true});}

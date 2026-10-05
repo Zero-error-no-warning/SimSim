@@ -56,7 +56,7 @@
       };
       try {
         if (typeof Worker !== 'function') throw new Error('Worker APIがありません。');
-        worker = new Worker(new URL('worker.js?v=20261005-terrain-pick-9', document.baseURI), options);
+        worker = new Worker(new URL('worker.js?v=20261005-text-files-10', document.baseURI), options);
         worker.onerror = event => {
           event.preventDefault();
           finish('fail', (event.message || 'Workerを起動できませんでした。') + '\n'+(event.filename||'worker.js')+':'+(event.lineno||0)+'\nworker.jsの配信、JavaScriptのMIMEタイプ、CSPのworker-srcを確認してください。');
@@ -160,7 +160,7 @@
         setResult('application',state,detail);resolve();
       };
       try{
-        worker=new Worker(new URL('../src/worker.js?v=20261005-terrain-pick-9',document.baseURI),{type:'module',name:'SimSim application probe'});
+        worker=new Worker(new URL('../src/worker.js?v=20261005-text-files-10',document.baseURI),{type:'module',name:'SimSim application probe'});
         worker.onerror=event=>{event.preventDefault();finish('fail',(event.message||'本体Workerの読み込みに失敗しました。')+'\n'+(event.filename||'src/worker.js')+':'+(event.lineno||0));};
         worker.onmessageerror=()=>finish('fail','本体Workerの返信を読み取れませんでした。');
         worker.onmessage=({data})=>{if(data.type==='pong')finish('ok','本体の計算Workerと依存モジュールを読み込み、応答を確認しました（'+Math.round(performance.now()-started)+' ms）。画面の初期化やシナリオ計算の成否は別です。');};
@@ -170,16 +170,16 @@
     });
   }
   async function jsonTest() {
-    setResult('json','pending','probe.jsnを読み込んでいます…');
+    setResult('json','pending','probe.txtを読み込んでいます…');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10000);
     try {
-      const response = await fetch(new URL('probe.jsn', document.baseURI), {signal:controller.signal,cache:'no-store'});
+      const response = await fetch(new URL('probe.txt', document.baseURI), {signal:controller.signal,cache:'no-store'});
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const data = await response.json();
       if (data.simsimEnvironmentProbe !== 1) throw new Error('JSONの内容が想定と異なります。');
       setResult('json','ok','同じフォルダの静的JSONを読み込めました。');
-    } catch (error) { setResult('json','fail',error.name + ': ' + error.message + '\nprobe.jsnの配置、配信、CSPのconnect-srcを確認してください。'); }
+    } catch (error) { setResult('json','fail',error.name + ': ' + error.message + '\nprobe.txtの配置、配信、CSPのconnect-srcを確認してください。'); }
     finally {clearTimeout(timer);}
   }
   async function run() {

@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261005-terrain-pick-9';
-import { requireElement } from './ui-dom.js?v=20261005-terrain-pick-9';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261005-text-files-10';
+import { requireElement } from './ui-dom.js?v=20261005-text-files-10';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

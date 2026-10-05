@@ -1,5 +1,5 @@
-import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261005-terrain-pick-9';
-import {requireElement} from './ui-dom.js?v=20261005-terrain-pick-9';
+import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261005-text-files-10';
+import {requireElement} from './ui-dom.js?v=20261005-text-files-10';
 const $=requireElement;
 const unitName={s:'秒',m:'m',ratio:'%'};
 const scale=p=>p.unit==='ratio'?100:1;

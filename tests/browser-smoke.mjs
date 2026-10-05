@@ -142,11 +142,11 @@ try {
   // Completed drafts use the existing persisted model and reopen with conditions.
   await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
   const editedSave=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);
-  await editedSave[0].saveAs(path.join(folder,'edited-scenario.jsn'));
-  const editedSource=JSON.parse(fs.readFileSync(path.join(folder,'edited-scenario.jsn'))),editedGraph=editedSource.behaviors.find(g=>g.nodes.some(n=>n.id===temporaryWait));
+  await editedSave[0].saveAs(path.join(folder,'edited-scenario.txt'));
+  const editedSource=JSON.parse(fs.readFileSync(path.join(folder,'edited-scenario.txt'))),editedGraph=editedSource.behaviors.find(g=>g.nodes.some(n=>n.id===temporaryWait));
   assert.equal(editedGraph.nodes.find(n=>n.id===temporaryWait).kind,'wait');
   assert.deepEqual(editedGraph.edges.map(e=>e.when),['received','detected','elapsed']);
-  await page.locator('#file').setInputFiles(path.join(folder,'edited-scenario.jsn'));
+  await page.locator('#file').setInputFiles(path.join(folder,'edited-scenario.txt'));
   await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
   // Entrances are placed before their kind is chosen, and have no automatic target.
@@ -185,8 +185,8 @@ try {
   await page.locator('#unit-task-open').click();assert.equal(await page.locator('#assignment-list').inputValue(),'');await page.locator('#behavior-cancel').click();
   // Save definition and verify the task parameter, not the obsolete raw unit route.
   const save=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);
-  await save[0].saveAs(path.join(folder,'scenario.jsn'));
-  const source=JSON.parse(fs.readFileSync(path.join(folder,'scenario.jsn')));assert.equal(source.version,3);assert.equal(source.behaviorAssignments[0].phase,.5);assert(!('entry' in source.behaviors[0]));assert.equal(source.behaviors[0].initial,'patrol');assert.deepEqual(source.behaviors[0].triggers,[]);
+  await save[0].saveAs(path.join(folder,'scenario.txt'));
+  const source=JSON.parse(fs.readFileSync(path.join(folder,'scenario.txt')));assert.equal(source.version,3);assert.equal(source.behaviorAssignments[0].phase,.5);assert(!('entry' in source.behaviors[0]));assert.equal(source.behaviors[0].initial,'patrol');assert.deepEqual(source.behaviors[0].triggers,[]);
   // Compute once, seek backwards/forwards, export and reopen the record.
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
   const info=await page.locator('#recording-info').innerText();assert(info.includes('記録済み'));
@@ -195,9 +195,9 @@ try {
     await page.waitForFunction(t=>{const seconds=document.getElementById('clock').textContent.split(':').map(Number);return seconds[0]*3600+seconds[1]*60+seconds[2]===t;},t);
   }
   assert.equal(await page.locator('#recording-info').innerText(),info);
-  const record=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record[0].saveAs(path.join(folder,'record.jsn'));
-  assert.equal(JSON.parse(fs.readFileSync(path.join(folder,'record.jsn'))).model,'trigger-behavior-v3');
-  await page.locator('#file').setInputFiles(path.join(folder,'record.jsn'));await page.waitForFunction(()=>!document.getElementById('play').disabled);assert((await page.locator('#recording-info').innerText()).includes('記録済み'));
+  const record=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record[0].saveAs(path.join(folder,'record.txt'));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(folder,'record.txt'))).model,'trigger-behavior-v3');
+  await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);assert((await page.locator('#recording-info').innerText()).includes('記録済み'));
   // New clears graph references, and Undo restores them.
   await page.locator('#new-scenario').click();assert.equal(await page.locator('.unit-item').count(),0);assert.equal(await page.locator('#task-list button').count(),0);
   await page.locator('#undo').click();assert.equal(await page.locator('.unit-item').count(),9);

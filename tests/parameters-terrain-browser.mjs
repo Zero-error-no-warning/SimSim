@@ -22,8 +22,8 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
 
-  const source=JSON.parse(fs.readFileSync(path.join(root,'data/navigation-demo.jsn')));
-  fs.writeFileSync(path.join(folder,'input.jsn'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.jsn'));
+  const source=JSON.parse(fs.readFileSync(path.join(root,'data/navigation-demo.txt')));
+  fs.writeFileSync(path.join(folder,'input.txt'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.txt'));
   await page.locator('.unit-item[data-id="actor"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();
   const node=id=>page.locator('#behavior-canvas [data-node="'+id+'"] > rect:first-child');
   await node('a').click();await page.locator('#node-route-binding').selectOption('__new__');
@@ -42,8 +42,8 @@ try{
   await checkbox.nth(1).uncheck();await inputs.nth(2).selectOption('point-x');
   await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
   const save=async filename=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,filename);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
-  const saved=await save('parameters.jsn'),g=saved.behaviors[0];assert.equal(g.parameters.length,3);assert.equal(g.nodes.find(n=>n.id==='b').joinMode,'nearest');assert.equal(saved.behaviorAssignments[0].parameters[g.parameters[0].id],'route-a');assert.equal(saved.behaviorAssignments[0].parameters[g.parameters[1].id],450);
-  await page.locator('#file').setInputFiles(path.join(folder,'parameters.jsn'));await page.locator('.unit-item[data-id="actor"]').click();await page.locator('#unit-task-open').click();assert.equal(await page.locator('#assignment-parameters [data-parameter]').nth(1).inputValue(),'450');await page.locator('#behavior-cancel').click();
+  const saved=await save('parameters.txt'),g=saved.behaviors[0];assert.equal(g.parameters.length,3);assert.equal(g.nodes.find(n=>n.id==='b').joinMode,'nearest');assert.equal(saved.behaviorAssignments[0].parameters[g.parameters[0].id],'route-a');assert.equal(saved.behaviorAssignments[0].parameters[g.parameters[1].id],450);
+  await page.locator('#file').setInputFiles(path.join(folder,'parameters.txt'));await page.locator('.unit-item[data-id="actor"]').click();await page.locator('#unit-task-open').click();assert.equal(await page.locator('#assignment-parameters [data-parameter]').nth(1).inputValue(),'450');await page.locator('#behavior-cancel').click();
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
   await page.locator('#viewtop').click();await page.locator('#terrain-edit').click();assert(await page.locator('#terrain-panel').isVisible());
   await page.locator('#terrain-brush-radius').fill('1800');await page.locator('#terrain-brush-radius').press('Tab');await page.locator('#terrain-brush-amount').fill('100');await page.locator('#terrain-brush-amount').press('Tab');
@@ -51,9 +51,9 @@ try{
   assert(await page.locator('#terrain-undo').isEnabled());await page.locator('#terrain-undo').click();assert(await page.locator('#terrain-redo').isEnabled());await page.locator('#terrain-redo').click();
   if(process.env.SIMSIM_EDITOR_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_EDITOR_SCREENSHOT});
   await page.locator('#terrain-apply').click();assert(await page.locator('#terrain-panel').isHidden());
-  const terrain=await save('terrain.jsn');assert(terrain.terrain.elevations.some((v,i)=>v!==saved.terrain.elevations[i]));assert((await page.locator('#recording-info').textContent()).includes('未計算'));
-  await page.locator('#undo').click();assert.deepEqual((await save('terrain-undo.jsn')).terrain,saved.terrain);await page.locator('#redo').click();assert.deepEqual((await save('terrain-redo.jsn')).terrain,terrain.terrain);
-  await page.locator('#terrain-edit').click();canvas=await page.locator('#map canvas').boundingBox();await page.mouse.click(canvas.x+canvas.width*.5,canvas.y+canvas.height*.5);await page.keyboard.press('Escape');assert(await page.locator('#terrain-panel').isHidden());assert.deepEqual((await save('terrain-cancel.jsn')).terrain,terrain.terrain);
+  const terrain=await save('terrain.txt');assert(terrain.terrain.elevations.some((v,i)=>v!==saved.terrain.elevations[i]));assert((await page.locator('#recording-info').textContent()).includes('未計算'));
+  await page.locator('#undo').click();assert.deepEqual((await save('terrain-undo.txt')).terrain,saved.terrain);await page.locator('#redo').click();assert.deepEqual((await save('terrain-redo.txt')).terrain,terrain.terrain);
+  await page.locator('#terrain-edit').click();canvas=await page.locator('#map canvas').boundingBox();await page.mouse.click(canvas.x+canvas.width*.5,canvas.y+canvas.height*.5);await page.keyboard.press('Escape');assert(await page.locator('#terrain-panel').isHidden());assert.deepEqual((await save('terrain-cancel.txt')).terrain,terrain.terrain);
   await page.setViewportSize({width:1200,height:900});await page.locator('#terrain-edit').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert(await page.locator('#terrain-panel').evaluate(el=>el.scrollWidth<=el.clientWidth));
   await page.locator('#terrain-cancel').click();
   await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node('a').click();await page.locator('#node-route-binding').selectOption('__new__');assert(await page.locator('#behavior-parameter-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));await page.locator('#behavior-parameter-cancel').click();await page.locator('#behavior-cancel').click();

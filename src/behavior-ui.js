@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261005-terrain-pick-9';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-terrain-pick-9';
-import {isParameterRef} from './behavior-parameters.js?v=20261005-terrain-pick-9';
-import {NavigationUI} from './navigation-ui.js?v=20261005-terrain-pick-9';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-terrain-pick-9';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261005-terrain-pick-9';
-import { clone,validateScenario } from './engine.js?v=20261005-terrain-pick-9';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-terrain-pick-9';
-import { requireElement } from './ui-dom.js?v=20261005-terrain-pick-9';
+import {ContextMenu} from './context-menu.js?v=20261005-text-files-10';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-text-files-10';
+import {isParameterRef} from './behavior-parameters.js?v=20261005-text-files-10';
+import {NavigationUI} from './navigation-ui.js?v=20261005-text-files-10';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-text-files-10';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261005-text-files-10';
+import { clone,validateScenario } from './engine.js?v=20261005-text-files-10';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-text-files-10';
+import { requireElement } from './ui-dom.js?v=20261005-text-files-10';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

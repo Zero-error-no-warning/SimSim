@@ -1,4 +1,4 @@
-import('./app.js?v=20261005-terrain-pick-9').catch(error => {
+import('./app.js?v=20261005-text-files-10').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

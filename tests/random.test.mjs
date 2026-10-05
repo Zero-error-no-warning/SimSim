@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261005-terrain-pick-9';
-import {random01,noiseVector} from '../src/random.js?v=20261005-terrain-pick-9';
+import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261005-text-files-10';
+import {random01,noiseVector} from '../src/random.js?v=20261005-text-files-10';
 const terrain={columns:21,rows:5,spacing:500,origin:{x:0,y:0},seaLevel:0,elevations:Array(105).fill(-500)};
 const unit={id:'uuv',name:'UUV',domain:'subsurface',faction:'friendly',manned:false,speed:10,initial:{x:1000,y:1000,z:-100},route:[{x:9000,y:1000,z:-100}],routeMode:'once',motion:{horizontal:120,vertical:20,scale:1000,startDelay:300,speedVariation:.2}};
 const source={version:1,title:'Random test',unitsSystem:'SI',duration:3600,terrain,seed:'test-seed',trial:8,units:[unit]};
@@ -48,7 +48,7 @@ const driftSim=new Simulation(drift);assert.equal(driftSim.evaluate(3600).units[
 const cap=new Simulation(plain);cap.nodeCount=2000000;assert.throws(()=>cap.compile(plain.units[0]),/200万/);
 for(let i=0;i<100;i++){const v=noiseVector('noise',i*71,1000);assert(Math.hypot(v[0],v[1])<=1+1e-12);assert(Math.abs(v[2])<=1);assert(random01('seed'+i)>=0&&random01('seed'+i)<1);}
 assert.deepEqual(validateScenario(JSON.parse(JSON.stringify(grouped))),grouped);
-const sample=JSON.parse(fs.readFileSync(new URL('../data/group-demo.jsn',import.meta.url),'utf8'));
+const sample=JSON.parse(fs.readFileSync(new URL('../data/group-demo.txt',import.meta.url),'utf8'));
 const demo=new Simulation(sample);assert.equal(demo.evaluate(0).units.length,1007);
 assert(demo.evaluate(3600).units.every(s=>!s.error));
 const evalStart=performance.now();for(let t=0;t<3600;t+=10)large.evaluate(t);

@@ -1,5 +1,5 @@
-import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261005-terrain-pick-9';
-import {requireElement} from './ui-dom.js?v=20261005-terrain-pick-9';
+import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261005-text-files-10';
+import {requireElement} from './ui-dom.js?v=20261005-text-files-10';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){

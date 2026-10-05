@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261005-terrain-pick-9">
+<html lang="ja" data-simsim-build="20261005-text-files-10">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261005-terrain-pick-9">
-<script src="src/bootstrap.js?v=20261005-terrain-pick-9" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261005-text-files-10">
+<script src="src/bootstrap.js?v=20261005-text-files-10" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
@@ -17,17 +17,17 @@
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
-<option value="island-patrol-demo.jsn">島間通過・周回UUV</option>
-<option value="shared-demo.jsn">協調監視・報告・帰投</option>
-<option value="response-demo.jsn">探知・中継・出発</option><option value="assignment-demo.jsn">担当値を変えて挙動を再利用</option><option value="navigation-demo.jsn">航路切替・目標への接近</option>
-<option value="demo.jsn">4領域の移動</option>
-<option value="group-demo.jsn">1000個の群</option>
-<option value="parameter-demo.jsn">多変数の比較</option>
-<option value="detection-demo.jsn">個数0を含む比較</option></select><button id="load">開く</button><button id="save" class="primary">.jsnを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
+<option value="island-patrol-demo.txt">島間通過・周回UUV</option>
+<option value="shared-demo.txt">協調監視・報告・帰投</option>
+<option value="response-demo.txt">探知・中継・出発</option><option value="assignment-demo.txt">担当値を変えて挙動を再利用</option><option value="navigation-demo.txt">航路切替・目標への接近</option>
+<option value="demo.txt">4領域の移動</option>
+<option value="group-demo.txt">1000個の群</option>
+<option value="parameter-demo.txt">多変数の比較</option>
+<option value="detection-demo.txt">個数0を含む比較</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
 <a href="environment-check/check.html" target="_blank" rel="noopener">動作環境の確認</a><a href="docs/workspace-v3.md" target="_blank">操作とモデルの仕様</a>
 </div></details>
 </div>
-<input type="file" id="file" accept=".jsn,.json,application/json,text/plain" hidden></header>
+<input type="file" id="file" accept=".txt,.jsn,.json,application/json,text/plain" hidden></header>
 <div class="workspace">
 <aside class="unit-panel"><div class="panel-heading">
 <div>
@@ -314,7 +314,7 @@
 <tbody id="analysis-rows"></tbody>
 </table></div>
 <section id="state-time-distribution" hidden><h3>状態到達の成立時刻の分布</h3><label class="field">表示する比較条件<select id="state-time-condition"></select></label><div id="state-time-chart"></div><p id="state-time-note" class="route-help"></p></section><div class="analysis-actions">
-<button id="analysis-restore" disabled>分析元のシナリオに戻す</button><button id="analysis-export" disabled>結果を.jsnで保存</button>
+<button id="analysis-restore" disabled>分析元のシナリオに戻す</button><button id="analysis-export" disabled>結果を.txtで保存</button>
 </div>
 <p class="route-help">信頼区間は乱数試行による誤差の目安です。モデル・入力データの妥当性や実際の能力を保証するものではありません。通信は範囲・地形遮蔽・成功確率・遅延の簡易モデル。追尾継続や攻撃は未モデル化。</p></section>
 </div></dialog><dialog id="events-dialog"><div class="analysis-heading">

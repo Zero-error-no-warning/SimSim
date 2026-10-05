@@ -22,7 +22,7 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
   const source={version:3,unitsSystem:'SI',title:'Route A -> B',duration:100,seed:'ui-nav',terrain:{columns:5,rows:5,spacing:10000,origin:{x:-10000,y:-10000,z:0},seaLevel:0,elevations:Array(25).fill(-500)},units:[{id:'actor',name:'行動ユニット',domain:'surface',faction:'friendly',manned:false,speed:100,initial:{x:-500,y:0,z:0},route:[{x:500,y:0,z:0}],routeMode:'once',sensor:{enabled:true,range:5000,probabilityPerMinute:1,domains:['surface'],terrainLOS:false}},{id:'target',name:'相手ユニット',domain:'surface',faction:'hostile',manned:false,speed:5,initial:{x:2500,y:0,z:0},route:[{x:5000,y:0,z:0}],routeMode:'once'}],behaviors:[{id:'g',name:'切り替え',initial:'a',triggers:[],nodes:[{id:'a',kind:'follow',x:100,y:100}],edges:[]}],behaviorAssignments:[{id:'t',name:'切り替えタスク',behaviorId:'g',targets:['unit:actor'],spacing:'none'}],recording:{step:10,interval:10}};
-  fs.writeFileSync(path.join(folder,'input.jsn'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.jsn'));
+  fs.writeFileSync(path.join(folder,'input.txt'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.txt'));
   await page.locator('.unit-item[data-id="actor"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();
   const node=id=>page.locator('#behavior-canvas [data-node="'+id+'"] > rect:first-child');
   const add=async id=>{await page.locator('#graph-add-menu summary').click();await page.locator('#'+id).click();};
@@ -68,14 +68,14 @@ try{
   await node(move).click();await page.locator('#node-destination-edit').click();await page.locator('#navigation-delete').click();assert((await page.locator('#navigation-error').textContent()).includes('使用中'));await page.locator('#navigation-cancel').click();
   if(process.env.SIMSIM_NAV_SCREENSHOT)await page.locator('#behavior-dialog').screenshot({path:process.env.SIMSIM_NAV_SCREENSHOT});
   await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
-  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);await download.saveAs(path.join(folder,'output.jsn'));
-  const saved=JSON.parse(fs.readFileSync(path.join(folder,'output.jsn'))),graph=saved.behaviors[0];
+  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);await download.saveAs(path.join(folder,'output.txt'));
+  const saved=JSON.parse(fs.readFileSync(path.join(folder,'output.txt'))),graph=saved.behaviors[0];
   assert.equal(saved.routes.length,2);assert.equal(saved.destinations.length,2);assert.equal(graph.nodes.find(n=>n.id==='a').routeId,routeA);assert.equal(graph.nodes.find(n=>n.id===b).routeId,routeB);assert.equal(graph.nodes.find(n=>n.id===move).destinationId,target);assert.equal(graph.edges[1].distance,300);assert.equal(graph.edges[1].distanceMode,'absolute');assert.equal(graph.triggers[0].once,false);
-  await page.locator('#file').setInputFiles(path.join(folder,'output.jsn'));await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();assert.equal(await page.locator('#node-destination').inputValue(),target);await page.locator('#behavior-cancel').click();
+  await page.locator('#file').setInputFiles(path.join(folder,'output.txt'));await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();assert.equal(await page.locator('#node-destination').inputValue(),target);await page.locator('#behavior-cancel').click();
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
   await page.locator('#timeline').evaluate(el=>{el.value=100;el.dispatchEvent(new Event('input',{bubbles:true}));});
   await page.locator('#events-open').click();assert((await page.locator('#event-list').textContent()).includes('探知'));await page.locator('#events-close').click();
-  const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record.saveAs(path.join(folder,'record.jsn'));await page.locator('#file').setInputFiles(path.join(folder,'record.jsn'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
+  const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record.saveAs(path.join(folder,'record.txt'));await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
   await page.setViewportSize({width:1200,height:900});await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();await page.locator('#node-destination-edit').click();
   assert(await page.locator('#navigation-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.equal(await page.locator('#navigation-unit').inputValue(),'target');await page.locator('#navigation-cancel').click();await page.locator('#behavior-cancel').click();

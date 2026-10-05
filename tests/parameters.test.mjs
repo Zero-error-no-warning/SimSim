@@ -1,11 +1,11 @@
-import {importScenario} from '../src/scenario-import.js?v=20261005-terrain-pick-9';
+import {importScenario} from '../src/scenario-import.js?v=20261005-text-files-10';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261005-terrain-pick-9';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-terrain-pick-9';
-import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261005-terrain-pick-9';
-import {numericScale} from '../src/chart-scale.js?v=20261005-terrain-pick-9';
-const source=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.jsn',import.meta.url),'utf8'));
+import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261005-text-files-10';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-text-files-10';
+import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261005-text-files-10';
+import {numericScale} from '../src/chart-scale.js?v=20261005-text-files-10';
+const source=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.txt',import.meta.url),'utf8'));
 const range={target:'group:observers',parameter:'extent.sense.radius',values:[300,900]};
 const speed={target:'unit:hostile-transit',parameter:'rate.movement.speed',distribution:'uniform',min:10,max:24};
 // Obtain the fixture's actual target ID rather than relying on its display name.

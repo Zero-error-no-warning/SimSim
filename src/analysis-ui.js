@@ -1,11 +1,11 @@
-import {stateMembers} from './state-measurement.js?v=20261005-terrain-pick-9';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261005-terrain-pick-9';
-import { RECORD_MODEL } from './recording.js?v=20261005-terrain-pick-9';
-import { numericScale } from './chart-scale.js?v=20261005-terrain-pick-9';
-import { clone,validateScenario } from './engine.js?v=20261005-terrain-pick-9';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-terrain-pick-9';
-import { ParameterEditor } from './parameter-ui.js?v=20261005-terrain-pick-9';
-import { requireElement } from './ui-dom.js?v=20261005-terrain-pick-9';
+import {stateMembers} from './state-measurement.js?v=20261005-text-files-10';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261005-text-files-10';
+import { RECORD_MODEL } from './recording.js?v=20261005-text-files-10';
+import { numericScale } from './chart-scale.js?v=20261005-text-files-10';
+import { clone,validateScenario } from './engine.js?v=20261005-text-files-10';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-text-files-10';
+import { ParameterEditor } from './parameter-ui.js?v=20261005-text-files-10';
+import { requireElement } from './ui-dom.js?v=20261005-text-files-10';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -16,7 +16,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-terrain-pick-9',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-text-files-10',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -460,11 +460,11 @@ export class AnalysisUI {
       type:'text/plain;charset=utf-8'
     }),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;
-    a.download='SimSim-analysis.jsn';
+    a.download='SimSim-analysis.txt';
     document.body.append(a);
     a.click();
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),30000);
-    this.notify('分析条件と試行結果を.jsnで保存しました。');
+    this.notify('分析条件と試行結果を.txtで保存しました。');
   }
 }

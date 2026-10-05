@@ -159,13 +159,13 @@
 |---|---|
 | `index.html` | 設定を積み足した構成を再設計。対象選択に応じたプロパティと少数の主操作へ |
 | `styles.css` | 整形・部品別整理。追記による重複上書きを解消し、文字サイズ・余白・フォーカスを見直す |
-| `data/shared-demo.jsn` | 統一モデルの監視・報告・帰投例として移行 |
-| `data/demo.jsn` | 4領域・地形・移動の基本例として移行 |
-| `data/group-demo.jsn` | 大量ユニット・群編集の例として移行 |
-| `data/detection-demo.jsn` | 個数0を含む比較例として移行。実行方式が変わらない検証に使う |
-| `data/parameter-demo.jsn` | 多変数・抽出の例として移行 |
-| `data/island-patrol-demo.jsn` | 島間を通る潜水艦と周回UUVの主要操作例として移行 |
-| `data/response-demo.jsn` | 探知・中継・待機・出発・到着の例として移行 |
+| `data/shared-demo.txt` | 統一モデルの監視・報告・帰投例として移行 |
+| `data/demo.txt` | 4領域・地形・移動の基本例として移行 |
+| `data/group-demo.txt` | 大量ユニット・群編集の例として移行 |
+| `data/detection-demo.txt` | 個数0を含む比較例として移行。実行方式が変わらない検証に使う |
+| `data/parameter-demo.txt` | 多変数・抽出の例として移行 |
+| `data/island-patrol-demo.txt` | 島間を通る潜水艦と周回UUVの主要操作例として移行 |
+| `data/response-demo.txt` | 探知・中継・待機・出発・到着の例として移行 |
 | `README.md` | 現在の入口と操作に書き換える。今回まずPagesのブランチ説明を訂正し、レビューへの入口を追加 |
 | `docs/scenario-format.md` | 移行後の定義形式の正本にする。旧形式は別の移行説明へ |
 | `docs/shared-behaviors.md` | 挙動仕様・割り当て・操作を分離し、統一モデルの仕様へ更新 |
@@ -174,7 +174,7 @@
 | `docs/detection-model.md` | 維持する確率式と、統一する時間格子・探知実行の仕様を明記 |
 | `docs/conditional-actions.md` | 移行資料に位置付け、旧方式を現行操作として案内しない |
 | `docs/validation.md` | 過去記録を維持。対象版を区別し、統合後の受入試験を追加 |
-| `environment-check/README.txt`, `check.html`, `check.css`, `check.js`, `probe.jsn`, `worker.js` | 社内静的配信の環境確認として維持。現行アプリのmodule Worker必須条件と説明をそろえる |
+| `environment-check/README.txt`, `check.html`, `check.css`, `check.js`, `probe.txt`, `worker.js` | 社内静的配信の環境確認として維持。現行アプリのmodule Worker必須条件と説明をそろえる |
 | `.nojekyll` | Pages配信用に維持 |
 | `vendor/three/three.module.min.js`, `OrbitControls.js`, `README.txt`, `LICENSE.txt` | 固定依存とライセンスを維持。今回の再構成に便乗したライブラリ更新は行わない |
 

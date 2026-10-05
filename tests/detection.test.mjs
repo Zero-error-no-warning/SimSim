@@ -1,8 +1,8 @@
-import {importScenario} from '../src/scenario-import.js?v=20261005-terrain-pick-9';
+import {importScenario} from '../src/scenario-import.js?v=20261005-text-files-10';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone,validateScenario,Terrain} from '../src/engine.js?v=20261005-terrain-pick-9';
-import {terrainVisible,contactProbability,runDetection,snapshotMission,wilson,scenarioForCount,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-terrain-pick-9';
+import {Simulation,clone,validateScenario,Terrain} from '../src/engine.js?v=20261005-text-files-10';
+import {terrainVisible,contactProbability,runDetection,snapshotMission,wilson,scenarioForCount,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-text-files-10';
 const sensor={enabled:true,range:1000,probabilityPerMinute:1,domains:['surface'],terrainLOS:true,mountHeight:0};
 const unit=(id,faction,x=1000,y=1000)=>({id,name:id,domain:'surface',faction,manned:true,speed:0,initial:{x,y,z:0},route:[],routeMode:'once'});
 const scenario={version:1,unitsSystem:'SI',title:'Detection test',duration:60,seed:'detection-test',trial:0,terrain:{columns:5,rows:5,spacing:500,origin:{x:0,y:0},seaLevel:0,elevations:Array(25).fill(-500)},units:[{...unit('observer','friendly'),sensor},unit('target','hostile')],mission:{type:'detect',observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:60}};
@@ -36,7 +36,7 @@ assert(Math.abs(contactProbability({...sensor,probabilityPerMinute:.5},0,2,60)-.
 const interval=wilson(50,100);assert(Math.abs(interval.low-.4038315303659957)<1e-10);assert(Math.abs(interval.high-.5961684696340044)<1e-10);
 assert(wilson(0,100).high>0&&wilson(100,100).low<1);assert.equal(wilson(0,0).rate,null);
 const malformed=clone(scenario);malformed.units[0].sensor.domains=[];assert.throws(()=>validateScenario(malformed),/domains/);
-const demo=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.jsn',import.meta.url),'utf8'));demo.analysis.groupId='observers';demo.analysis.counts=demo.analysis.factors.shift().values;prepareAnalysis(demo);
+const demo=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.txt',import.meta.url),'utf8'));demo.analysis.groupId='observers';demo.analysis.counts=demo.analysis.factors.shift().values;prepareAnalysis(demo);
 const start=performance.now(),summary=[];
 for(const count of demo.analysis.counts){const trials=[];for(let trial=0;trial<50;trial++){const model=new Simulation(scenarioForCount(demo,'observers',count,trial)),r=runDetection(model);trials.push({...r,trial});}summary.push(summarizeRow(count,trials));}
 for(let trial=0;trial<50;trial++){for(let i=1;i<summary.length;i++){const a=summary[i-1].trials[trial],b=summary[i].trials[trial];assert(!a.success||b.success,'Adding observers must preserve successful detections with paired streams');if(a.success)assert(b.successTime<=a.successTime);}}
