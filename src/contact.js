@@ -12,10 +12,18 @@ export function contactProbability(sensor,distance,detectability,seconds) {
   const hazard=-Math.log1p(-sensor.probabilityPerMinute)/60;
   return -Math.expm1(-hazard*seconds*detectability*(1-distance/sensor.range)**2);
 }
-export const mounted=(p,u)=>({...p,z:p.z+(u.sensor?.mountHeight??(u.domain==='ground'?2:0))});
+export const mounted=(p,u)=>({
+  ...p,z:p.z+(u.sensor?.mountHeight??(u.domain==='ground'?2:0))
+});
 const spatialKey=(x,y,size)=>Math.floor(x/size)+','+Math.floor(y/size);
 export function makeIndex(items,size) {
-  const cells=new Map();for(const item of items){const key=spatialKey(item.position.x,item.position.y,size);if(!cells.has(key))cells.set(key,[]);cells.get(key).push(item);}return cells;
+  const cells=new Map();
+  for(const item of items){
+    const key=spatialKey(item.position.x,item.position.y,size);
+    if(!cells.has(key))cells.set(key,[]);
+    cells.get(key).push(item);
+  }
+  return cells;
 }
 export function* neighbors(cells,p,size) {
   const x=Math.floor(p.x/size),y=Math.floor(p.y/size);

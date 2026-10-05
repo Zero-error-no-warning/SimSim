@@ -1,3 +1,4 @@
+import {importScenario} from '../src/scenario-import.js';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {clone,validateScenario} from '../src/engine.js';
@@ -13,7 +14,7 @@ const otherGoal=clone(demo);otherGoal.mission.observerFaction='hostile';otherGoa
 const stationary=clone(demo);stationary.groups[0].template.sensor.enabled=false;stationary.duration=120;stationary.mission.deadline=120;const noTargets=run(stationary);assert.equal(noTargets.r.success,false);assert(noTargets.m.evaluate(120).units.filter(u=>u.behaviorId).every(u=>u.nodeId==='patrol'));
 const failures=clone(demo);failures.groups[0].template.communication.probability=0;const failed=run(failures);assert(failed.r.actionEvents.some(e=>e.type==='sendFailed'));assert(!failed.r.actionEvents.some(e=>e.type==='received'));
 const invalid=clone(demo);invalid.behaviorAssignments[0].targets.push('group:patrol');assert.throws(()=>validateScenario(invalid),/重複/);const malformed=recordingPayload(m);malformed.frames[1].values='';assert.throws(()=>restoreRecording(malformed),/長さ/);
-const {conditions}=prepareAnalysis(demo),rows=[];for(const c of conditions){const trials=[];for(let i=0;i<2;i++){const {scenario:s,sampled}=trialScenario(demo,c,i),result=runDetection(createSimulation(s));trials.push({trial:i,sampled,...result});}rows.push({...summarizeRow(c.count,trials),condition:c});}assert.equal(rows.length,6);assert(restoreAnalysisResult({type:'SimSim-analysis',version:4,model:'shared-behavior-v1',source:demo,rows}).completed===12);assert(availableBindings(demo).some(b=>b.target==='assignment:cohort'));
+const {conditions}=prepareAnalysis(demo),rows=[];for(const c of conditions){const trials=[];for(let i=0;i<2;i++){const {scenario:s,sampled}=trialScenario(demo,c,i),result=runDetection(createSimulation(s));trials.push({trial:i,sampled,...result});}rows.push({...summarizeRow(c.count,trials),condition:c});}assert.equal(rows.length,6);assert(restoreAnalysisResult({type:'SimSim-analysis',version:5,model:'unified-behavior-v2',source:importScenario(demo),rows}).completed===12);assert(availableBindings(demo).some(b=>b.target==='assignment:cohort'));
 // Record-free Monte Carlo does not retain trajectory arrays.
 const summary=run(demo,false);assert.equal(summary.m.frames,null);assert.deepEqual(summary.r,r);
 // Exactly one arrival is emitted when a terminal return node has no outgoing edge.
@@ -23,4 +24,4 @@ function spread(s){const runResult=run(s).m,states=runResult.states.filter(x=>x.
 const coop=clone(stationary);coop.duration=600;coop.mission.deadline=600;const drift=clone(coop);drift.behaviorAssignments[0].gain=0;assert(spread(coop)<spread(drift));
 // A 1000-unit, one-hour record measures buffers, not total browser/process memory.
 const large=clone(stationary);large.duration=3600;large.mission.deadline=3600;large.groups[0].count=1000;large.recording.interval=10;const start=performance.now(),largeRun=run(large);assert.equal(largeRun.m.states.length,1002);assert(largeRun.m.recordBytes<256*1048576);console.log('1000-member/hour:',JSON.stringify({frames:largeRun.m.frames.length,MiB:largeRun.m.recordBytes/1048576,seconds:(performance.now()-start)/1000}));
-console.log('PASS: shared graphs, independent states, report/return, cooperative gaps, typed recordings, seek without computation, archive restore, summary-only trials, version-4 analysis, 1000 units');
+console.log('PASS: shared graphs, independent states, report/return, cooperative gaps, typed recordings, seek without computation, archive restore, summary-only trials, version-5 analysis, 1000 units');

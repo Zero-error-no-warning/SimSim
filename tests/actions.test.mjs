@@ -1,40 +1,49 @@
 import assert from 'node:assert/strict';
-import {Simulation,validateScenario,clone} from '../src/engine.js';
-import {runDetection,detectionSteps,snapshotMission,restoreAnalysisResult,summarizeRow,prepareAnalysis} from '../src/detection.js';
+import {clone,validateScenario} from '../src/engine.js';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js';
+import {importScenario} from '../src/scenario-import.js';
+import {prepareAnalysis,runDetection,restoreAnalysisResult,summarizeRow,snapshotMission} from '../src/detection.js';
 import {trialScenario,readParameter,availableBindings} from '../src/parameters.js';
-const rules=(id,when,action,receiverId)=>({id,when,action,receiverId,state:'any',once:true});
-const u=(id,faction,x=0)=>({id,name:id,domain:'surface',faction,manned:false,speed:0,initial:{x,y:0,z:0},route:[],routeMode:'once'});
+const unit=(id,faction,x=0)=>({id,name:id,domain:'surface',faction,manned:false,speed:0,initial:{x,y:0,z:0},route:[],routeMode:'once'});
 const communication={enabled:true,range:20000,delay:7,probability:1,terrainLOS:false};
-const source={version:1,unitsSystem:'SI',title:'Actions test',duration:300,seed:'actions-test',trial:0,terrain:{columns:5,rows:3,spacing:1000,origin:{x:-1000,y:-1000},seaLevel:0,elevations:Array(15).fill(-500)},units:[
- {...u('sensor','friendly'),sensor:{enabled:true,range:10000,probabilityPerMinute:1,domains:['surface'],terrainLOS:false,mountHeight:0},communication,behavior:{hold:false,preparation:0,rules:[rules('report','detected','send','relay')]}},
- {...u('relay','friendly',500),communication:{...communication,delay:3},behavior:{hold:false,preparation:0,rules:[rules('order','received','send','responder')]}},
- {...u('responder','friendly'),domain:'air',speed:10,initial:{x:0,y:0,z:100},route:[{x:1000,y:0,z:100}],behavior:{hold:true,preparation:20,rules:[rules('launch','received','depart')]}},
- u('target','hostile',100)
-],mission:{type:'arrive',observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:150,responderIds:['responder']},analysis:{trials:5,step:10,requiredRate:.9,factors:[],uncertainties:[]}};
-const run=s=>{const model=new Simulation(s);return {model,result:runDetection(model)}};
-const {model,result}=run(source);assert.equal(result.success,true);assert.equal(result.successTime,140);assert.equal(result.detectedCount,1);assert.equal(result.reachedCount,1);
-assert.deepEqual(result.actionEvents.map(e=>[e.type,e.time]),[['detected',10],['sent',10],['received',17],['sent',17],['received',20],['preparing',20],['departed',40],['arrived',140]]);
-assert.equal(model.evaluate(0).units.find(u=>u.id==='responder').status,'standby');assert.equal(model.evaluate(19).units.find(u=>u.id==='responder').distance,0);assert.equal(model.evaluate(20).units.find(u=>u.id==='responder').status,'preparing');assert.equal(model.evaluate(40).units.find(u=>u.id==='responder').status,'moving');assert.equal(model.evaluate(90).units.find(u=>u.id==='responder').position.x,500);assert.equal(model.evaluate(140).units.find(u=>u.id==='responder').status,'arrived');assert.deepEqual(model.evaluate(90),model.evaluate(90));assert.equal(snapshotMission(result,source.mission,139).status,'pending');assert.equal(snapshotMission(result,source.mission,140).status,'success');
-const reversed=clone(source);reversed.units.reverse();for(const u of reversed.units)u.behavior?.rules.reverse();assert.deepEqual(run(reversed).result,result,'Unit order does not change event ordering');assert.deepEqual(runDetection(model),result,'Running the same model resets activations');
-const noDetect=clone(source);noDetect.units[0].sensor.probabilityPerMinute=0;const nd=run(noDetect);assert.equal(nd.result.actionEvents.length,0);assert.equal(nd.model.evaluate(300).units.find(u=>u.id==='responder').status,'standby');
-const failed=clone(source);failed.units[0].communication.probability=0;const f=run(failed);assert.equal(f.result.success,false);assert.equal(f.model.evaluate(300).units.find(u=>u.id==='responder').status,'standby');assert.equal(f.result.actionEvents.find(e=>e.type==='sendFailed').reason,'通信試行失敗');
-const far=clone(source);far.units[0].communication.range=1;assert.equal(run(far).result.actionEvents.find(e=>e.type==='sendFailed').reason,'通信範囲外');
-const late=clone(source);late.units[2].behavior.preparation=31;assert.equal(run(late).result.success,false);assert.equal(snapshotMission(run(late).result,late.mission,150).status,'failure');
-const full=new Simulation(late);const gen=detectionSteps(full,full.scenario.mission,10,{horizon:300});let state=gen.next();while(!state.done)state=gen.next();assert.equal(state.value.success,false);assert.equal(state.value.actionEvents.at(-1).time,151);assert.equal(full.evaluate(151).units.find(u=>u.id==='responder').status,'arrived');
-const lateDetect=clone(source);lateDetect.mission.type='detect';lateDetect.mission.deadline=5;lateDetect.units[0].sensor.probabilityPerMinute=0;lateDetect.units[0].sensor.probabilityPerMinute=1;lateDetect.units[0].initial.x=2000;lateDetect.units[0].sensor.range=100;lateDetect.units[3].speed=100;lateDetect.units[3].initial.x=0;lateDetect.units[3].route=[{x:2000,y:0,z:0}];const ld=new Simulation(lateDetect),lg=detectionSteps(ld,ld.scenario.mission,10,{horizon:300});let ls=lg.next();while(!ls.done)ls=lg.next();assert.equal(ls.value.success,false);assert(ls.value.detectedCount===0);assert(ls.value.events.length>0,'Late detections remain visible');assert.equal(snapshotMission(ls.value,lateDetect.mission,300).status,'failure','A late detection must not retroactively meet the deadline');
-const edge=clone(source);edge.mission.deadline=140;assert(run(edge).result.success,'Arrival exactly at deadline counts');
-const blocked=clone(source);blocked.units[2].route[0].z=0;assert.equal(run(blocked).result.success,false);assert.equal(run(blocked).model.evaluate(300).units.find(u=>u.id==='responder').status,'blocked');
-const zero=clone(source);zero.units[2].speed=0;assert.equal(run(zero).result.success,false);
-const empty=clone(source);empty.units[2].route=[];assert.equal(run(empty).result.success,false,'Empty routes do not fabricate an arrival');
-const looping=clone(source);looping.units[2].routeMode='loop';assert.equal(run(looping).result.success,false);
-const second=clone(source);second.units.push({...clone(second.units[2]),id:'second',name:'second',behavior:{hold:false,preparation:0,rules:[]}});second.mission.responderIds.push('second');second.mission.join='all';assert.equal(run(second).result.successTime,140);second.units.at(-1).speed=0;assert.equal(run(second).result.success,false);
-const noMission=clone(source);delete noMission.mission;const plain=run(noMission);assert.equal(plain.model.evaluate(200).units.find(u=>u.id==='responder').status,'arrived');
-const broken=clone(source);broken.units[1].behavior.rules[0].receiverId='missing';assert.throws(()=>validateScenario(broken),/送信先/);broken.units[1].behavior.rules[0].receiverId='responder';broken.units[2].behavior.hold=false;assert.throws(()=>validateScenario(broken),/待機/);
-// Zero-latency repeated relay loops terminate by causal-chain guard without duplicate departures.
-const cycle=clone(source);cycle.units[0].communication.delay=0;cycle.units[1].communication.delay=0;cycle.units[1].behavior.rules.push({...rules('echo','received','send','sensor'),once:false});cycle.units[0].behavior.rules.push({...rules('echo','received','send','relay'),once:false});const c=run(cycle);assert(c.result.actionEvents.length<30);assert.equal(c.result.actionEvents.filter(e=>e.type==='departed').length,1);
-// Independent reports can retry a failed link and can trigger a repeated rule again.
-const repeated=clone(source);repeated.units.push({...clone(repeated.units[0]),id:'sensor2',name:'sensor2'});repeated.units[1].behavior.rules[0].once=false;const rep=run(repeated);assert.equal(rep.result.actionEvents.filter(e=>e.type==='sent'&&e.unitId==='relay').length,2);assert.equal(rep.result.actionEvents.filter(e=>e.type==='departed').length,1);
-// Communication/preparation are ordinary registry bindings and exact replay inputs.
-source.analysis.factors=[{target:'unit:responder',parameter:'behavior.preparation',values:[20,31]}];source.analysis.uncertainties=[{target:'unit:sensor',parameter:'interaction.communication.delay',distribution:'uniform',min:0,max:7}];const {conditions}=prepareAnalysis(source);assert(availableBindings(source).some(b=>b.parameter==='interaction.communication.probability'));
-const rows=conditions.map(condition=>{const trials=[];for(let trial=0;trial<5;trial++){const sampled=trialScenario(source,condition,trial);const r=run(sampled.scenario).result;trials.push({...r,trial,sampled:sampled.sampled});}return {...summarizeRow(condition.count,trials),condition}});const payload={type:'SimSim-analysis',version:3,model:'event-actions-v1',source,rows};assert.equal(restoreAnalysisResult(payload).completed,10);const corrupt=clone(payload);corrupt.rows[0].trials[0].reachedCount=0;assert.throws(()=>restoreAnalysisResult(corrupt),/到着数/);assert.equal(readParameter(source,{target:'unit:responder',parameter:'behavior.preparation'}),20);
-console.log('PASS: event order, latency, readiness, exact arrival/deadline, reverse seeking, no detection/no delivery/blocked/zero/empty paths, any/all, independent reports, bounded cycles, ordinary parameter bindings, seeded result round-trip');
+const reportGraph=(id,entry,when,receiver)=>({id,name:id,entry,nodes:[{id:entry,kind:entry==='signal'?'signal':'follow'},{id:'report',kind:'report',receiverId:receiver}],edges:[{from:entry,to:'report',when},{from:'report',to:entry,when:'sent',resume:true},{from:'report',to:entry,when:'sendFailed',resume:true}]});
+const source={version:3,unitsSystem:'SI',title:'Unified actions',duration:300,seed:'actions-test',trial:0,
+  terrain:{columns:5,rows:3,spacing:1000,origin:{x:-1000,y:-1000},seaLevel:0,elevations:Array(15).fill(-500)},
+  units:[{...unit('sensor','friendly'),sensor:{enabled:true,range:10000,probabilityPerMinute:1,domains:['surface'],terrainLOS:false,mountHeight:0},communication},
+    {...unit('relay','friendly',500),communication:{...communication,delay:3}},
+    {...unit('responder','friendly'),domain:'air',speed:10,initial:{x:0,y:0,z:100},route:[{x:1000,y:0,z:100}]},unit('target','hostile',100)],
+  behaviors:[reportGraph('sense','follow','detected','relay'),reportGraph('relay','signal','received','responder'),
+    {id:'respond',name:'Respond',entry:'signal',nodes:[{id:'signal',kind:'signal'},{id:'ready',kind:'wait',seconds:20,parameter:'preparation'},{id:'follow',kind:'follow'}],edges:[{from:'signal',to:'ready',when:'received',once:true},{from:'ready',to:'follow',when:'elapsed'}]}],
+  behaviorAssignments:[{id:'sense',name:'Sense',behaviorId:'sense',targets:['unit:sensor'],spacing:'none'},
+    {id:'relay',name:'Relay',behaviorId:'relay',targets:['unit:relay'],spacing:'none'},
+    {id:'respond',name:'Respond',behaviorId:'respond',targets:['unit:responder'],spacing:'none',preparation:20}],
+  recording:{step:10,interval:10},mission:{type:'arrive',observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:150,responderIds:['responder']},
+  analysis:{trials:5,step:10,requiredRate:.9,factors:[],uncertainties:[]}};
+const run=s=>{const model=createSimulation(s),g=sharedSteps(model,model.source.mission,undefined,{horizon:s.duration,record:true});let x=g.next();while(!x.done)x=g.next();return {model,result:x.value};};
+const {model,result}=run(source);
+assert.equal(result.successTime,140);assert.equal(result.reachedCount,1);
+const visible=new Set(['detected','sent','received','preparing','departed','arrived']);
+assert.deepEqual(result.actionEvents.filter(e=>visible.has(e.type)).map(e=>[e.type,e.time]),[['detected',10],['sent',10],['received',17],['sent',17],['received',20],['preparing',20],['departed',40],['arrived',140]]);
+for(const e of result.actionEvents.filter(e=>e.type==='received')){assert.equal(e.targetId,'target');assert.equal(e.observationTime,10);}
+assert.equal(model.evaluate(19).units.find(u=>u.id==='responder').status,'standby');
+assert.equal(model.evaluate(20).units.find(u=>u.id==='responder').status,'preparing');
+assert.equal(model.evaluate(90).units.find(u=>u.id==='responder').position.x,500);
+assert.equal(model.evaluate(140).units.find(u=>u.id==='responder').status,'arrived');
+const before=model.computeCount;model.evaluate(10);assert.equal(model.computeCount,before);assert.throws(()=>sharedSteps(model).next(),/計算済み/);
+assert.deepEqual(restoreRecording(recordingPayload(model)).evaluate(90).units,model.evaluate(90).units);
+const reordered=clone(source);reordered.units.reverse();assert.deepEqual(run(reordered).result,result);
+for(const failure of ['probability','range','sensor']){const s=clone(source);if(failure==='sensor')s.units[0].sensor.probabilityPerMinute=0;else s.units[0].communication[failure]=0; if(failure==='range')s.units[0].communication.range=1;assert.equal(run(s).result.success,false);}
+const late=clone(source);late.behaviorAssignments[2].preparation=31;const l=run(late);assert.equal(l.result.success,false);assert.equal(l.result.actionEvents.find(e=>e.type==='arrived').time,151);assert.equal(snapshotMission(l.result,late.mission,300).status,'failure');
+const edge=clone(source);edge.mission.deadline=140;assert(run(edge).result.success);
+for(const variant of ['blocked','empty','zero','loop']){const s=clone(source),u=s.units[2];if(variant==='blocked')u.route[0].z=0;if(variant==='empty')u.route=[];if(variant==='zero')u.speed=0;if(variant==='loop')u.routeMode='loop';assert.equal(run(s).result.success,false,variant);}
+// Multiple independent messages at the same timestamp must each be relayed.
+const repeated=clone(source);repeated.units.push({...clone(source.units[0]),id:'sensor2',name:'sensor2'});repeated.behaviorAssignments[0].targets.push('unit:sensor2');const rep=run(repeated);assert.equal(rep.result.actionEvents.filter(e=>e.type==='sent'&&e.unitId==='relay').length,2);assert.equal(rep.result.actionEvents.filter(e=>e.type==='departed').length,1);
+// A cyclic chain is bounded by causal edge identities, without an old rules executor.
+const cycle=clone(source);cycle.units[0].communication.delay=0;cycle.units[1].communication.delay=0;cycle.behaviors[1].nodes[1].receiverId='sensor';cycle.behaviors[0].edges.push({from:'follow',to:'report',when:'received'});const cyc=run(cycle);assert(cyc.result.actionEvents.length<50);
+const other=clone(source);other.mission.observerFaction='hostile';other.mission.targetFaction='friendly';assert.deepEqual(run(other).result.actionEvents,result.actionEvents,'Evaluation does not restrict execution');
+source.analysis.factors=[{target:'assignment:respond',parameter:'behavior.preparation',values:[20,31]}];source.analysis.uncertainties=[{target:'unit:sensor',parameter:'interaction.communication.delay',distribution:'uniform',min:0,max:7}];
+assert(availableBindings(source).some(b=>b.parameter==='behavior.preparation'));assert.equal(readParameter(source,{target:'assignment:respond',parameter:'behavior.preparation'}),20);
+const {conditions}=prepareAnalysis(source),rows=conditions.map(condition=>{const trials=Array.from({length:5},(_,trial)=>{const sampled=trialScenario(source,condition,trial);return {...runDetection(createSimulation(sampled.scenario)),trial,sampled:sampled.sampled};});return {...summarizeRow(condition.count,trials),condition};});
+assert.equal(restoreAnalysisResult({type:'SimSim-analysis',version:5,model:'unified-behavior-v2',source,rows}).completed,10);
+const unsupported={...clone(source),version:1};unsupported.units[0].behavior={hold:false,preparation:0,rules:[{id:'a',when:'detected',action:'send',receiverId:'relay',state:'any',once:true},{id:'b',when:'detected',action:'send',receiverId:'responder',state:'any',once:true}]};unsupported.behaviorAssignments=[];assert.throws(()=>importScenario(unsupported),/自動変換/);
+console.log('PASS: unified detection, relay payloads and simultaneous messages, exact latency and arrival, bounded cycles, independent evaluation, recorded seek and current analysis format');

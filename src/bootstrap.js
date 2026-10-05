@@ -1,4 +1,4 @@
-import('./app.js?v=0.7.0-dev').catch(error => {
+import('./app.js').catch(error => {
   const status=document.getElementById('boot');
   status.hidden=false;status.textContent='起動できませんでした: '+error.message+'\nHTTP／HTTPSで開き、src・vendorフォルダの配信とF12のConsoleを確認してください。';
 });

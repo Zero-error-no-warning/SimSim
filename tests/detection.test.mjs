@@ -1,3 +1,4 @@
+import {importScenario} from '../src/scenario-import.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Simulation,clone,validateScenario,Terrain} from '../src/engine.js';
@@ -41,7 +42,7 @@ for(const count of demo.analysis.counts){const trials=[];for(let trial=0;trial<5
 for(let trial=0;trial<50;trial++){for(let i=1;i<summary.length;i++){const a=summary[i-1].trials[trial],b=summary[i].trials[trial];assert(!a.success||b.success,'Adding observers must preserve successful detections with paired streams');if(a.success)assert(b.successTime<=a.successTime);}}
 assert(summary[0].rate<summary.at(-1).rate);
 const before=clone(demo);scenarioForCount(demo,'observers',0,3);assert.deepEqual(demo,before,'Sweep must not mutate source');
-const payload={type:'SimSim-analysis',version:1,model:'range-hazard-v1',source:demo,rows:summary,elapsedMs:500};
+const payload={type:'SimSim-analysis',version:5,model:'unified-behavior-v2',source:importScenario(demo),rows:summary.map(row=>({...row,condition:prepareAnalysis(demo).conditions.find(c=>c.settings[0].value===row.count),trials:row.trials.map(t=>({...t,sampled:[]}))})),elapsedMs:500};
 const restored=restoreAnalysisResult(payload);assert.equal(restored.completed,200);assert.equal(restored.rows[3].rate,summary[3].rate);
 const broken=clone(payload);broken.rows[0].trials[0].successTime=999999;broken.rows[0].trials[0].success=true;assert.throws(()=>restoreAnalysisResult(broken),/一致|時刻/);
 const stale=clone(payload);stale.rows[0].rate=1;assert.equal(restoreAnalysisResult(stale).rows[0].rate,summary[0].rate,'Imported summary must be recalculated from trials');

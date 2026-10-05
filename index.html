@@ -1,22 +1,370 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SimSim — シナリオワークスペース</title><link rel="stylesheet" href="styles.css?v=0.7.0-dev"><script src="src/bootstrap.js?v=0.7.0-dev" defer></script></head>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SimSim — シナリオワークスペース</title>
+<link rel="stylesheet" href="styles.css?v=0.8.0-dev">
+<script src="src/bootstrap.js?v=0.8.0-dev" defer></script>
+</head>
 <body>
-<header class="app-header"><div class="brand"><span class="brand-mark">S</span><div><h1>SimSim <span>0.7.0-dev</span></h1><p>シナリオワークスペース</p></div></div><div class="header-actions"><button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><button id="demo">サンプルに戻す</button><button id="group-demo">1000個の群サンプル</button><button id="load">開く</button><button id="save" class="primary">.jsnを保存</button><a href="environment-check/check.html" target="_blank" rel="noopener">環境確認 ↗</a></div><input type="file" id="file" accept=".jsn,.json,application/json,text/plain" hidden></header>
+<header class="app-header"><div class="brand">
+<span class="brand-mark">S</span><div>
+<h1>SimSim <span>0.8.0-dev</span>
+</h1>
+<p>シナリオワークスペース</p>
+</div>
+</div>
+<div class="header-actions">
+<button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
+<option value="island-patrol-demo.jsn">島間通過・周回UUV</option>
+<option value="shared-demo.jsn">協調監視・報告・帰投</option>
+<option value="response-demo.jsn">探知・中継・出発</option>
+<option value="demo.jsn">4領域の移動</option>
+<option value="group-demo.jsn">1000個の群</option>
+<option value="parameter-demo.jsn">多変数の比較</option>
+<option value="detection-demo.jsn">個数0を含む比較</option></select><button id="load">開く</button><button id="save" class="primary">.jsnを保存</button><button id="analysis-open" class="primary">分析</button><details class="menu-popover"><summary>ヘルプ</summary><div>
+<a href="environment-check/check.html" target="_blank" rel="noopener">動作環境の確認</a><a href="docs/workspace-v3.md" target="_blank">操作とモデルの仕様</a>
+</div></details>
+</div>
+<input type="file" id="file" accept=".jsn,.json,application/json,text/plain" hidden></header>
 <div class="workspace">
-<aside class="unit-panel"><div class="panel-heading"><div><span class="eyebrow">SCENARIO</span><h2>ユニット</h2></div><span id="unit-count" class="count">0</span></div><div class="scenario-name"><input id="title" aria-label="シナリオ名" maxlength="160"><span id="terrain-info">地形を読み込み中</span></div><div class="add-row"><select id="template" aria-label="追加する領域"><option value="ground">■ 地上</option><option value="surface">◆ 水上</option><option value="subsurface">● 水中</option><option value="air">▲ 空中</option></select><button id="add" class="primary" title="ユニットを追加">＋ 追加</button></div><div class="group-tools"><button id="group-add" class="full">＋ 選択ユニットから群を作る</button><div id="group-list"></div><input id="unit-search" placeholder="ユニット名・IDで検索" aria-label="ユニットを検索"><small id="list-summary"></small></div><div id="unit-list" class="unit-list"></div><div class="panel-foot"><div><button id="undo" disabled>↶ 元に戻す</button><button id="redo" disabled>↷ やり直す</button></div><p>ユニット・経由点を地図上でドラッグ。右クリックで追加・複製。Fで選択へ、Ctrl/Cmd+Dで複製、Deleteで削除。</p><span class="phase-badge">空間・時間の基盤</span></div></aside>
-<main class="main-panel"><div class="map-toolbar"><div class="view-buttons"><button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="map-operations">操作 ▾</button><button id="view3d" class="active">3D</button><button id="viewtop">真上</button><button id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button id="fit" title="全体を表示">全体</button><button id="analysis-open" class="primary">探知・分析</button><button id="behaviors-open" class="primary">共有挙動</button><button id="actions-open">従来の行動・通信</button></div><div class="map-options"><label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>ラベル</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option><option value="4" selected>×4</option><option value="8">×8</option><option value="16">×16</option></select></label></div></div>
-<div id="map" class="map"><div id="boot" class="boot">地形・ユニットを読み込んでいます。表示が変わらない場合は、HTTP／HTTPSで開き、src・vendor・dataフォルダの配信を確認してください。</div><div id="labels" class="labels"></div><div id="placement-hint" class="placement-hint" hidden></div><div class="map-topline"><span class="map-title">島嶼・周辺海域</span><span id="view-caption">3D / 高さ表示 ×4</span></div><div class="map-legend"><span><i class="friendly"></i>味方</span><span><i class="hostile"></i>相手側</span><span><i class="neutral"></i>中立</span><span>格子 5 km</span><span>白破線: 計画経路</span><span>球: 最大探知範囲</span></div><div class="compass"><span id="north-arrow">↑</span>N</div><div id="map-instruction" class="map-instruction">クリックで選択 · ドラッグで回転 · 右ドラッグで移動 · ホイールで拡大</div><div id="cursor-position" class="cursor-position"></div></div>
-<p id="replay-parameters" class="replay-parameters" role="status"></p><div class="mission-strip"><span id="mission-status">成功条件は未設定</span><button id="events-open">探知・行動履歴</button></div><details class="experiment"><summary>試行設定 · 乱数シードと航跡</summary><div class="experiment-fields"><label>シード <input id="seed" maxlength="100" value="SimSim"></label><label>試行番号 <input id="trial" type="number" min="0" max="1000000000" value="0"></label><button id="next-trial">次の試行</button></div><p>同じ定義・シード・試行番号なら、同じ配置と航跡を再現します。80個を超えると経路・航跡・ラベルは選択中だけ表示します。</p></details><div class="playback"><div class="transport"><button id="record-run" class="primary">計算・記録</button><button id="record-cancel" disabled>計算中止</button><button id="record-save" disabled>記録を保存</button><span id="recording-info" class="recording-info"></span><button id="play" class="primary">▶ 再生</button><button id="step" title="60秒進める">＋60秒</button><button id="reset">↺ 開始位置</button><label>速度 <select id="speed"><option value="1">×1</option><option value="10">×10</option><option value="60" selected>×60</option><option value="300">×300</option><option value="600">×600</option></select></label><output id="clock">00:00:00</output></div><div class="timeline-row"><span>0分</span><input id="timeline" type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span></div><div class="duration-row"><label>終了時刻 <input id="duration" type="number" min="1" max="1440" value="60"> 分</label><span>高さ倍率は表示のみ。計算は実寸の m・s。</span></div></div>
+<aside class="unit-panel"><div class="panel-heading">
+<div>
+<span class="eyebrow">SCENARIO</span><h2>ユニット</h2>
+</div>
+<span id="unit-count" class="count">0</span>
+</div>
+<div class="scenario-name">
+<input id="title" aria-label="シナリオ名" maxlength="160"><span id="terrain-info">地形を読み込み中</span>
+</div>
+<div class="add-row">
+<select id="template" aria-label="追加する領域"><option value="ground">■ 地上</option>
+<option value="surface">◆ 水上</option>
+<option value="subsurface">● 水中</option>
+<option value="air">▲ 空中</option></select><button id="add" class="primary" title="ユニットを追加">＋ 追加</button>
+</div>
+<section class="task-browser"><div class="section-heading">
+<h3>タスク</h3>
+<button id="behaviors-open">＋ タスク</button>
+</div>
+<div id="task-list"></div></section><div class="group-tools">
+<button id="group-add" class="full">＋ 選択ユニットから群を作る</button><div id="group-list"></div>
+<input id="unit-search" placeholder="ユニット名・IDで検索" aria-label="ユニットを検索"><small id="list-summary"></small>
+</div>
+<div id="unit-list" class="unit-list"></div>
+<div class="panel-foot">
+<div>
+<button id="undo" disabled>↶ 元に戻す</button><button id="redo" disabled>↷ やり直す</button>
+</div>
+<p>ユニット・経由点を地図上でドラッグ。右クリックで追加・複製。Fで選択へ、Ctrl/Cmd+Dで複製、Deleteで削除。</p>
+<span class="phase-badge">編集 → 計算 → 再生・分析</span>
+</div></aside>
+<main class="main-panel"><div class="map-toolbar">
+<div class="view-buttons">
+<button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="map-operations">操作 ▾</button><button id="view3d" class="active">3D</button><button id="viewtop">真上</button><button id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button id="fit" title="全体を表示">全体</button>
+</div>
+<details class="menu-popover"><summary>表示</summary><div><div class="map-options">
+<label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>ラベル</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
+<option value="4" selected>×4</option>
+<option value="8">×8</option>
+<option value="16">×16</option></select></label>
+</div></div></details>
+</div>
+<div id="map" class="map">
+<div id="boot" class="boot">地形・ユニットを読み込んでいます。表示が変わらない場合は、HTTP／HTTPSで開き、src・vendor・dataフォルダの配信を確認してください。</div>
+<div id="labels" class="labels"></div>
+<div id="placement-hint" class="placement-hint" hidden></div>
+<div class="map-topline">
+<span class="map-title">島嶼・周辺海域</span><span id="view-caption">3D / 高さ表示 ×4</span>
+</div>
+<div class="map-legend">
+<span><i class="friendly"></i>味方</span><span><i class="hostile"></i>相手側</span><span><i class="neutral"></i>中立</span><span>格子 5 km</span><span>白破線: 計画経路</span><span>球: 最大探知範囲</span>
+</div>
+<div class="compass">
+<span id="north-arrow">↑</span>N</div>
+<div id="map-instruction" class="map-instruction">クリックで選択 · ドラッグで回転 · 右ドラッグで移動 · ホイールで拡大</div>
+<div id="cursor-position" class="cursor-position"></div>
+</div>
+<p id="replay-parameters" class="replay-parameters" role="status"></p>
+<div class="mission-strip">
+<span id="mission-status">成功条件は未設定</span><button id="events-open">探知・行動履歴</button>
+</div>
+<details class="experiment"><summary>計算設定・乱数シード</summary><div class="experiment-fields">
+<label>終了時刻 <input id="duration" type="number" min="1" max="1440" value="60"> 分</label><label>シード <input id="seed" maxlength="100" value="SimSim"></label><label>試行番号 <input id="trial" type="number" min="0" max="1000000000" value="0"></label><button id="next-trial">次の試行</button>
+</div>
+<p>同じ定義・シード・試行番号なら、同じ配置と航跡を再現します。80個を超えると経路・航跡・ラベルは選択中だけ表示します。</p>
+<div class="fields-two">
+<label class="field">計算刻み（秒）<input id="record-step" type="number" min="0.1" max="300" step="any"></label><label class="field">通常の記録間隔（計算刻みの整数倍・秒）<input id="record-interval" type="number" min="0.1" max="300" step="any"></label>
+</div></details><div class="playback">
+<div class="transport">
+<button id="record-run" class="primary">計算</button><button id="record-cancel" disabled hidden="">計算中止</button><button id="record-save" disabled>記録保存</button><span id="recording-info" class="recording-info"></span><button id="play" class="primary" disabled>▶ 再生</button><button id="step" disabled title="60秒進める">＋60秒</button><button id="reset">↺ 開始位置</button><label>速度 <select id="speed"><option value="1">×1</option>
+<option value="10">×10</option>
+<option value="60" selected>×60</option>
+<option value="300">×300</option>
+<option value="600">×600</option></select></label><output id="clock">00:00:00</output>
+</div>
+<div class="timeline-row">
+<span>0分</span><input id="timeline" disabled type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span>
+</div>
+</div>
 <div id="notice" class="notice" role="status">読み込み中</div></main>
-<aside class="inspector"><div class="panel-heading"><div><span class="eyebrow">SELECTED UNIT</span><h2>ユニット設定</h2></div><button id="delete" class="danger" disabled>削除</button></div><div id="empty-selection" class="empty-selection">ユニットを選択してください。</div><div id="properties" hidden>
-<p id="generated-note" class="route-help" hidden>群から生成したユニットです。ドラッグは群全体に適用。数値属性は群の設定で変更できます。</p><button id="edit-selected-group" class="full" hidden>この群を編集</button><fieldset id="definition-fields"><label class="field">名称<input id="unit-name" maxlength="120"></label><div class="fields-two"><label class="field">領域<select id="unit-domain"><option value="ground">地上</option><option value="surface">水上</option><option value="subsurface">水中</option><option value="air">空中</option></select></label><label class="field">陣営<select id="unit-faction"><option value="friendly">味方</option><option value="hostile">相手側</option><option value="neutral">中立</option></select></label></div><div class="fields-two"><label class="field">運用<select id="unit-manned"><option value="true">有人</option><option value="false">無人</option></select></label><label class="field">速度（km/h）<input id="unit-speed" type="number" min="0" max="5400" step="any"></label></div>
-<div id="position-heading" class="section-label">初期位置</div><div class="fields-two"><label class="field">東西 x（km）<input id="unit-x" type="number" step="any"></label><label class="field">南北 y（km）<input id="unit-y" type="number" step="any"></label></div><label class="field"><span id="height-label">高度（海面基準 m）</span><input id="unit-height" type="number" step="any"></label><button id="place" class="full">地図で初期位置を指定</button>
-<div class="section-label route-heading"><span>経由点</span><span id="route-count">0点</span></div><label class="field">経路の繰り返し<select id="route-mode"><option value="once">一度だけ</option><option value="pingpong">往復</option><option value="loop">周回（閉じた経路）</option></select></label><label class="field">周回の出発点（%）<input id="loop-start" type="number" min="0" max="100" step="any"></label><p class="route-help">1周の経路長に対する割合。0%は経路の基準点、100%は0%と同じ。周回で使用します。</p><button id="route-edit" class="full">＋ 地図で経由点を追加</button><p class="route-help">表の座標はkm。入力または地図クリックで編集できます。</p><div id="route-table"></div><button id="clear-route" class="full quiet">経由点をすべて削除</button>
-<div class="section-label">簡易探知モデル</div><label class="check-field"><input id="unit-sensor-enabled" type="checkbox">探知センサーを使用</label><div class="fields-two"><label class="field">最大距離（km）<input id="unit-sensor-range" type="number" min="0.001" max="100" step="any"></label><label class="field">距離0で1分の探知確率（%）<input id="unit-sensor-probability" type="number" min="0" max="100" step="any"></label></div><div class="sensor-domains">対象領域 <label><input id="unit-sensor-ground" type="checkbox">地上</label><label><input id="unit-sensor-surface" type="checkbox">水上</label><label><input id="unit-sensor-subsurface" type="checkbox">水中</label><label><input id="unit-sensor-air" type="checkbox">空中</label></div><label class="check-field"><input id="unit-sensor-los" type="checkbox">地形による遮蔽を判定</label><div class="fields-two"><label class="field">センサーの取付高（m）<input id="unit-sensor-height" type="number" min="0" max="1000" step="any"></label><label class="field">被探知係数（0～10）<input id="unit-detectability" type="number" min="0" max="10" step="any"></label></div><p class="route-help">距離で探知頻度が低下する球状の簡易モデル。係数1が基準、0は探知不能。電波・音波・海面越しの減衰は未モデル化。</p><div class="section-label">航跡のばらつき</div><div class="fields-two"><label class="field">水平の最大ずれ（m）<input id="motion-horizontal" type="number" min="0" max="10000" step="any"></label><label class="field">上下の最大ずれ（m）<input id="motion-vertical" type="number" min="0" max="3000" step="any"></label></div><label class="field">変動間隔（経路上のm）<input id="motion-scale" type="number" min="10" max="100000" step="any"></label><div class="fields-two"><label class="field">出発遅れの上限（s）<input id="motion-delay" type="number" min="0" max="86400" step="any"></label><label class="field">速度のばらつき（±%）<input id="motion-speed" type="number" min="0" max="100" step="any"></label></div><p class="route-help">水平ずれは平面内の全方向。上下のずれは空中・水中に適用。往復・周回では同じ生成経路を繰り返します。</p></fieldset><button id="unit-actions-open" class="full">行動・通信を編集</button><div class="section-label">現在の状態</div><dl class="telemetry"><div><dt>探知</dt><dd id="state-detection">—</dd></div><div><dt>状態</dt><dd id="state-status">待機</dd></div><div><dt>位置 x / y</dt><dd id="state-position">—</dd></div><div><dt>高度 / 深度</dt><dd id="state-height">—</dd></div><div><dt>移動距離</dt><dd id="state-distance">—</dd></div><div><dt>速度 / 出発予定</dt><dd id="state-motion">—</dd></div><div><dt>経路距離</dt><dd id="state-route">—</dd></div></dl><div id="unit-warning" class="unit-warning" hidden></div></div></aside>
-</div><dialog id="error-dialog"><h2>読み込み・操作エラー</h2><pre id="error-text"></pre><button id="close-error">閉じる</button></dialog>
-<dialog id="group-dialog"><form id="group-form"><h2 id="group-dialog-title">群を作る</h2><label class="field">群の名前<input id="group-name" maxlength="100" required></label><label class="field">ひな型（初期位置・経路・属性をコピー）<select id="group-template"></select></label><div class="fields-two"><label class="field">個数<input id="group-count" type="number" min="1" max="2000" required></label><label class="field">配置<select id="group-placement"><option value="random">範囲内にランダム</option><option value="grid">格子状に均等配置</option></select></label></div><div class="fields-two"><label class="field">配置幅 x（km）<input id="group-width" type="number" min="0" max="100" step="0.1" required></label><label class="field">配置幅 y（km）<input id="group-height" type="number" min="0" max="100" step="0.1" required></label></div><div class="fields-two"><label class="field">個体の水平ずれ（m）<input id="group-horizontal" type="number" min="0" max="10000" required></label><label class="field">群に共通する水平ずれ（m）<input id="group-common" type="number" min="0" max="10000" required></label></div><div class="fields-two"><label class="field">上下のずれ（m）<input id="group-vertical" type="number" min="0" max="3000" required></label><label class="field">変動間隔（m）<input id="group-scale" type="number" min="10" max="100000" required></label></div><div class="fields-two"><label class="field">出発遅れの上限（s）<input id="group-delay" type="number" min="0" max="86400" required></label><label class="field">速度のばらつき（±%）<input id="group-speed" type="number" min="0" max="100" required></label></div><label class="field">周回の出発点（%）<input id="group-loop-start" type="number" min="0" max="100" step="any" required></label><label class="field">周回上の出発位置<select id="group-loop-mode"><option value="template">全個体が同じ位置</option><option value="even">均等に分散</option><option value="random">ランダムに分散</option></select></label><p class="route-help">周回時に使用。上の割合を基準に分散します。ランダムでは個数を変えても既存個体の割合を維持します。</p><div class="section-label">簡易探知モデル</div><label class="check-field"><input id="group-sensor-enabled" type="checkbox">探知センサーを使用</label><div class="fields-two"><label class="field">最大距離（km）<input id="group-sensor-range" type="number" min="0.001" max="100" step="any"></label><label class="field">距離0で1分の探知確率（%）<input id="group-sensor-probability" type="number" min="0" max="100" step="any"></label></div><div class="sensor-domains">対象領域 <label><input id="group-sensor-ground" type="checkbox">地上</label><label><input id="group-sensor-surface" type="checkbox">水上</label><label><input id="group-sensor-subsurface" type="checkbox">水中</label><label><input id="group-sensor-air" type="checkbox">空中</label></div><label class="check-field"><input id="group-sensor-los" type="checkbox">地形による遮蔽を判定</label><div class="fields-two"><label class="field">センサーの取付高（m）<input id="group-sensor-height" type="number" min="0" max="1000" step="any"></label><label class="field">被探知係数（0～10）<input id="group-detectability" type="number" min="0" max="10" step="any"></label></div><p class="route-help">距離で探知頻度が低下する球状の簡易モデル。係数1が基準、0は探知不能。電波・音波・海面越しの減衰は未モデル化。</p><p class="route-help">ひな型の初期位置を中心に、経路全体を平行移動します。陸・海底・範囲外への配置も制約違反として残します。元のユニットは残ります。単体＋群の合計は2000個まで。</p><div class="dialog-actions"><button id="group-remove" type="button" class="danger">群を削除</button><button id="group-cancel" type="button">取消</button><button type="submit" class="primary">適用</button></div></form></dialog><dialog id="analysis-dialog" class="analysis-dialog"><div class="analysis-heading"><h2>ミッションとパラメータの比較</h2><div><button id="detection-demo">架空の探知サンプル</button><button id="parameter-demo">多変数サンプル</button><button id="island-demo">島間通過サンプル</button><button id="response-demo">探知・対応サンプル</button><button id="analysis-close">閉じる</button></div></div><div class="analysis-layout"><section><h3>成功条件</h3><label class="check-field"><input id="mission-enabled" type="checkbox">この条件を使用</label><div class="fields-two"><label class="field">観測側<select id="mission-observer"><option value="friendly">味方</option><option value="hostile">相手側</option><option value="neutral">中立</option></select></label><label class="field">対象側<select id="mission-target"><option value="hostile">相手側</option><option value="friendly">味方</option><option value="neutral">中立</option></select></label></div><label class="field">評価する結果<select id="mission-type"><option value="detect">対象の探知</option><option value="arrive">対応ユニットの経路終点への到着</option></select></label><label id="responder-field" class="field" hidden>到着を評価する単体ユニット<select id="mission-responders" multiple size="4" aria-label="到着を評価するユニット"></select><span class="route-help">複数選択はCtrl/Cmd。探知する相手は上の対象側です。</span></label><label class="field">成立条件<select id="mission-join"><option value="any">対象のうち一つを探知</option><option value="all">対象すべてを探知</option></select></label><label class="field">期限（開始から分）<input id="mission-deadline" type="number" min="0.000001" max="1440" step="any"></label><p id="mission-target-note" class="route-help"></p><h3>モンテカルロ</h3><h3>比較変数</h3><div id="factors-editor"></div><button id="add-factors" type="button">比較変数を追加</button><h3>試行ごとのばらつき</h3><div id="uncertainties-editor"></div><button id="add-uncertainties" type="button">ばらつきを追加</button><p class="route-help">群のひな型への抽出値は、その試行の全個体で共通です。個体間の差は航跡のずれ・速度のばらつき・出発遅れで設定します。</p><p id="parameter-plan" class="route-help"></p><div class="fields-two"><label class="field">各条件の試行数<input id="analysis-trials" type="number" min="1" max="2000" step="1"></label><label class="field">判定間隔（秒）<input id="analysis-step" type="number" min="1" max="300" step="1"></label></div><label class="field">要求成功率（%）<input id="analysis-required" type="number" min="0" max="100" step="1"></label><p class="route-help">現在のシード・試行番号から開始。各条件で同じ試行番号と抽出値を使用。比較値は全組合せ（最大24条件・合計10000試行）。個数0は対象群を取り除きます。判定間隔を小さくして結果の変化も確認してください。</p><div class="analysis-actions"><button id="analysis-run" class="primary">分析を実行</button><button id="analysis-cancel" disabled>中止</button></div></section><section class="analysis-results"><h3>比較結果</h3><div id="analysis-progress" role="status">分析は未実行です。</div><progress id="analysis-bar" value="0" max="1"></progress><div class="chart-options"><label>横軸 <select id="chart-axis" aria-label="散布図の横軸"></select></label><label><input id="chart-log" type="checkbox">横軸を対数表示</label></div><p id="chart-note" class="route-help" role="status"></p><div id="analysis-chart-legend" class="chart-legend"></div><div id="analysis-chart" class="analysis-chart"></div><p id="analysis-summary" class="route-help">成功率と95%信頼区間を表示します。</p><div class="results-scroll"><table class="results-table"><thead><tr><th>比較条件</th><th>成功／試行</th><th>1つ以上探知した試行</th><th>成功率</th><th>未成立率</th><th>95%区間</th><th>成立時刻の中央値</th><th>初期配置不正の試行</th><th>試行の再現</th></tr></thead><tbody id="analysis-rows"></tbody></table></div><div class="analysis-actions"><button id="analysis-restore" disabled>分析元のシナリオに戻す</button><button id="analysis-export" disabled>結果を.jsnで保存</button></div><p class="route-help">信頼区間は乱数試行による誤差の目安です。モデル・入力データの妥当性や実際の能力を保証するものではありません。通信は範囲・地形遮蔽・成功確率・遅延の簡易モデル。追尾継続や攻撃は未モデル化。</p></section></div></dialog><dialog id="events-dialog"><div class="analysis-heading"><h2>現在の試行の探知・行動履歴</h2><button id="events-close">閉じる</button></div><p id="events-summary"></p><div id="event-list"></div></dialog><dialog id="actions-dialog" class="actions-dialog"><form id="actions-form"><div class="analysis-heading"><h2>条件付き行動・通信</h2><button id="actions-close" type="button">閉じる</button></div><label class="field">設定する対象<select id="action-target"></select></label><fieldset id="action-definition"><div class="actions-columns"><section><h3>出発</h3><label class="check-field"><input id="action-hold" type="checkbox">指令まで待機する</label><label class="field">指令後の準備時間（秒）<input id="action-preparation" type="number" min="0" max="86400" step="any" required></label><p id="action-route-note" class="route-help"></p><p class="route-help">待機を選ぶ場合は、下のルールに「準備後に出発」を設定します。準備時間に、航跡設定の出発遅れを加えて出発します。出発は各個体につき一度です。</p></section><section><h3>情報の送信</h3><label class="check-field"><input id="communication-enabled" type="checkbox">通信を使用する</label><div class="fields-two"><label class="field">最大通信距離（km）<input id="communication-range" type="number" min="0.000001" max="100" step="any" required></label><label class="field">通信遅延（秒）<input id="communication-delay" type="number" min="0" max="86400" step="any" required></label></div><label class="field">送信1回の成功確率（%）<input id="communication-probability" type="number" min="0" max="100" step="any" required></label><label class="check-field"><input id="communication-los" type="checkbox">地形による遮蔽を判定する</label><p class="route-help">送信側の属性を使用。距離・遮蔽は送信時に判定し、成功した情報を遅延後に届けます。水中・空中など媒体間の接続は抽象化しています。</p></section></div><h3>条件 → 動作</h3><p class="route-help">探知は各センサーと対象の組合せにつき初回のみ。受信した情報を中継できます。「新しいイベントごと」でも同じ情報が同じルールを循環して再実行されることはありません。</p><div id="rules-list"></div><button id="rule-add" type="button">＋ ルールを追加</button></fieldset><div class="dialog-actions"><button class="primary" type="submit">適用</button></div></form></dialog><div id="map-menu" class="map-menu" role="menu" aria-label="地図の操作" hidden></div><dialog id="behavior-dialog" class="behavior-dialog"><div class="analysis-heading"><h2>共有する挙動と協調グループ</h2><button id="behavior-close">閉じる</button></div><p class="route-help">挙動を一度作り、複数の単体・群へ割り当てます。各機の実行状態は独立。適用後に「計算・記録」を押すと再生できます。</p>
-<div class="behavior-toolbar"><select id="behavior-list" aria-label="挙動"></select><button id="behavior-new">＋ 挙動</button><button id="behavior-duplicate">複製</button><button id="behavior-delete">削除</button><button id="behavior-undo">↶</button><button id="behavior-redo">↷</button><label>挙動名<input id="behavior-name" maxlength="120"></label></div>
-<div class="behavior-toolbar"><select id="node-kind" aria-label="追加するノード"><option value="patrol">周回監視</option><option value="report">報告</option><option value="return">帰投</option><option value="wait">待機</option><option value="stop">終了</option></select><button id="node-add">＋ ノード</button><label>接続条件<select id="edge-condition"><option value="detected">敵を探知</option><option value="sent">送信成功</option><option value="sendFailed">送信失敗</option><option value="arrived">到着</option><option value="elapsed">待機終了</option><option value="received">情報受信</option></select></label></div><div class="behavior-toolbar"><button id="behavior-zoom-in" title="挙動図を拡大">＋ 拡大</button><button id="behavior-zoom-out" title="挙動図を縮小">− 縮小</button><button id="behavior-fit">図全体</button><span class="route-help">図の背景をドラッグして移動</span></div><p id="behavior-instruction" class="route-help"></p>
-<div class="behavior-layout"><svg id="behavior-canvas" role="img" aria-label="共有挙動のノードエディタ" viewBox="0 0 1000 450"></svg><section id="node-properties" hidden><h3 id="node-selected"></h3><label id="node-value-field" class="field"><span id="node-value-label"></span><input id="node-value" type="number" min="1" step="any"></label><label id="node-receiver-field" class="field">報告先<select id="node-receiver"></select></label><button id="node-entry">開始ノードにする</button><button id="node-delete">ノードを削除</button></section></div>
-<section><h3>協調グループ・担当ユニット</h3><div class="behavior-toolbar"><select id="assignment-list" aria-label="協調グループ"></select><button id="assignment-new">＋ 割り当て</button><button id="assignment-delete">割り当てを削除</button></div><fieldset id="assignment-fields"><div class="actions-columns"><section><label class="field">協調グループ名<input id="assignment-name"></label><label class="field">使用する挙動<select id="assignment-behavior"></select></label><label class="field">担当する単体・群（複数選択可）<select id="assignment-targets" multiple size="5"></select></label></section><section><label class="field">周回中の間隔<select id="assignment-spacing"><option value="even">監視中の機体で等間隔</option><option value="fixed">指定した経路上の距離</option><option value="none">調整しない</option></select></label><label class="field">指定間隔（m）<input id="assignment-distance" type="number" min="0" max="100000" step="any"></label><label class="field">間隔の調整係数（1/s）<input id="assignment-gain" type="number" min="0" max="1" step="any"></label><div class="behavior-toolbar"><button id="assignment-copy-route">選択ユニットの経路を使う</button><button id="assignment-route">地図で共有経路を描く</button><button id="assignment-base">地図で帰投地点を指定</button></div><p id="assignment-summary" class="route-help"></p></section></div></fieldset></section>
-<div class="fields-two"><label class="field">計算刻み（秒）<input id="record-step" type="number" min="0.1" max="60" step="any"></label><label class="field">通常の記録間隔（計算刻みの整数倍・秒）<input id="record-interval" type="number" min="0.1" max="300" step="any"></label></div><p class="route-help">ノード切替と経路の曲がり角は通常の間隔以外にも記録します。間隔維持は経路上の距離に対する速度調整で、速度上限に従って徐々に調整します。帰投は指定高度・深度の地点への移動で、着陸・浮上は未モデル化。</p><div class="dialog-actions"><button id="behavior-cancel">取消</button><button id="behavior-apply" class="primary">適用</button></div></dialog></body></html>
+<aside class="inspector"><div class="panel-heading">
+<div>
+<span class="eyebrow">SELECTED UNIT</span><h2>選択したユニット</h2>
+</div>
+<button id="delete" class="danger" disabled>削除</button>
+</div>
+<div id="empty-selection" class="empty-selection">ユニットを選択してください。</div>
+<div id="properties" hidden>
+<p id="generated-note" class="route-help" hidden>群から生成したユニットです。ドラッグは群全体に適用。数値属性は群の設定で変更できます。</p>
+<button id="edit-selected-group" class="full" hidden>この群を編集</button><div class="task-binding">
+<p id="unit-task-summary"></p>
+<button id="unit-task-open" class="full">担当タスクを設定</button>
+</div>
+<fieldset id="definition-fields">
+<label class="field">名称<input id="unit-name" maxlength="120"></label><div class="fields-two">
+<label class="field">領域<select id="unit-domain"><option value="ground">地上</option>
+<option value="surface">水上</option>
+<option value="subsurface">水中</option>
+<option value="air">空中</option></select></label><label class="field">陣営<select id="unit-faction"><option value="friendly">味方</option>
+<option value="hostile">相手側</option>
+<option value="neutral">中立</option></select></label>
+</div>
+<div class="fields-two">
+<label class="field">運用<select id="unit-manned"><option value="true">有人</option>
+<option value="false">無人</option></select></label><label class="field">速度（km/h）<input id="unit-speed" type="number" min="0" max="5400" step="any"></label>
+</div>
+<details class="property-section"><summary>経路・初期位置</summary><div>
+<div id="position-heading" class="section-label">初期位置</div>
+<div class="fields-two">
+<label class="field">東西 x（km）<input id="unit-x" type="number" step="any"></label><label class="field">南北 y（km）<input id="unit-y" type="number" step="any"></label>
+</div>
+<label class="field"><span id="height-label">高度（海面基準 m）</span><input id="unit-height" type="number" step="any"></label><button id="place" class="full">地図で初期位置を指定</button>
+<div class="section-label route-heading">
+<span>経由点</span><span id="route-count">0点</span>
+</div>
+<label class="field">経路の繰り返し<select id="route-mode"><option value="once">一度だけ</option>
+<option value="pingpong">往復</option>
+<option value="loop">周回（閉じた経路）</option></select></label><label class="field">周回の出発点（%）<input id="loop-start" type="number" min="0" max="100" step="any"></label><p class="route-help">1周の経路長に対する割合。0%は経路の基準点、100%は0%と同じ。周回で使用します。</p>
+<button id="route-edit" class="full">＋ 地図で経由点を追加</button><p class="route-help">表の座標はkm。入力または地図クリックで編集できます。</p>
+<div id="route-table"></div>
+<button id="clear-route" class="full quiet">経由点をすべて削除</button>
+</div></details><details class="property-section"><summary>センサー能力</summary><div>
+<div class="section-label">簡易探知モデル</div>
+<label class="check-field"><input id="unit-sensor-enabled" type="checkbox">探知センサーを使用</label><div class="fields-two">
+<label class="field">最大距離（km）<input id="unit-sensor-range" type="number" min="0.001" max="100" step="any"></label><label class="field">距離0で1分の探知確率（%）<input id="unit-sensor-probability" type="number" min="0" max="100" step="any"></label>
+</div>
+<div class="sensor-domains">対象領域 <label><input id="unit-sensor-ground" type="checkbox">地上</label><label><input id="unit-sensor-surface" type="checkbox">水上</label><label><input id="unit-sensor-subsurface" type="checkbox">水中</label><label><input id="unit-sensor-air" type="checkbox">空中</label>
+</div>
+<label class="check-field"><input id="unit-sensor-los" type="checkbox">地形による遮蔽を判定</label><div class="fields-two">
+<label class="field">センサーの取付高（m）<input id="unit-sensor-height" type="number" min="0" max="1000" step="any"></label><label class="field">被探知係数（0～10）<input id="unit-detectability" type="number" min="0" max="10" step="any"></label>
+</div>
+<p class="route-help">距離で探知頻度が低下する球状の簡易モデル。係数1が基準、0は探知不能。電波・音波・海面越しの減衰は未モデル化。</p>
+</div></details><details class="property-section"><summary>航跡のばらつき</summary><div>
+<div class="section-label">航跡のばらつき</div>
+<div class="fields-two">
+<label class="field">水平の最大ずれ（m）<input id="motion-horizontal" type="number" min="0" max="10000" step="any"></label><label class="field">上下の最大ずれ（m）<input id="motion-vertical" type="number" min="0" max="3000" step="any"></label>
+</div>
+<label class="field">変動間隔（経路上のm）<input id="motion-scale" type="number" min="10" max="100000" step="any"></label><div class="fields-two">
+<label class="field">出発遅れの上限（s）<input id="motion-delay" type="number" min="0" max="86400" step="any"></label><label class="field">速度のばらつき（±%）<input id="motion-speed" type="number" min="0" max="100" step="any"></label>
+</div>
+<p class="route-help">水平ずれは平面内の全方向。上下のずれは空中・水中に適用。往復・周回では同じ生成経路を繰り返します。</p>
+</div></details><details class="property-section"><summary>通信能力</summary><div>
+<label class="check-field"><input id="unit-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
+<label class="field">最大距離（km）<input id="unit-communication-range" type="number" min="0.000001" max="100" step="any"></label><label class="field">遅延（秒）<input id="unit-communication-delay" type="number" min="0" max="86400" step="any"></label>
+</div>
+<label class="field">1回の成功確率（%）<input id="unit-communication-probability" type="number" min="0" max="100" step="any"></label><label class="check-field"><input id="unit-communication-los" type="checkbox">地形遮蔽を判定</label><p class="route-help">報告の動作はタスクのノードで設定します。</p>
+</div></details>
+</fieldset>
+<details class="property-section"><summary>再生中の状態</summary><div>
+<div class="section-label">現在の状態</div>
+<dl class="telemetry">
+<div>
+<dt>探知</dt>
+<dd id="state-detection">—</dd>
+</div>
+<div>
+<dt>状態</dt>
+<dd id="state-status">待機</dd>
+</div>
+<div>
+<dt>位置 x / y</dt>
+<dd id="state-position">—</dd>
+</div>
+<div>
+<dt>高度 / 深度</dt>
+<dd id="state-height">—</dd>
+</div>
+<div>
+<dt>移動距離</dt>
+<dd id="state-distance">—</dd>
+</div>
+<div>
+<dt>速度 / 出発予定</dt>
+<dd id="state-motion">—</dd>
+</div>
+<div>
+<dt>経路距離</dt>
+<dd id="state-route">—</dd>
+</div>
+</dl>
+<div id="unit-warning" class="unit-warning" hidden></div>
+</div></details>
+</div></aside>
+</div>
+<dialog id="error-dialog"><h2>読み込み・操作エラー</h2>
+<pre id="error-text"></pre>
+<button id="close-error">閉じる</button></dialog>
+<dialog id="group-dialog"><form id="group-form">
+<h2 id="group-dialog-title">群を作る</h2>
+<p id="group-bound-note" class="route-help" hidden>共有経路を使用しています。位置・高度・出発割合は担当タスクの共有経路で変更します。</p>
+<label class="field">群の名前<input id="group-name" maxlength="100" required></label><label class="field">ひな型（初期位置・経路・属性をコピー）<select id="group-template"></select></label><div class="fields-two">
+<label class="field">個数<input id="group-count" type="number" min="1" max="2000" required></label><label class="field">配置<select id="group-placement"><option value="random">範囲内にランダム</option>
+<option value="grid">格子状に均等配置</option></select></label>
+</div>
+<div class="fields-two">
+<label class="field">配置幅 x（km）<input id="group-width" type="number" min="0" max="100" step="0.1" required></label><label class="field">配置幅 y（km）<input id="group-height" type="number" min="0" max="100" step="0.1" required></label>
+</div>
+<div class="fields-two">
+<label class="field">個体の水平ずれ（m）<input id="group-horizontal" type="number" min="0" max="10000" required></label><label class="field">群に共通する水平ずれ（m）<input id="group-common" type="number" min="0" max="10000" required></label>
+</div>
+<div class="fields-two">
+<label class="field">上下のずれ（m）<input id="group-vertical" type="number" min="0" max="3000" required></label><label class="field">変動間隔（m）<input id="group-scale" type="number" min="10" max="100000" required></label>
+</div>
+<div class="fields-two">
+<label class="field">出発遅れの上限（s）<input id="group-delay" type="number" min="0" max="86400" required></label><label class="field">速度のばらつき（±%）<input id="group-speed" type="number" min="0" max="100" required></label>
+</div>
+<label class="field">周回の出発点（%）<input id="group-loop-start" type="number" min="0" max="100" step="any" required></label><label class="field">周回上の出発位置<select id="group-loop-mode"><option value="template">全個体が同じ位置</option>
+<option value="even">均等に分散</option>
+<option value="random">ランダムに分散</option></select></label><p class="route-help">周回時に使用。上の割合を基準に分散します。ランダムでは個数を変えても既存個体の割合を維持します。</p>
+<div class="section-label">簡易探知モデル</div>
+<label class="check-field"><input id="group-sensor-enabled" type="checkbox">探知センサーを使用</label><div class="fields-two">
+<label class="field">最大距離（km）<input id="group-sensor-range" type="number" min="0.001" max="100" step="any"></label><label class="field">距離0で1分の探知確率（%）<input id="group-sensor-probability" type="number" min="0" max="100" step="any"></label>
+</div>
+<div class="sensor-domains">対象領域 <label><input id="group-sensor-ground" type="checkbox">地上</label><label><input id="group-sensor-surface" type="checkbox">水上</label><label><input id="group-sensor-subsurface" type="checkbox">水中</label><label><input id="group-sensor-air" type="checkbox">空中</label>
+</div>
+<label class="check-field"><input id="group-sensor-los" type="checkbox">地形による遮蔽を判定</label><div class="fields-two">
+<label class="field">センサーの取付高（m）<input id="group-sensor-height" type="number" min="0" max="1000" step="any"></label><label class="field">被探知係数（0～10）<input id="group-detectability" type="number" min="0" max="10" step="any"></label>
+</div>
+<p class="route-help">距離で探知頻度が低下する球状の簡易モデル。係数1が基準、0は探知不能。電波・音波・海面越しの減衰は未モデル化。</p>
+<p class="route-help">ひな型の初期位置を中心に、経路全体を平行移動します。陸・海底・範囲外への配置も制約違反として残します。元のユニットは残ります。単体＋群の合計は2000個まで。</p>
+<details class="property-section"><summary>通信能力</summary><div>
+<label class="check-field"><input id="group-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
+<label class="field">最大距離（km）<input id="group-communication-range" type="number" min="0.000001" max="100" step="any"></label><label class="field">遅延（秒）<input id="group-communication-delay" type="number" min="0" max="86400" step="any"></label>
+</div>
+<label class="field">1回の成功確率（%）<input id="group-communication-probability" type="number" min="0" max="100" step="any"></label><label class="check-field"><input id="group-communication-los" type="checkbox">地形遮蔽を判定</label><p class="route-help">報告の動作はタスクのノードで設定します。</p>
+</div></details><div class="dialog-actions">
+<button id="group-remove" type="button" class="danger">群を削除</button><button id="group-cancel" type="button">取消</button><button type="submit" class="primary">適用</button>
+</div>
+</form></dialog><dialog id="analysis-dialog" class="analysis-dialog"><div class="analysis-heading">
+<h2>ミッションとパラメータの比較</h2>
+<div><button id="analysis-close">閉じる</button></div>
+</div>
+<div class="analysis-layout">
+<section><h3>成功条件</h3>
+<label class="check-field"><input id="mission-enabled" type="checkbox">この条件を使用</label><div class="fields-two">
+<label class="field">観測側<select id="mission-observer"><option value="friendly">味方</option>
+<option value="hostile">相手側</option>
+<option value="neutral">中立</option></select></label><label class="field">対象側<select id="mission-target"><option value="hostile">相手側</option>
+<option value="friendly">味方</option>
+<option value="neutral">中立</option></select></label>
+</div>
+<label class="field">評価する結果<select id="mission-type"><option value="detect">対象の探知</option>
+<option value="arrive">対応ユニットの経路終点への到着</option></select></label><label id="responder-field" class="field" hidden>到着を評価する単体ユニット<select id="mission-responders" multiple size="4" aria-label="到着を評価するユニット"></select><span class="route-help">複数選択はCtrl/Cmd。探知する相手は上の対象側です。</span></label><label class="field">成立条件<select id="mission-join"><option value="any">対象のうち一つを探知</option>
+<option value="all">対象すべてを探知</option></select></label><label class="field">期限（開始から分）<input id="mission-deadline" type="number" min="0.000001" max="1440" step="any"></label><p id="mission-target-note" class="route-help"></p>
+<h3>モンテカルロ</h3>
+<h3>比較変数</h3>
+<div id="factors-editor"></div>
+<button id="add-factors" type="button">比較変数を追加</button><h3>試行ごとのばらつき</h3>
+<div id="uncertainties-editor"></div>
+<button id="add-uncertainties" type="button">ばらつきを追加</button><p class="route-help">群のひな型への抽出値は、その試行の全個体で共通です。個体間の差は航跡のずれ・速度のばらつき・出発遅れで設定します。</p>
+<p id="parameter-plan" class="route-help"></p>
+<div class="fields-two">
+<label class="field">各条件の試行数<input id="analysis-trials" type="number" min="1" max="2000" step="1"></label><label class="field">判定間隔（秒）<input id="analysis-step" type="number" min="1" max="300" step="1"></label>
+</div>
+<label class="field">要求成功率（%）<input id="analysis-required" type="number" min="0" max="100" step="1"></label><p class="route-help">現在のシード・試行番号から開始。各条件で同じ試行番号と抽出値を使用。比較値は全組合せ（最大24条件・合計10000試行）。個数0は対象群を取り除きます。判定間隔を小さくして結果の変化も確認してください。</p>
+<div class="analysis-actions">
+<button id="analysis-run" class="primary">分析を実行</button><button id="analysis-cancel" disabled>中止</button>
+</div></section><section class="analysis-results"><h3>比較結果</h3>
+<div id="analysis-progress" role="status">分析は未実行です。</div>
+<progress id="analysis-bar" value="0" max="1"></progress><div class="chart-options">
+<label>横軸 <select id="chart-axis" aria-label="散布図の横軸"></select></label><label><input id="chart-log" type="checkbox">横軸を対数表示</label>
+</div>
+<p id="chart-note" class="route-help" role="status"></p>
+<div id="analysis-chart-legend" class="chart-legend"></div>
+<div id="analysis-chart" class="analysis-chart"></div>
+<p id="analysis-summary" class="route-help">成功率と95%信頼区間を表示します。</p>
+<div class="results-scroll"><table class="results-table">
+<thead><tr>
+<th>比較条件</th>
+<th>成功／試行</th>
+<th>1つ以上探知した試行</th>
+<th>成功率</th>
+<th>未成立率</th>
+<th>95%区間</th>
+<th>成立時刻の中央値</th>
+<th>初期配置不正の試行</th>
+<th>試行の再現</th>
+</tr></thead>
+<tbody id="analysis-rows"></tbody>
+</table></div>
+<div class="analysis-actions">
+<button id="analysis-restore" disabled>分析元のシナリオに戻す</button><button id="analysis-export" disabled>結果を.jsnで保存</button>
+</div>
+<p class="route-help">信頼区間は乱数試行による誤差の目安です。モデル・入力データの妥当性や実際の能力を保証するものではありません。通信は範囲・地形遮蔽・成功確率・遅延の簡易モデル。追尾継続や攻撃は未モデル化。</p></section>
+</div></dialog><dialog id="events-dialog"><div class="analysis-heading">
+<h2>現在の試行の探知・行動履歴</h2>
+<button id="events-close">閉じる</button>
+</div>
+<p id="events-summary"></p>
+<div id="event-list"></div></dialog><div id="map-menu" class="map-menu" role="menu" aria-label="地図の操作" hidden></div>
+<dialog id="behavior-dialog" class="behavior-dialog"><div class="analysis-heading">
+<h2>タスクと挙動</h2>
+<button id="behavior-close">閉じる</button>
+</div>
+<p class="route-help">担当・経路を設定し、必要なときに挙動のノードを編集します。適用後は計算を実行してください。</p>
+<p id="behavior-validation" class="validation-message" role="status" hidden></p>
+<nav class="editor-tabs"><button id="task-edit-tab" class="active">担当・経路</button><button id="graph-edit-tab">挙動のノード</button></nav><section id="task-editor"><h3>担当タスク</h3>
+<div class="behavior-toolbar">
+<select id="assignment-list" aria-label="タスク"></select><button id="assignment-new">＋ タスク</button><button id="assignment-delete">タスクを削除</button>
+</div>
+<fieldset id="assignment-fields"><div class="actions-columns">
+<section><label class="field">タスク名<input id="assignment-name"></label><label class="field">使用する挙動<select id="assignment-behavior"></select></label><label class="field">タスクの報告先<select id="assignment-receiver"></select></label><label class="field">担当する単体・群（複数選択可）<select id="assignment-targets" multiple size="5"></select></label></section><section><label class="field">共有周回の出発点（%）<input id="assignment-phase" type="number" min="0" max="100" step="any"></label><label class="field">周回中の間隔<select id="assignment-spacing"><option value="even">監視中の機体で等間隔</option>
+<option value="fixed">指定した経路上の距離</option>
+<option value="none">調整しない</option></select></label><label class="field">指定間隔（m）<input id="assignment-distance" type="number" min="0" max="100000" step="any"></label><label class="field">間隔の調整係数（1/s）<input id="assignment-gain" type="number" min="0" max="1" step="any"></label><label class="field">出発準備時間（秒・準備ノードで使用）<input id="assignment-preparation" type="number" min="0" max="86400" step="any"></label><div class="behavior-toolbar">
+<button id="assignment-copy-route">選択ユニットの経路を使う</button><button id="assignment-route">地図で共有経路を描く</button><button id="assignment-base">地図で帰投地点を指定</button>
+</div>
+<p id="assignment-summary" class="route-help"></p></section>
+</div></fieldset></section>
+<section id="graph-editor" hidden><div class="behavior-toolbar">
+<select id="behavior-list" aria-label="挙動"></select><button id="behavior-new">＋ 挙動</button><button id="behavior-duplicate">複製</button><button id="behavior-delete">削除</button><button id="behavior-undo">↶</button><button id="behavior-redo">↷</button><label>挙動名<input id="behavior-name" maxlength="120"></label>
+</div>
+<div class="behavior-toolbar">
+<select id="node-kind" aria-label="追加するノード"><option value="follow">経路を進む</option>
+<option value="patrol">協調して周回</option>
+<option value="signal">情報を待つ</option>
+<option value="report">報告</option>
+<option value="return">帰投</option>
+<option value="wait">時間待ち</option>
+<option value="stop">終了</option></select><button id="node-add">＋ ノード</button><label>接続条件<select id="edge-condition"><option value="detected">敵を探知</option>
+<option value="sent">送信成功</option>
+<option value="sendFailed">送信失敗</option>
+<option value="arrived">到着</option>
+<option value="elapsed">待機終了</option>
+<option value="received">情報受信</option></select></label>
+</div>
+<div class="behavior-toolbar">
+<button id="behavior-zoom-in" title="挙動図を拡大">＋ 拡大</button><button id="behavior-zoom-out" title="挙動図を縮小">− 縮小</button><button id="behavior-fit">図全体</button><span class="route-help">図の背景をドラッグして移動</span>
+</div>
+<p id="behavior-instruction" class="route-help"></p>
+<div class="behavior-layout">
+<svg id="behavior-canvas" role="img" aria-label="共有挙動のノードエディタ" viewbox="0 0 1000 450"></svg><section id="node-properties" hidden><h3 id="node-selected"></h3>
+<label id="node-value-field" class="field"><span id="node-value-label"></span><input id="node-value" type="number" min="0" step="any"></label><label id="node-receiver-field" class="field">報告先<select id="node-receiver"></select></label><button id="node-entry">開始ノードにする</button><button id="node-delete">ノードを削除</button><label class="check-field"><input id="node-sensor" type="checkbox" checked>この動作中にセンサーを使用</label></section>
+</div>
+</section><p class="route-help">ノード切替と経路の曲がり角は通常の間隔以外にも記録します。間隔維持は経路上の距離に対する速度調整で、速度上限に従って徐々に調整します。帰投は指定高度・深度の地点への移動で、着陸・浮上は未モデル化。</p>
+<div class="dialog-actions">
+<button id="behavior-cancel">取消</button><button id="behavior-apply" class="primary">適用</button>
+</div></dialog>
+</body>
+</html>

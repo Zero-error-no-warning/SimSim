@@ -1,3 +1,4 @@
+import {importScenario} from '../src/scenario-import.js';
 import assert from 'node:assert/strict';
 import {clone,Simulation,validateScenario} from '../src/engine.js';
 import {availableBindings,analysisConditions,trialScenario} from '../src/parameters.js';
@@ -29,6 +30,6 @@ const grouped=clone(source);grouped.groups=[{id:'group',name:'Group',count:3,pla
 const largeGroup=clone(grouped);largeGroup.groups[0].count=1000;const large=new Simulation(largeGroup);assert.equal(large.evaluate(0).units.length,1001);assert(large.evaluate(500).units.every(u=>!u.error));
 const mission=clone(source);mission.duration=60;mission.trial=0;mission.units[0].sensor={enabled:true,range:100,probabilityPerMinute:1,domains:['surface'],terrainLOS:false,mountHeight:0};mission.units.push({...clone(source.units[0]),id:'target',name:'Target',faction:'hostile',routeMode:'once',route:[],speed:0,initial:{x:1500,y:1000,z:0}});mission.mission={type:'detect',observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:1};mission.analysis={trials:3,step:1,requiredRate:.95,factors:[{target:'unit:patrol',parameter:'state.route.phase',values:[0,.5]}],uncertainties:[]};
 const rows=prepareAnalysis(mission).conditions.map(condition=>{const trials=[];for(let trial=0;trial<3;trial++){const sample=trialScenario(mission,condition,trial);trials.push({...runDetection(new Simulation(sample.scenario)),trial,sampled:sample.sampled});}return {...summarizeRow(condition.count,trials),condition};});assert.equal(rows[0].rate,0);assert.equal(rows[1].rate,1,'Departure changes actual sensing location');
-assert.equal(restoreAnalysisResult({type:'SimSim-analysis',version:2,model:'range-hazard-v1',source:mission,rows}).completed,6);
+assert.equal(restoreAnalysisResult({type:'SimSim-analysis',version:5,model:'unified-behavior-v2',source:importScenario(mission),rows}).completed,6);
 mission.analysis.factors=[];mission.analysis.uncertainties=[{target:'unit:patrol',parameter:'state.route.phase',distribution:'uniform',min:0,max:1}];const condition=analysisConditions(mission)[0];const first=trialScenario(mission,condition,5),second=trialScenario(mission,condition,5);assert.deepEqual(first,second);assert(first.sampled[0].value>=0&&first.sampled[0].value<1);assert(availableBindings(mission).some(b=>b.parameter==='state.route.phase'));
 console.log('PASS: arc-length loop phases, 0/100 equivalence, wrapping, delay/idle, replay, non-loop/empty, bounds, terrain stops/invalid departure, sloped ground, noisy 3D paths, groups, detection consumer, Monte Carlo/export replay');

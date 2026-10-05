@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {clone,validateScenario} from '../src/engine.js';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js';
+import {trialScenario,availableBindings,readParameter,writeParameter} from '../src/parameters.js';
+import {newScenario,editableDefinition,moveDefinition,editWaypoint,addWaypoint,removeWaypoint,removeBehavior,setPosition} from '../src/editor.js';
+import {importScenario} from '../src/scenario-import.js';
+const sample=JSON.parse(fs.readFileSync(new URL('../data/shared-demo.jsn',import.meta.url)));
+const empty=clone(sample);newScenario(empty);assert.equal(validateScenario(empty).units.length,0);assert.equal(empty.behaviors.length,0);
+const route=clone(sample),id='patrol__1',a=route.behaviorAssignments[0];
+const before=clone(a.route),raw=clone(route.groups[0].template.route);
+moveDefinition(route,id,{x:20,y:30});assert.equal(a.route[0].x,before[0].x+20);
+editWaypoint(route,id,1,{...a.route[2],x:5000});assert.equal(a.route[2].x,5000);
+addWaypoint(route,id,{x:6000,y:3000,z:800});const length=a.route.length;removeWaypoint(route,id,1);assert.equal(a.route.length,length-1);assert.deepEqual(route.groups[0].template.route,raw);
+setPosition(route,id,'z',1400);assert(a.route.every(p=>p.z===1400));assert.equal(editableDefinition(route,id).unit.initial.z,1400);
+for(const count of [0,1,8]){const s=trialScenario(sample,{settings:[{target:'group:patrol',parameter:'capacity.population',value:count}]},0).scenario,m=createSimulation(s);assert.equal(m.constructor.name,'RecordedSimulation');assert.equal(m.source.recording.step,sample.recording.step);validateScenario(s);}
+const candidates=availableBindings(sample).filter(b=>b.target==='group:patrol');for(const p of ['state.position.x','state.position.z','state.route.phase','extent.deployment.width'])assert(!candidates.some(b=>b.parameter===p));
+assert(availableBindings(sample).some(b=>b.target==='assignment:cohort'&&b.parameter==='task.route.z'));
+const shifted=clone(sample),binding={target:'assignment:cohort',parameter:'task.route.z'};writeParameter(shifted,binding,1800);assert.equal(readParameter(shifted,binding),1800);assert(shifted.behaviorAssignments[0].route.every(p=>p.z===1800));
+const invalid=clone(sample);invalid.behaviors[0].edges.push({from:'wait',to:'patrol',when:'sent'});assert.throws(()=>validateScenario(invalid),/接続条件/);
+const orphan=clone(sample);orphan.analysis.factors=[{target:'assignment:cohort',parameter:'coordination.gain',values:[.01,.02]}];removeBehavior(orphan,orphan.behaviors[0].id);assert.equal(orphan.analysis.factors.length,0);validateScenario(orphan);
+const broken=clone(sample);broken.analysis.factors=[{target:'assignment:cohort',parameter:'coordination.gain',values:[.01]}];broken.behaviorAssignments=[];assert.throws(()=>validateScenario(broken),/対象/);
+const short=clone(sample);short.duration=30;short.mission.deadline=30;short.groups[0].count=2;short.groups[0].template.sensor.enabled=false;
+const run=s=>{const m=createSimulation(s),g=sharedSteps(m,m.source.mission,undefined,{horizon:s.duration,record:true});let t=g.next();while(!t.done)t=g.next();return m;};
+const base=run(short),late=clone(short);late.groups[0].template.motion.startDelay=86400;const delayed=run(late);
+assert(delayed.evaluate(30).units.filter(u=>u.id.startsWith('patrol__')).every(u=>u.distance===0));assert(base.evaluate(30).units.some(u=>u.distance>0));
+const trail=base.trailPoints(id,20);base.evaluate(29);base.evaluate(5);assert.deepEqual(base.trailPoints(id,20),trail);assert.equal(base.computeCount,1);
+const payload=recordingPayload(base);assert.deepEqual(restoreRecording(payload).trailPoints(id,20),trail);
+const corrupt=clone(payload);corrupt.result.actionEvents.push({type:'received',time:29,unitId:id,senderId:'control',sourcePosition:{x:0,y:0,z:0}});assert.throws(()=>restoreRecording(corrupt),/受信情報/);
+const nodes=clone(payload),index=nodes.unitIds.indexOf('control'),bytes=Buffer.from(nodes.frames[0].nodes,'base64');bytes.writeUInt16LE(1,index*2);nodes.frames[0].nodes=bytes.toString('base64');assert.throws(()=>restoreRecording(nodes),/ノード/);
+for(const file of fs.readdirSync(new URL('../data/',import.meta.url)).filter(f=>f.endsWith('.jsn'))){const s=JSON.parse(fs.readFileSync(new URL('../data/'+file,import.meta.url)));s.duration=10;if(s.mission)s.mission.deadline=10;assert.equal(run(s).frames.at(-1).time,10);}
+const legacy=clone(short);legacy.version=1;legacy.behaviorAssignments=[];legacy.behaviors=[];legacy.groups[0].template.behavior={hold:false,preparation:0,rules:[{id:'report',when:'detected',action:'send',receiverId:'control',state:'any',once:true}]};const migrated=importScenario(legacy);assert.equal(migrated.version,3);assert.equal(migrated.behaviors[0].nodes.find(n=>n.kind==='report').receiverId,'control');assert(!migrated.groups[0].template.behavior);
+console.log('PASS: audit issues A01–A07 covered across integration/actions, one engine at count zero, canonical route commands, parameter applicability, graph validation and reference cleanup, departure jitter, deterministic trails, archive validation');
