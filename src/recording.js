@@ -1,6 +1,6 @@
-export { RECORD_MODEL } from './recorded-engine.js?v=20261005-state-events-4';
-import { clone } from './engine.js?v=20261005-state-events-4';
-import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261005-state-events-4';
+export { RECORD_MODEL } from './recorded-engine.js?v=20261005-navigation-5';
+import { clone } from './engine.js?v=20261005-navigation-5';
+import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261005-navigation-5';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);
@@ -27,7 +27,7 @@ export function recordingPayload(model) {
   return payload;
 }
 const position = p => p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
-const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered']);
+const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered','near']);
 export function restoreRecording(payload) {
   if(payload?.type!=='SimSim-recording'||payload.version!==2||payload.model!==RECORD_MODEL||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
   const model=new RecordedSimulation(payload.source),n=model.states.length;
@@ -61,6 +61,7 @@ export function restoreRecording(payload) {
       if(e.type==='detected'&&(!e.targetId||!position(e.targetPosition)||!position(e.observerPosition)))throw Error('探知情報が不正です。');
       if(e.type==='received'&&(!e.senderId||!position(e.sourcePosition)||!position(e.receiverPosition)))throw Error('受信情報が不正です。');
       const s=model.byId.get(e.unitId);
+      if(e.type==='near'&&(!model.source.destinations?.some(d=>d.id===e.destinationId)||!Number.isFinite(e.distance)||e.distance<0||!['horizontal','absolute'].includes(e.distanceMode)))throw Error('接近イベントの記録が不正です。');
       if(e.type==='initialized'&&(e.time!==0||s.graph?.initial!==e.nodeId))throw Error('初期状態の記録が不正です。');
       if(e.type==='triggered'&&!s.graph?.triggers.some(t=>t.id===e.triggerId&&t.event===e.event&&t.to===e.nodeId)
         && !(e.event==='scenarioStart'&&e.time===0&&s.graph?.initial===e.nodeId&&payload.source.behaviors?.find(g=>g.id===s.graph.id)?.triggers?.some(t=>t.id===e.triggerId&&t.event==='scenarioStart'&&t.to===e.nodeId)))throw Error('起動イベントの条件が不正です。');

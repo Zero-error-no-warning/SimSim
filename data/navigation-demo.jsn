@@ -1,0 +1,257 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "航路AからBへ切り替え、目標ユニットへ接近",
+  "notes": "架空の平坦な海域。航路Aを進み、相手を探知すると航路Bへ切り替える。航路Bの終点から移動中の相手ユニットへ向かい、水平距離300m以内で終了する。別の地点目的地Xも選択できる。",
+  "duration": 600,
+  "seed": "navigation-demo",
+  "terrain": {
+    "columns": 9,
+    "rows": 7,
+    "spacing": 1000,
+    "origin": {
+      "x": -1000,
+      "y": -2000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "actor",
+      "name": "監視艇",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 30,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 1500,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "surface"
+        ],
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "target",
+      "name": "相手の船",
+      "domain": "surface",
+      "faction": "hostile",
+      "manned": true,
+      "speed": 5,
+      "initial": {
+        "x": 2500,
+        "y": 500,
+        "z": 0
+      },
+      "route": [
+        {
+          "x": 6500,
+          "y": 500,
+          "z": 0
+        }
+      ],
+      "routeMode": "once"
+    }
+  ],
+  "routes": [
+    {
+      "id": "route-a",
+      "name": "航路A",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 6000,
+          "y": 0,
+          "z": 0
+        }
+      ],
+      "mode": "once"
+    },
+    {
+      "id": "route-b",
+      "name": "航路B",
+      "points": [
+        {
+          "x": 2000,
+          "y": 1000,
+          "z": 0
+        },
+        {
+          "x": 4000,
+          "y": 1000,
+          "z": 0
+        }
+      ],
+      "mode": "once"
+    }
+  ],
+  "destinations": [
+    {
+      "id": "point-x",
+      "name": "地点X",
+      "kind": "point",
+      "point": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "target-unit",
+      "name": "相手の船",
+      "kind": "unit",
+      "unitId": "target"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "approach",
+      "name": "探知・航路切替・接近",
+      "initial": "a",
+      "triggers": [],
+      "nodes": [
+        {
+          "id": "a",
+          "kind": "follow",
+          "routeId": "route-a",
+          "x": 40,
+          "y": 100
+        },
+        {
+          "id": "b",
+          "kind": "follow",
+          "routeId": "route-b",
+          "x": 330,
+          "y": 100
+        },
+        {
+          "id": "approach",
+          "kind": "move",
+          "destinationId": "target-unit",
+          "x": 620,
+          "y": 100
+        },
+        {
+          "id": "stop",
+          "kind": "stop",
+          "x": 910,
+          "y": 100
+        }
+      ],
+      "edges": [
+        {
+          "from": "a",
+          "to": "b",
+          "when": "detected"
+        },
+        {
+          "from": "b",
+          "to": "approach",
+          "when": "arrived"
+        },
+        {
+          "from": "approach",
+          "to": "stop",
+          "when": "near",
+          "destinationId": "target-unit",
+          "distance": 300,
+          "distanceMode": "horizontal"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "watch",
+      "name": "監視艇のタスク",
+      "behaviorId": "approach",
+      "targets": [
+        "unit:actor"
+      ],
+      "spacing": "none"
+    }
+  ],
+  "recording": {
+    "step": 5,
+    "interval": 5
+  }
+}

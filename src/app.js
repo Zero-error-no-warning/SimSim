@@ -1,14 +1,14 @@
-import { BehaviorUI } from './behavior-ui.js?v=20261005-state-events-4';
-import { createSimulation } from './recorded-engine.js?v=20261005-state-events-4';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-state-events-4';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-state-events-4';
-import { importScenario } from './scenario-import.js?v=20261005-state-events-4';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-state-events-4';
-import { restoreAnalysisResult } from './detection.js?v=20261005-state-events-4';
-import { AnalysisUI } from './analysis-ui.js?v=20261005-state-events-4';
-import { MapView } from './view.js?v=20261005-state-events-4';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-state-events-4';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-state-events-4';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-navigation-5';
+import { createSimulation } from './recorded-engine.js?v=20261005-navigation-5';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-navigation-5';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-navigation-5';
+import { importScenario } from './scenario-import.js?v=20261005-navigation-5';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-navigation-5';
+import { restoreAnalysisResult } from './detection.js?v=20261005-navigation-5';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-navigation-5';
+import { MapView } from './view.js?v=20261005-navigation-5';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-navigation-5';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-navigation-5';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -23,7 +23,7 @@ const STATUS_NAMES={
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=20261005-state-events-4',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261005-navigation-5',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -128,9 +128,9 @@ const behaviorUI=new BehaviorUI({
   getScenario:()=>scenario,getSelected:()=>currentUnit(),commit:(next,message)=>commit(target=>{
     for(const key of Object.keys(target))delete target[key];Object.assign(target,next);
   },message),showError,pickRoute:()=>{
-    behaviorUI.startRoute();setEditMode('shared-route');view.placementUnit=behaviorUI.mapUnit();notify('地図を順にクリックして共有周回経路を指定。3点以上でEscを押して編集画面へ戻ります。');
+    behaviorUI.startRoute();setEditMode('shared-route');view.placementUnit=behaviorUI.mapUnit();notify('地図を順にクリックして経路を指定。2点以上でEscを押して編集画面へ戻ります。');
   },pickBase:()=>{
-    setEditMode('shared-base');view.placementUnit=behaviorUI.mapUnit();notify('帰投地点を地図でクリックしてください。');
+    setEditMode('shared-base');view.placementUnit=behaviorUI.mapUnit();notify('目的地を地図でクリックしてください。');
   }
 });
 $('unit-task-open').onclick=()=>behaviorUI.open();
@@ -471,9 +471,9 @@ function renderInspector() {
   $('place').disabled=false;
   $('route-edit').disabled=false;
   $('route-mode').disabled=!!a&&scenario.behaviors.find(g=>g.id===a.behaviorId)?.nodes.some(n=>n.kind==='patrol');
-  $('loop-start').value=(a?.route?.length?a.phase??0:unit.motion?.loopStart??0)*100;
+  $('loop-start').value=(d?.navigationRoute||a?.route?.length?a.phase??0:unit.motion?.loopStart??0)*100;
   renderCommunication('unit',unit);
-  $('clear-route').disabled=!!a?.route?.length||!unit.route.length;
+  $('clear-route').disabled=!!d?.navigationRoute||!!a?.route?.length||!unit.route.length;
 }
 function updateTelemetry() {
   const state=snapshot?.units.find(u=>u.id===selected);
@@ -528,13 +528,13 @@ for(const [id,key,scale] of [['unit-x','x',1000],['unit-y','y',1000],['unit-heig
   if(!$(id).checkValidity()||$(id).value==='')return;const value=key==='z'&&currentUnit().domain==='subsurface'?scenario.terrain.seaLevel-Number($(id).value):Number($(id).value)*scale;commit(next=>setPosition(next,selected,key,value),'経路の位置・高度を変更しました。');
 });
 $('loop-start').onchange=()=>commit(next=>{
-  const d=editableDefinition(next,selected);if(d.assignment?.route?.length)d.assignment.phase=Number($('loop-start').value)/100;else{
+  const d=editableDefinition(next,selected);if(d.navigationRoute||d.assignment?.route?.length)d.assignment.phase=Number($('loop-start').value)/100;else{
     d.unit.motion??={
     };d.unit.motion.loopStart=Number($('loop-start').value)/100;
   }
 },'周回の出発点を変更しました。');
 $('route-mode').onchange=()=>commit(next=>{
-  const d=editableDefinition(next,selected);if(d.assignment?.route?.length)d.assignment.routeMode=$('route-mode').value;else d.unit.routeMode=$('route-mode').value;
+  const d=editableDefinition(next,selected);if(d.navigationRoute)d.navigationRoute.mode=$('route-mode').value;else if(d.assignment?.route?.length)d.assignment.routeMode=$('route-mode').value;else d.unit.routeMode=$('route-mode').value;
 },'経路の繰り返しを変更しました。');
 bindUnit('unit-domain',(u,value)=>{
   u.domain=value;const z=value==='subsurface'?scenario.terrain.seaLevel-120:value==='air'?scenario.terrain.seaLevel+1500:scenario.terrain.seaLevel;
@@ -648,7 +648,7 @@ $('place').addEventListener('click',()=>{
 $('route-edit').addEventListener('click',()=>{
   pause();setEditMode(editMode==='route'?null:'route');
 });
-$('clear-route').addEventListener('click',()=>commit(next=>{const d=editableDefinition(next,selected);if(d.assignment?.route?.length)throw Error('共有経路の経由点は一つずつ編集してください。');d.unit.route=[];},'経由点を削除しました。'));
+$('clear-route').addEventListener('click',()=>commit(next=>{const d=editableDefinition(next,selected);if(d.navigationRoute||d.assignment?.route?.length)throw Error('共有経路の経由点は一つずつ編集してください。');d.unit.route=[];},'経由点を削除しました。'));
 function newId(prefix){
   return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);
 }
@@ -683,7 +683,7 @@ function beginPlacement(domain,copy=null){
 function handleMapClick(point){
   if(editMode==='shared-route'){
     const n=behaviorUI.addRoutePoint(point);
-    notify('共有周回経路 '+n+'点 · Escで編集画面へ戻る');
+    notify('経路 '+n+'点 · Escで編集画面へ戻る');
     return;
   }
   if(editMode==='shared-base'){
@@ -961,7 +961,7 @@ window.addEventListener('keydown',event=>{
     if(editMode==='shared-route'){
       event.preventDefault();behaviorUI.finishRoute();
     }else if(editMode==='shared-base'){
-      event.preventDefault();behaviorUI.dialog.showModal();
+      event.preventDefault();behaviorUI.cancelPointPick();
     }
     view.cancelDrag();closeMapMenu();setEditMode(null);selectedWaypoint=null;
   }

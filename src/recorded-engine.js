@@ -1,9 +1,10 @@
-import { Simulation } from './engine.js?v=20261005-state-events-4';
-import { importScenario } from './scenario-import.js?v=20261005-state-events-4';
-import { random01, streamKey } from './random.js?v=20261005-state-events-4';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-state-events-4';
-import { graphTriggers } from './shared-settings.js?v=20261005-state-events-4';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-state-events-4';
+import { Simulation } from './engine.js?v=20261005-navigation-5';
+import { importScenario } from './scenario-import.js?v=20261005-navigation-5';
+import { random01, streamKey } from './random.js?v=20261005-navigation-5';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-navigation-5';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-navigation-5';
+import { graphTriggers } from './shared-settings.js?v=20261005-navigation-5';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-navigation-5';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -43,17 +44,15 @@ export class RecordedSimulation extends Simulation {
     for (const u of [...this.scenario.units].sort((a,b)=>a.id.localeCompare(b.id))) {
       const assignment=this.assignments.find(a=>a.targets.includes('unit:'+u.id)||u.groupId&&a.targets.includes('group:'+u.groupId));
       const graph=assignment?graphs.get(assignment.behaviorId):null;
-      const shared=assignment?.route?.length>=2;
+      const initialNode=graph?.nodes.find(n=>n.id===graph.initial),chosen=routeFor(this.source,assignment,initialNode,u);
+      const shared=assignment?.route?.length>=2||initialNode?.routeId;
       const geometry=shared?{
-        ...u,initial:assignment.route[0],route:assignment.route.slice(1),routeMode:graph.nodes.some(n=>n.kind==='patrol')?'loop':assignment.routeMode??'once',motion:{
-          ...u.motion,loopStart:0
-        }
-      }
-      :u;
+        ...u,initial:chosen.points[0],route:chosen.points.slice(1),routeMode:initialNode?.kind==='patrol'?'loop':chosen.mode,motion:{...u.motion,loopStart:0}
+      }:u;
       const path=this.compile(geometry);
       this.paths.set(u.id,path);
       const s={
-        unit:u,assignment,graph,path,node:null,nodeTime:0,position:{
+        unit:u,assignment,graph,path,basePath:path,pathCache:new Map(),routeContexts:new Map(),nearInside:new Map(),node:null,nodeTime:0,position:{
           ...path.nodes[0]
         },heading:0,status:'idle',distance:0,progress:0,segment:-1,error:path.errorAt==='初期位置'?path.error:null,fired:new Set(),triggerFired:new Set(),triggerTimes:new Map(),activated:false,observation:null,trace:[],routeStarted:null,routePaused:0
       };
@@ -76,11 +75,24 @@ export class RecordedSimulation extends Simulation {
     for (const s of this.states) if (!s.graph) Object.assign(s,super.evaluateUnit(s.unit,0));
   }
   enter(s, id, t, initial=false, resume=false) {
+    const previous=s.node;
+    if(previous?.kind==='follow')s.routeContexts.set(previous.routeId??'default',{path:s.path,started:s.routeStarted,travel:s.routeTravel??0,paused:t,join:s.join});
     s.node=s.graph.nodes.find(n=>n.id===id);
     s.nodeTime=t;
     s.sent=false;
     s.elapsed=false;
+    s.destinationArrived=false;
     s.join=null;
+    s.nearInside=new Map([...s.nearInside].filter(([key])=>key.startsWith('trigger:')));
+    if(['follow','patrol'].includes(s.node.kind)){
+      const selected=routeFor(this.source,s.assignment,s.node,s.unit),key=selected.id+'|'+s.node.kind;
+      if(initial)s.pathCache.set(key,s.path);
+      if(!s.pathCache.has(key)){
+        const legacy=!s.node.routeId;
+        s.pathCache.set(key,this.compile({...s.unit,initial:selected.points[0],route:selected.points.slice(1),routeMode:selected.mode,motion:{...s.unit.motion,...(legacy?{}:{loopStart:0})}}));
+      }
+      s.path=s.pathCache.get(key);this.paths.set(s.unit.id,s.path);
+    }
     if (s.error) {
       s.status='blocked';
       return;
@@ -108,19 +120,21 @@ export class RecordedSimulation extends Simulation {
       s.readyAt=t+(initial?s.path.delay:0);
       s.status=t<s.readyAt?'waiting':'moving';
     } else if (s.node.kind==='follow') {
-      if (resume&&s.routeStarted!==null) s.routeStarted+=t-s.pauseTime;
-      else {
-        s.routeStarted=t;
-        s.routeArrived=false;
+      const saved=resume?s.routeContexts.get(s.node.routeId??'default'):null;
+      if(saved&&saved.path===s.path){s.routeStarted=saved.started===null?null:saved.started+t-saved.paused;s.routeTravel=saved.travel;s.join=saved.join;}
+      else{
+        s.routeTravel=0;s.routeArrived=false;
+        s.join=!initial&&dist(s.position,s.path.nodes[0])>1e-7?s.path.nodes[0]:null;
+        s.routeStarted=s.join?null:t;
       }
-      s.status=t<s.routeStarted+s.path.delay?'waiting':s.path.length&&s.path.actualSpeed?'moving':'idle';
+      s.status=s.join?'moving':t<(s.routeStarted??t)+(initial?s.path.delay:0)?'waiting':s.path.length&&s.path.actualSpeed?'moving':'idle';
     } else if (s.node.kind==='signal') s.status='standby';
     else if (s.node.kind==='wait') s.status=s.node.parameter==='preparation'?'preparing':'waiting';
-    else if (s.node.kind==='return') s.status='moving';
+    else if (s.node.kind==='move') s.status='moving';
   }
   activate(s, event, t, events, payload) {
     if(!s?.graph || s.status==='blocked')return false;
-    const trigger=graphTriggers(s.graph).find(x=>x.event===event && (event!=='time'||Math.abs(this.nextTriggerTime(s,x)-t)<1e-8)
+    const trigger=graphTriggers(s.graph).find(x=>x.event===event && (event!=='near'||conditionKey(x)===payload?.conditionKey) && (event!=='time'||Math.abs(this.nextTriggerTime(s,x)-t)<1e-8)
       && (!s.triggerFired.has(x.id) || x.once===false));
     if(!trigger)return false;
     const key=s.unit.id+'|trigger|'+trigger.id;
@@ -147,9 +161,9 @@ export class RecordedSimulation extends Simulation {
     if (!s?.graph || s.status==='blocked') return false;
     if(this.activate(s,when,t,events,payload))return true;
     if(!s.node)return false;
-    const edge=s.graph.edges.find(e=>e.from===s.node.id&&e.when===when);
+    const edge=s.graph.edges.find(e=>e.from===s.node.id&&e.when===when&&(when!=='near'||conditionKey(e)===payload?.conditionKey));
     if (!edge) return false;
-    const key=s.unit.id+'|'+edge.from+'|'+when;
+    const key=s.unit.id+'|'+edge.from+'|'+conditionKey(edge);
     if (edge.once&&s.fired.has(key) || payload?.trace?.includes(key)) return false;
     if (edge.once) s.fired.add(key);
     if (payload) {
@@ -170,6 +184,24 @@ export class RecordedSimulation extends Simulation {
       type:'departed',time:t,unitId:s.unit.id,nodeId:s.node.id
     });
     return true;
+  }
+  destination(s,reference=s.node,positions){
+    const d=destinationFor(this.source,s.assignment,reference);
+    if(!d)return null;
+    return d.kind==='point'?d.point:positions?.get(d.unitId)??this.byId.get(d.unitId)?.position??null;
+  }
+  predict(s,seconds,speeds,positions){
+    if(s.status==='blocked'||!s.node&&s.graph)return s.position;
+    if(!s.graph||s.node.kind==='follow'&&!s.join){
+      const offset=s.graph?s.routeStarted??0:0;
+      return Simulation.prototype.evaluateUnit.call(this,s.unit,Math.max(0,seconds-offset)).position;
+    }
+    const dt=Math.max(0,seconds-(this.currentTime??0));
+    if(s.node.kind==='patrol'&&!s.join)return pathPoint(s.path,mod(s.progress+(speeds.get(s.unit.id)??s.path.actualSpeed)*Math.max(0,seconds-Math.max(this.currentTime??0,s.readyAt)),s.path.length||1)).point;
+    const target=s.join??(s.node.kind==='move'?this.destination(s,s.node,positions):null);
+    if(!target)return s.position;
+    const length=dist(s.position,target),travel=Math.min(length,s.path.actualSpeed*dt);
+    return mix(s.position,target,length?travel/length:1);
   }
   stateSnapshot(s) {
     return {
@@ -290,10 +322,16 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   function controls() {
     const speeds=new Map();
     for(const a of model.assignments){
-      const members=states.filter(s=>s.assignment===a&&s.node?.kind==='patrol'&&s.status!=='blocked'&&!s.join).sort((x,y)=>x.progress/x.path.length-y.progress/y.path.length);
-      for(let i=0;i<members.length;i++){
-        const s=members[i],next=members[(i+1)%members.length],gap=members.length===1?s.path.length:mod(next.progress/next.path.length-s.progress/s.path.length,1)*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length,max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
-        speeds.set(s.unit.id,a.spacing==='none'||members.length===1?nominal:Math.max(0,Math.min(max,nominal+(a.gain??.01)*(gap-desired))));
+      const groups=new Map();
+      for(const s of states.filter(s=>s.assignment===a&&s.node?.kind==='patrol'&&s.status!=='blocked'&&!s.join)){
+        const key=s.node.routeId??'default';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(s);
+      }
+      for(const members of groups.values()){
+        members.sort((x,y)=>x.progress/x.path.length-y.progress/y.path.length);
+        for(let i=0;i<members.length;i++){
+          const s=members[i],next=members[(i+1)%members.length],gap=members.length===1?s.path.length:mod(next.progress/next.path.length-s.progress/s.path.length,1)*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length,max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
+          speeds.set(s.unit.id,a.spacing==='none'||members.length===1?nominal:Math.max(0,Math.min(max,nominal+(a.gain??.01)*(gap-desired))));
+        }
       }
     }
     return speeds;
@@ -321,6 +359,52 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     });
     return emit(s,reason?'sendFailed':'sent',t,extra);
   }
+  function nearConditions(s){
+    return [...(s.graph?.triggers??[]).filter(c=>c.event==='near').map(c=>({c,key:'trigger:'+c.id})),...(s.graph?.edges??[]).filter(c=>c.from===s.node?.id&&c.when==='near').map(c=>({c,key:'edge:'+c.from+'|'+conditionKey(c)}))];
+  }
+  function checkNear(s,t){
+    let changed=false;
+    for(const {c,key} of nearConditions(s)){
+      const target=model.destination(s,c);
+      if(!target)continue;
+      const distance=measuredDistance(s.position,target,c.distanceMode),inside=distance<=c.distance+1e-6,was=s.nearInside.get(key)??false;
+      s.nearInside.set(key,inside);
+      if(inside&&!was&&!(key.startsWith('trigger:')&&c.once!==false&&s.triggerFired.has(c.id))){
+        const payload={destinationId:c.destinationId,distance,distanceMode:c.distanceMode??'absolute',conditionKey:conditionKey(c)};
+        if(emit(s,'near',t,payload)){changed=true;break;}
+      }
+    }
+    return changed;
+  }
+  function proximityBoundary(start,end,speeds){
+    const positions=new Map(states.map(s=>[s.unit.id,{...s.position}]));
+    // Split at bends only when distance conditions are present, then solve relative linear motion.
+    const relevant=new Set();
+    for(const s of states)for(const {c} of nearConditions(s)){
+      relevant.add(s);
+      const d=destinationFor(model.source,s.assignment,c);if(d?.kind==='unit'&&model.byId.has(d.unitId))relevant.add(model.byId.get(d.unitId));
+    }
+    if(!relevant.size)return end;
+    for(const s of relevant){
+      if(s.status==='blocked')continue;
+      if(s.join&&s.path.actualSpeed)end=Math.min(end,start+dist(s.position,s.join)/s.path.actualSpeed);
+      if(!s.join&&(!s.graph||['follow','patrol'].includes(s.node?.kind))&&s.path.actualSpeed&&s.path.length){
+        const along=s.node?.kind==='patrol'?s.progress:mod((s.routeTravel??s.distance),s.path.length);
+        const next=s.path.nodes.find(p=>p.d>along+1e-7);
+        if(next)end=Math.min(end,start+(next.d-along)/(speeds.get(s.unit.id)??s.path.actualSpeed));
+      }
+    }
+    const future=new Map(states.map(s=>[s.unit.id,model.predict(s,end,speeds,positions)]));
+    let boundary=end;
+    for(const s of states)for(const {c,key} of nearConditions(s)){
+      if(s.nearInside.get(key)||key.startsWith('trigger:')&&c.once!==false&&s.triggerFired.has(c.id))continue;
+      const a=model.destination(s,c,positions),b=model.destination(s,c,future);if(!a||!b)continue;
+      const p=s.position,q=future.get(s.unit.id),r=[p.x-a.x,p.y-a.y,c.distanceMode==='horizontal'?0:p.z-a.z],v=[q.x-b.x-r[0],q.y-b.y-r[1],c.distanceMode==='horizontal'?0:q.z-b.z-r[2]];
+      const aa=v.reduce((sum,x)=>sum+x*x,0),bb=2*r.reduce((sum,x,i)=>sum+x*v[i],0),cc=r.reduce((sum,x)=>sum+x*x,0)-c.distance*c.distance,discriminant=bb*bb-4*aa*cc;
+      if(aa>1e-12&&cc>1e-6&&discriminant>=0){const fraction=(-bb-Math.sqrt(discriminant))/(2*aa);if(fraction>1e-9&&fraction<=1)boundary=Math.min(boundary,start+(end-start)*fraction);}
+    }
+    return boundary;
+  }
   function immediate(t) {
     let changed=false;
     for(const s of states)for(let i=0;i<(s.graph?.triggers.length??0);i++){
@@ -330,7 +414,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     const settle=s=>{
       for(let depth=0;depth<64;depth++){
         if(s.status==='blocked')return;
-        let next=false;
+        let next=checkNear(s,t);
+        if(next){changed=true;continue;}
         if(s.node?.kind==='report'&&!s.sent)next=report(s,t);
         else if(s.node?.kind==='wait'&&!s.elapsed&&t-s.nodeTime>=(s.node.parameter==='preparation'?s.assignment.preparation??s.node.seconds:s.node.seconds)){
           s.elapsed=true;
@@ -370,24 +455,31 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         const at=model.nextTriggerTime(s,trigger);
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
       }
-      if((!s.graph||s.node?.kind==='follow')&&!s.path.periodic&&s.path.length&&s.path.actualSpeed&&!s.routeArrived){
+      if((!s.graph||s.node?.kind==='follow')&&!s.join&&!s.path.periodic&&s.path.length&&s.path.actualSpeed&&!s.routeArrived){
         const at=(s.graph?s.routeStarted??0:0)+s.path.delay+s.path.length/s.path.actualSpeed;
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
       }
-      if(s.node?.kind==='return'&&s.status!=='arrived'&&s.path.actualSpeed){
-        const at=start+dist(s.position,s.assignment.base)/s.path.actualSpeed;
+      if(s.join&&s.path.actualSpeed){const at=start+dist(s.position,s.join)/s.path.actualSpeed;if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);}
+      if(s.node?.kind==='move'&&s.status!=='arrived'&&s.path.actualSpeed&&destinationFor(model.source,s.assignment,s.node)?.kind==='point'){
+        const at=start+dist(s.position,model.destination(s))/s.path.actualSpeed;
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
       }
     }
-    const end=Math.min(nextContact,nextEvent),step=end-start,speeds=controls();
+    model.currentTime=start;
+    const speeds=controls(),end=proximityBoundary(start,Math.min(nextContact,nextEvent),speeds),step=end-start;
+    const positions=new Map(states.map(s=>[s.unit.id,{...s.position}])),future=new Map(states.map(s=>[s.unit.id,model.predict(s,end,speeds,positions)]));
     let changed=false;
     for(const s of states){
       if(s.status==='blocked')continue;
       if(s.graph&&!s.node)continue;
+      if(s.node?.kind==='follow'&&s.join){
+        if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end;s.routeTravel=0;}
+        changed=true;continue;
+      }
       if(!s.graph||s.node.kind==='follow'){
         const prev=s.status,oldSegment=s.segment,offset=s.graph?s.routeStarted??0:0;
         const state=Simulation.prototype.evaluateUnit.call(model,s.unit,Math.max(0,end-offset));
-        Object.assign(s,state);
+        if(s.graph){const cumulative=s.distance+Math.max(0,state.distance-(s.routeTravel??0));s.routeTravel=state.distance;Object.assign(s,state);s.distance=cumulative;}else Object.assign(s,state);
         s.segment=pathPoint(s.path,s.path.periodic?state.distance%s.path.length:state.distance).segment;
         if(prev!==s.status||oldSegment!==s.segment)changed=true;
         if(s.status==='arrived'&&!s.routeArrived){
@@ -431,8 +523,11 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
           changed=true;
           s.segment=p.segment;
         }
-      } else if(s.node.kind==='return'&&s.status!=='arrived'){
-        if(moveTo(model,s,s.assignment.base,s.path.actualSpeed,step)){
+      } else if(s.node.kind==='move'){
+        const target=model.destination(s,s.node,future),unitTarget=destinationFor(model.source,s.assignment,s.node)?.kind==='unit';
+        if(!target){s.status='blocked';s.error='目的地が見つかりません。';changed=true;continue;}
+        if(s.status!=='arrived'||unitTarget)if(moveTo(model,s,target,s.path.actualSpeed,step)&&s.status==='arrived'&&!s.destinationArrived){
+          s.destinationArrived=true;
           changed=true;
           emit(s,'arrived',end);
         }

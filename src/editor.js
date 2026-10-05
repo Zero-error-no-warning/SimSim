@@ -1,4 +1,4 @@
-import { sharedAssignment } from './shared-settings.js?v=20261005-state-events-4';
+import { sharedAssignment } from './shared-settings.js?v=20261005-navigation-5';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -27,25 +27,23 @@ export function editableDefinition(s,id) {
     };
   }
   const assignment=sharedAssignment(s,id);
-  return assignment?.route?.length?{
-    ...d,assignment,unit:{
-      ...d.unit,initial:assignment.route[0],route:assignment.route.slice(1),routeMode:s.behaviors.find(g=>g.id===assignment.behaviorId)?.nodes.some(n=>n.kind==='patrol')?'loop':assignment.routeMode??'once'
-    }
-  }
-  :{
-    ...d,assignment
-  };
+  const graph=s.behaviors?.find(g=>g.id===assignment?.behaviorId),initial=graph?.nodes.find(n=>n.id===graph.initial),navigationRoute=s.routes?.find(r=>r.id===initial?.routeId),points=navigationRoute?.points??assignment?.route;
+  return points?.length?{
+    ...d,assignment,navigationRoute,unit:{...d.unit,initial:points[0],route:points.slice(1),routeMode:initial?.kind==='patrol'?'loop':navigationRoute?.mode??assignment?.routeMode??'once'}
+  }:{...d,assignment};
 }
 export function removeWaypoint(s,id,index) {
   const d=editableDefinition(s,id);
   if(!d||index<0||index>=d.unit.route.length)throw Error('経由点が見つかりません。');
-  const route=d.assignment?.route?.length?d.assignment.route:d.unit.route;
+  const shared=d.navigationRoute?.points??d.assignment?.route;
+  const route=shared?.length?shared:d.unit.route;
   if(d.assignment&&s.behaviors.find(g=>g.id===d.assignment.behaviorId)?.nodes.some(n=>n.kind==='patrol')&&route.length<=3)throw Error('周回経路は3点以上必要です。');
-  route.splice(d.assignment?.route?.length?index+1:index,1);
+  route.splice(shared?.length?index+1:index,1);
 }
 export function addWaypoint(s,id,p) {
   const d=editableDefinition(s,id);
-  if(d.assignment?.route?.length)d.assignment.route.push({
+  const shared=d.navigationRoute?.points??d.assignment?.route;
+  if(shared?.length)shared.push({
     ...p
   });
   else d.unit.route.push({
@@ -54,9 +52,9 @@ export function addWaypoint(s,id,p) {
 }
 export function replaceRoute(s,id,path) {
   const d=editableDefinition(s,id);
-  if(d.assignment?.route?.length){
-    d.assignment.route=[path.initial,...path.route];
-    d.assignment.routeMode=path.routeMode;
+  if(d.navigationRoute||d.assignment?.route?.length){
+    if(d.navigationRoute){d.navigationRoute.points=[path.initial,...path.route];d.navigationRoute.mode=path.routeMode;}
+    else{d.assignment.route=[path.initial,...path.route];d.assignment.routeMode=path.routeMode;}
     d.assignment.phase=0;
   }else {
     Object.assign(d.unit,path);
@@ -85,6 +83,7 @@ export function newScenario(s) {
   s.title='新しいシナリオ';
   s.units=[];
   s.groups=[];
+  s.routes=[];s.destinations=[];
   s.behaviors=[];
   s.behaviorAssignments=[];
   delete s.mission;
@@ -93,10 +92,11 @@ export function newScenario(s) {
   };
 }
 export function moveDefinition(s,id,delta){
-  const d=definition(s,id);
+  const d=editableDefinition(s,id);
   if(!d)throw new Error('移動対象が見つかりません。');
   const a=sharedAssignment(s,id);
-  if(a?.route?.length)for(const p of a.route){
+  const points=d.navigationRoute?.points??a?.route;
+  if(points?.length)for(const p of points){
     p.x+=delta.x;
     p.y+=delta.y;
   }else translate(d.unit,delta);
@@ -104,7 +104,8 @@ export function moveDefinition(s,id,delta){
 export function editWaypoint(s,id,index,point){
   const d=editableDefinition(s,id);
   if(!d||index<0||index>=d.unit.route.length)throw new Error('経由点が見つかりません。');
-  if(d.assignment?.route?.length)d.assignment.route[index+1]={
+  const shared=d.navigationRoute?.points??d.assignment?.route;
+  if(shared?.length)shared[index+1]={
     ...point
   };
   else d.unit.route[index]={
@@ -114,6 +115,7 @@ export function editWaypoint(s,id,index,point){
 export function removeDefinition(s,id) {
   const d=definition(s,id);
   if(!d)return;
+  if(!d.group&&s.destinations?.some(goal=>goal.kind==='unit'&&goal.unitId===id))throw Error('目的地として参照されています。目的地のユニットを変更してから削除してください。');
   if(!d.group&&(s.behaviors?.some(g=>g.nodes.some(n=>n.receiverId===id))||s.behaviorAssignments?.some(a=>a.receiverId===id)))throw Error('報告先として参照されています。タスク・報告ノードの宛先を変更してから削除してください。');
   if(d.group)s.groups=s.groups.filter(g=>g.id!==d.group.id);
   else s.units=s.units.filter(u=>u.id!==id);

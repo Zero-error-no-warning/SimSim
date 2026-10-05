@@ -1,4 +1,4 @@
-export const UI_BUILD='20261005-state-events-4';
+export const UI_BUILD='20261005-navigation-5';
 
 export function requireElement(id){
   const element=document.getElementById(id);

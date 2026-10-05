@@ -1232,6 +1232,7 @@ fieldset:disabled {
 .behavior-edge.trigger-edge { stroke:#bc95ea; }
 #behavior-zoom-label { min-width:4em; font-variant-numeric:tabular-nums; }
 .behavior-properties .field { margin-bottom:12px; }
+.behavior-properties { height:360px; overflow-y:auto; padding-right:4px; }
 .behavior-properties select { width:100%; }
 .behavior-properties .route-help { margin:12px 0; }
 .graph-add-menu>div { left:0; right:auto; padding:8px; display:grid; gap:8px; }
@@ -1589,3 +1590,9 @@ h3 {
 .behavior-node text.initial-label { font:12px sans-serif; fill:#e7ffe1; }
 .behavior-node:focus-visible>rect:first-child { stroke:#ffd18b; }
 .behavior-node { outline:none; }
+
+#navigation-dialog { width:min(620px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); overflow:auto; }
+#navigation-dialog textarea { width:100%; box-sizing:border-box; font:14px monospace; }
+#navigation-dialog .field { margin:12px 0; }
+.compact-actions { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px; }
+#edge-near-fields,#trigger-near-fields { border-top:1px solid #34566d; margin-top:12px; padding-top:12px; }

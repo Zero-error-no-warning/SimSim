@@ -1,7 +1,9 @@
-import { removeAssignment,removeBehavior } from './editor.js?v=20261005-state-events-4';
-import { clone,validateScenario } from './engine.js?v=20261005-state-events-4';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-state-events-4';
-import { requireElement } from './ui-dom.js?v=20261005-state-events-4';
+import {NavigationUI} from './navigation-ui.js?v=20261005-navigation-5';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-navigation-5';
+import { removeAssignment,removeBehavior } from './editor.js?v=20261005-navigation-5';
+import { clone,validateScenario } from './engine.js?v=20261005-navigation-5';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-navigation-5';
+import { requireElement } from './ui-dom.js?v=20261005-navigation-5';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -13,6 +15,14 @@ export class BehaviorUI{
     this.dialog=$('behavior-dialog');
     this.svg=$('behavior-canvas');
     this.minimap=$('behavior-minimap');
+    this.navigation=new NavigationUI({getDraft:()=>this.draft,getUnit:()=>this.mapUnit(),remember:()=>this.remember(),render:()=>this.render(),pickRoute:()=>{this.navigationMode='route';this.dialog.close();this.pickRoute();},pickPoint:()=>{this.navigationMode='point';this.dialog.close();this.pickBase();}});
+    $('route-new').onclick=()=>this.openResource('route',false,true);
+    $('destination-new').onclick=()=>this.openResource('destination',false,true);
+    for(const kind of ['route','destination']){
+      $('node-'+kind+'-new').onclick=()=>this.openResource(kind);
+      $('node-'+kind+'-edit').onclick=()=>this.openResource(kind,true);
+    }
+    for(const prefix of ['edge','trigger'])$(''+prefix+'-near-new').onclick=()=>this.openResource('destination',false,false,prefix);
     this.past=[];
     this.future=[];
     this.selectedEdge=null;
@@ -145,8 +155,8 @@ export class BehaviorUI{
       this.render();
     };
     $('edge-condition').onchange=()=>this.readFields('edge-condition');
-    for(const id of ['trigger-event','trigger-target','trigger-seconds','trigger-once'])$(id).onchange=()=>this.readFields(id);
-    for(const id of ['behavior-name','node-kind','node-initial','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
+    for(const id of ['trigger-event','trigger-target','trigger-seconds','trigger-once','trigger-near-destination','trigger-near-distance','trigger-near-mode'])$(id).onchange=()=>this.readFields(id);
+    for(const id of ['behavior-name','node-kind','node-route','node-destination','edge-near-destination','edge-near-distance','edge-near-mode','node-initial','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
     $('assignment-new').onclick=()=>{
       const targets=[...this.draft.units.map(u=>['unit:'+u.id,u]),...(this.draft.groups??[]).map(g=>['group:'+g.id,g.template])].filter(([id])=>!this.draft.behaviorAssignments.some(a=>a.targets.includes(id)));
       const selected=this.getSelected(),preferred=selected?.groupId?'group:'+selected.groupId:'unit:'+selected?.id;
@@ -261,7 +271,8 @@ export class BehaviorUI{
   }
   mapUnit(){
     const a=this.assignment(),target=a?.targets[0];
-    return target?.startsWith('group:')?this.draft.groups.find(g=>g.id===target.slice(6))?.template:this.draft.units.find(u=>u.id===target?.slice(5));
+    const unit=(target?.startsWith('group:')?this.draft.groups.find(g=>g.id===target.slice(6))?.template:this.draft.units.find(u=>u.id===target?.slice(5)))??this.getSelected()??this.draft.units[0]??this.draft.groups?.[0]?.template;
+    return this.navigationMode==='point'&&this.navigation.item?.point&&unit?{...unit,initial:{...unit.initial,z:this.navigation.item.point.z}}:unit;
   }
   graph(){
     return this.draft?.behaviors.find(g=>g.id===this.graphId);
@@ -306,6 +317,7 @@ export class BehaviorUI{
   open(id,newTask=false){
     this.draft=validateScenario(this.getScenario());
     this.draft.version=3;
+    this.draft.routes??=[];this.draft.destinations??=[];
     this.draft.behaviors??=[];
     this.draft.behaviorAssignments??=[];
     this.draft.recording??={
@@ -346,7 +358,7 @@ export class BehaviorUI{
     const g=this.graph(),n=g?.nodes.find(n=>n.id===this.selected),a=this.assignment(),t=g?.triggers.find(t=>t.id===this.selectedTrigger),edge=this.edge();
     if(id==='edge-condition'&&edge){
       const when=$('edge-condition').value;
-      if(when&&g.edges.some(e=>e!==edge&&e.from===edge.from&&e.when===when)){
+      if(when&&when!=='near'&&g.edges.some(e=>e!==edge&&e.from===edge.from&&e.when===when)){
         this.render();$('edge-warning').hidden=false;$('edge-warning').textContent='この条件は同じ状態の別の線で使用しています。別の条件を選択してください。';return;
       }
     }
@@ -354,11 +366,13 @@ export class BehaviorUI{
     if(id==='edge-condition'&&edge){
       const value=$('edge-condition').value;
       if(value)edge.when=value;else delete edge.when;
+      this.conditionDefaults(edge,value);
     }
     if(t){
       if(id==='trigger-event'){
         const event=$('trigger-event').value;
         if(event)t.event=event;else delete t.event;
+        this.conditionDefaults(t,event);
         if(t.event==='time'){
           const used=new Set(g.triggers.filter(other=>other!==t&&other.event==='time').map(other=>other.seconds));
           let seconds=t.seconds??300;while(used.has(seconds)&&seconds<86400)seconds+=300;
@@ -369,6 +383,13 @@ export class BehaviorUI{
       if(id==='trigger-seconds')t.seconds=Number($('trigger-seconds').value);
       if(id==='trigger-once')t.once=$('trigger-once').value==='once';
     }
+    for(const [prefix,c] of [['edge',edge],['trigger',t]])if(c&&(c.when??c.event)==='near'){
+      if(id===prefix+'-near-destination')c.destinationId=$(prefix+'-near-destination').value;
+      if(id===prefix+'-near-distance')c.distance=Number($(prefix+'-near-distance').value);
+      if(id===prefix+'-near-mode')c.distanceMode=$(prefix+'-near-mode').value;
+    }
+    if(id==='node-route'&&n){const value=$('node-route').value;if(value)n.routeId=value;else delete n.routeId;}
+    if(id==='node-destination'&&n){const value=$('node-destination').value;if(value)n.destinationId=value;else delete n.destinationId;}
     if(id==='behavior-name'&&g)g.name=$('behavior-name').value;
     if(id==='node-initial'&&n){
       if($('node-initial').checked)g.initial=n.id;else if(g.initial===n.id)delete g.initial;
@@ -376,6 +397,8 @@ export class BehaviorUI{
     if(id==='node-kind'&&n){
       const kind=$('node-kind').value;
       if(kind)n.kind=kind;else delete n.kind;
+      if(!['follow','patrol'].includes(kind))delete n.routeId;
+      if(kind!=='move')delete n.destinationId;
       if(kind==='wait')n.seconds??=300;else {delete n.seconds;delete n.parameter;}
       if(kind==='patrol')n.speedFraction??=.7;else delete n.speedFraction;
       if(kind==='report'){if(!n.receiverId&&!n.receiverRole)n.receiverRole='report';}
@@ -409,23 +432,50 @@ export class BehaviorUI{
     }
     this.render();
   }
+  conditionDefaults(c,event){
+    if(event==='near'){c.distance??=1000;c.distanceMode??='horizontal';c.destinationId??=this.draft.destinations[0]?.id;}
+    else{delete c.distance;delete c.distanceMode;delete c.destinationId;}
+  }
+  openResource(kind,edit=false,fromMenu=false,prefix){
+    $('graph-add-menu').open=false;
+    const n=this.graph()?.nodes.find(n=>n.id===this.selected),c=prefix==='edge'?this.edge():prefix==='trigger'?this.graph()?.triggers.find(t=>t.id===this.selectedTrigger):null;
+    const reference=kind==='route'?n?.routeId:c?.destinationId??n?.destinationId;
+    let preset;
+    if(edit&&!reference){
+      if(kind==='route'){const u=this.mapUnit();if(u)preset={points:structuredClone(routeFor(this.draft,this.assignment(),n,u).points),mode:routeFor(this.draft,this.assignment(),n,u).mode,name:'担当の経路'};}
+      else{const d=destinationFor(this.draft,this.assignment(),n);if(d)preset={...structuredClone(d),name:'担当の目的地'};}
+    }
+    this.navigation.open(kind,edit?reference:null,preset,id=>{
+      if(c)c.destinationId=id;
+      else if(n&&kind==='route'&&['follow','patrol'].includes(n.kind))n.routeId=id;
+      else if(n&&kind==='destination'&&n.kind==='move')n.destinationId=id;
+    });
+  }
+  cancelPointPick(){
+    this.dialog.showModal();
+    if(this.navigationMode){this.navigationMode=null;this.navigation.fields();this.navigation.dialog.showModal();}
+  }
   startRoute(){
+    if(this.navigationMode==='route')return;
     this.remember();
     this.oldRoute=clone(this.assignment().route??[]);
     this.assignment().route=[];
   }
   addRoutePoint(p){
+    if(this.navigationMode==='route')return this.navigation.addPoint(p);
     this.assignment().route.push({
       ...p
     });
     return this.assignment().route.length;
   }
   finishRoute(){
+    if(this.navigationMode==='route'){this.navigationMode=null;this.dialog.showModal();this.navigation.finishRoute();return;}
     if(this.assignment().route.length<(this.graph().nodes.some(n=>n.kind==='patrol')?3:2))this.assignment().route=this.oldRoute.length?this.oldRoute:undefined;
     this.render();
     this.dialog.showModal();
   }
   setBase(p){
+    if(this.navigationMode==='point'){this.navigationMode=null;this.dialog.showModal();this.navigation.setPoint(p);return;}
     this.remember();
     this.assignment().base={
       ...p
@@ -439,7 +489,7 @@ export class BehaviorUI{
     select.append(new Option('条件を選択してください',''));
     for(const k of NODE_EVENTS[kind]??[]){
       const option=new Option(EDGE_EVENTS[k],k);
-      option.disabled=this.graph().edges.some(e=>e!==edge&&e.from===edge?.from&&e.when===k);
+      option.disabled=k!=='near'&&this.graph().edges.some(e=>e!==edge&&e.from===edge?.from&&e.when===k);
       select.append(option);
     }
     select.value=edge?.when??'';
@@ -564,12 +614,12 @@ export class BehaviorUI{
     $('assignment-spacing').value=a?.spacing??'even';
     $('assignment-distance').value=a?.spacingDistance??500;
     $('assignment-gain').value=a?.gain??.01;
-    $('assignment-summary').textContent=a?'共有経路 '+(a.route?.length??0)+'点 · '+(a.base?'帰投先 x '+(a.base.x/1000).toFixed(2)+' / y '+(a.base.y/1000).toFixed(2)+' km':'個々の経路を使用'):'';
+    $('assignment-summary').textContent=a?'共有経路 '+(a.route?.length??0)+'点 · '+(a.base?'既存の目的地 x '+(a.base.x/1000).toFixed(2)+' / y '+(a.base.y/1000).toFixed(2)+' km':'個々の経路を使用'):'';
     select('assignment-receiver',this.draft.units.map(u=>[u.id,u.name]),a?.receiverId);
     $('assignment-phase').value=(a?.phase??0)*100;
     $('assignment-preparation').value=a?.preparation??0;
-    const graph=this.draft.behaviors.find(g=>g.id===a?.behaviorId),patrol=graph?.nodes.some(n=>n.kind==='patrol'),home=graph?.nodes.some(n=>n.kind==='return');
-    $('assignment-base').hidden=!home;
+    const graph=this.draft.behaviors.find(g=>g.id===a?.behaviorId),patrol=graph?.nodes.some(n=>n.kind==='patrol'),home=graph?.nodes.some(n=>n.kind==='move');
+    $('assignment-base').hidden=true;
     for(const id of ['assignment-spacing','assignment-distance','assignment-gain','assignment-phase'])$(id).parentElement.hidden=!patrol;
     $('assignment-preparation').parentElement.hidden=!graph?.nodes.some(n=>n.parameter==='preparation');
     $('assignment-receiver').parentElement.hidden=!graph?.nodes.some(n=>n.receiverRole);
@@ -577,7 +627,7 @@ export class BehaviorUI{
     $('graph-selection-help').hidden=!!(n||t||edge);
     $('trigger-properties').hidden=!t;
     select('trigger-event',[['','種類を選択してください'],...Object.entries(TRIGGER_EVENTS)],t?.event);
-    for(const option of $('trigger-event').options)option.disabled=!!option.value&&option.value!=='time'&&this.graph()?.triggers.some(other=>other!==t&&other.event===option.value);
+    for(const option of $('trigger-event').options)option.disabled=!!option.value&&!['time','near'].includes(option.value)&&this.graph()?.triggers.some(other=>other!==t&&other.event===option.value);
     select('trigger-target',[['','状態ノードに接続してください'],...(this.graph()?.nodes.map(n=>[n.id,NODE_KINDS[n.kind]??'未設定の状態'])??[])],t?.to);
     $('trigger-seconds-field').hidden=t?.event!=='time';
     $('trigger-seconds').value=t?.seconds??300;
@@ -590,11 +640,23 @@ export class BehaviorUI{
     $('node-selected').textContent=n?(NODE_KINDS[n.kind]??'未設定の状態'):'';
     select('node-kind',[['','種類を選択してください'],...Object.entries(NODE_KINDS)],n?.kind);
     $('node-initial').checked=!!n&&this.graph()?.initial===n.id;
+    $('node-route-fields').hidden=!['follow','patrol'].includes(n?.kind);
+    const u=this.mapUnit(),legacyRoute=u?routeFor(this.draft,a,{kind:n?.kind},u):null;
+    select('node-route',[['','担当の既存経路'+(legacyRoute?'（'+legacyRoute.points.length+'点）':'')],...this.draft.routes.map(r=>[r.id,r.name+'（'+r.points.length+'点）'])],n?.routeId??'');
+    $('node-route-edit').disabled=!n?.routeId&&!u;
+    $('node-destination-fields').hidden=n?.kind!=='move';
+    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニット）':'（地点）')])],n?.destinationId??'');
+    $('node-destination-edit').disabled=!n?.destinationId&&!a?.base;
+    for(const [prefix,c] of [['edge',edge],['trigger',t]]){
+      $(prefix+'-near-fields').hidden=(c?.when??c?.event)!=='near';
+      select(prefix+'-near-destination',[['','目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name])],c?.destinationId);
+      $(prefix+'-near-distance').value=c?.distance??1000;$(prefix+'-near-mode').value=c?.distanceMode??'horizontal';
+    }
     $('node-value-field').hidden=!n||!['wait','patrol'].includes(n.kind);
     $('node-value-label').textContent=n?.kind==='wait'?'待機秒数':'能力速度に対する巡回速度 (%)';
     $('node-value').value=n?.kind==='wait'?(n.parameter==='preparation'?a?.preparation??0:n.seconds):(n?.speedFraction??.7)*100;
     $('node-value').disabled=n?.parameter==='preparation';
-    if(n?.parameter==='preparation')$('node-value-label').textContent='準備時間は「担当・経路」で設定';
+    if(n?.parameter==='preparation')$('node-value-label').textContent='準備時間は「担当・共有設定」で設定';
     $('node-receiver-field').hidden=n?.kind!=='report';
     select('node-receiver',[['role','タスクの報告先'],...this.draft.units.map(u=>[u.id,u.name])],n?.receiverRole?'role':n?.receiverId);
     $('node-sensor').checked=n?.sensor!==false;
@@ -677,10 +739,10 @@ export class BehaviorUI{
         lx=(x+bx)/2+nx*offset*.75;ly=(y+by)/2+ny*offset*.75-10;
       }
       const attrs=edge.trigger?{'data-start-line':edge.from}:{'data-edge':edge.index};
-      const group=add('g',{...attrs,class:'behavior-connection'+((edge.trigger?this.selectedTrigger===edge.from:this.selectedEdge===edge.index)?' selected':''),tabindex:0,role:'button','aria-label':edge.trigger?'イベントノードの遷移先':(EDGE_EVENTS[edge.when]??'遷移条件を設定')+'：'+(NODE_KINDS[a.kind]??'未設定の状態')+' → '+(NODE_KINDS[b.kind]??'未設定の状態')});
+      const group=add('g',{...attrs,class:'behavior-connection'+((edge.trigger?this.selectedTrigger===edge.from:this.selectedEdge===edge.index)?' selected':''),tabindex:0,role:'button','aria-label':edge.trigger?'イベントノードの遷移先':(edge.when==='near'?edge.distance+'m以内（'+(edge.distanceMode==='horizontal'?'水平':'絶対')+'）':EDGE_EVENTS[edge.when]??'遷移条件を設定')+'：'+(NODE_KINDS[a.kind]??'未設定の状態')+' → '+(NODE_KINDS[b.kind]??'未設定の状態')});
       add('path',{d,class:'behavior-edge'+(edge.trigger?' trigger-edge':!edge.when?' unconfigured':''),'marker-end':edge.trigger?'url(#trigger-arrow)':'url(#behavior-arrow)'},undefined,group);
       add('path',{d,class:'behavior-edge-hit'},undefined,group);
-      if(!edge.trigger)add('text',{x:lx,y:ly,class:'edge-label'},EDGE_EVENTS[edge.when]??'条件を設定',group);
+      if(!edge.trigger)add('text',{x:lx,y:ly,class:'edge-label'},edge.when==='near'?(this.draft.destinations.find(d=>d.id===edge.destinationId)?.name??'目的地未設定')+' '+edge.distance+'m以内（'+(edge.distanceMode==='horizontal'?'水平':'絶対')+'）':EDGE_EVENTS[edge.when]??'条件を設定',group);
       group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();this.selectConnection(edge.trigger?null:edge.index,edge.trigger?edge.from:undefined);}});
     }
     for(const n of items){
@@ -689,8 +751,8 @@ export class BehaviorUI{
       const group=add('g',{...attrs,class:'behavior-node'+(n.trigger?' trigger-node':'')+(missing?' unconfigured':'')+((n.trigger?this.selectedTrigger:this.selected)===n.id?' selected':'')+(this.connecting?.id===n.id&&!!this.connecting.trigger===!!n.trigger?' connecting':'')+(!n.trigger&&g.initial===n.id?' initial-node':'')});
       add('rect',{x,y,width:210,height:72,rx:n.trigger?28:12},undefined,group);
       add('text',{x:x+14,y:y+29},n.trigger?(TRIGGER_EVENTS[n.event]??'未設定のイベントノード'):(NODE_KINDS[n.kind]??'未設定の状態'),group);
-      add('text',{x:x+14,y:y+52,class:'node-small'},missing?'クリックして種類を設定':n.trigger?(n.event==='time'?(n.once===false?n.seconds+' 秒ごと':'開始から '+n.seconds+' 秒'):(n.once===false?'発生するたびに遷移':'一度だけ遷移')):
-        n.kind==='patrol'?'群で間隔を調整':n.kind==='wait'?n.seconds+'秒':n.kind==='report'?'情報を送信':n.id,group);
+      add('text',{x:x+14,y:y+52,class:'node-small'},missing?'クリックして種類を設定':n.trigger?(n.event==='near'?(this.draft.destinations.find(d=>d.id===n.destinationId)?.name.slice(0,8)??'目的地未設定')+' '+(n.distance??'?')+'m（'+(n.distanceMode==='horizontal'?'水平':'3D')+'）':n.event==='time'?(n.once===false?n.seconds+' 秒ごと':'開始から '+n.seconds+' 秒'):(n.once===false?'発生するたびに遷移':'一度だけ遷移')):
+        ['patrol','follow'].includes(n.kind)?(this.draft.routes.find(r=>r.id===n.routeId)?.name??'担当の経路'):n.kind==='move'?(this.draft.destinations.find(d=>d.id===n.destinationId)?.name??'担当の目的地'):n.kind==='wait'?n.seconds+'秒':n.kind==='report'?'情報を送信':n.id,group);
       if(!n.trigger&&g.initial===n.id){
         add('rect',{x:x+120,y:y-13,width:82,height:23,rx:8,class:'initial-badge'},undefined,group);
         add('text',{x:x+131,y:y+3,class:'initial-label'},'初期状態',group);

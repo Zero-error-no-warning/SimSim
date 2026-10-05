@@ -1,4 +1,4 @@
-import { variableErrors } from './parameters.js?v=20261005-state-events-4';
+import { variableErrors } from './parameters.js?v=20261005-navigation-5';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);

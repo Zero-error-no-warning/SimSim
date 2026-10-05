@@ -208,7 +208,7 @@
         },
         {
           "id": "home",
-          "kind": "return",
+          "kind": "move",
           "x": 920,
           "y": 70
         },
