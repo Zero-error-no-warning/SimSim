@@ -2,6 +2,24 @@ export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', return: '帰投', wait: '時間待ち', stop: '終了'
 };
+export const TRIGGER_EVENTS = {
+  scenarioStart: 'シーン開始', received: '情報受信', time: '指定時間経過', detected: '対象探知'
+};
+// Legacy entry is accepted only at the import/validation boundary.
+export function graphTriggers(g) {
+  return g.triggers ?? (g.entry ? [{id:'scene-start', event:'scenarioStart', to:g.entry}] : []);
+}
+export function migrateTriggers(s) {
+  for (const g of s.behaviors ?? []) {
+    if (g.triggers === undefined && g.entry) {
+      g.triggers = graphTriggers(g);
+      if (Math.min(...g.nodes.map(n=>n.x??40))<280 && Math.max(...g.nodes.map(n=>n.x??40))<=3720)
+        for (const n of g.nodes) n.x=(n.x??40)+280;
+    }
+    delete g.entry;
+  }
+  return s;
+}
 export const EDGE_EVENTS = {
   detected: '対象を探知', sent: '送信成功', sendFailed: '送信失敗', arrived: '到着', elapsed: '待機終了', received: '情報受信'
 };
@@ -44,7 +62,19 @@ export function sharedErrors(s) {
       if (n.sensor !== undefined && typeof n.sensor !== 'boolean') errors.push('ノードのsensorはbooleanです。');
       if (n.x !== undefined && !number(n.x, 0, 4000) || n.y !== undefined && !number(n.y, 0, 4000)) errors.push('ノード位置が不正です。');
     }
-    if (!nodes.has(g.entry)) errors.push('開始ノードがありません。');
+    const triggers=graphTriggers(g), tids=new Set(), events=new Set();
+    if (!Array.isArray(triggers) || !triggers.length || triggers.length>32) errors.push('起動条件は1～32件の配列です。');
+    else for (const t of triggers) {
+      if (!t || !/^[a-zA-Z0-9_-]{1,80}$/.test(t.id??'') || tids.has(t.id) || !Object.hasOwn(TRIGGER_EVENTS,t.event) || !nodes.has(t.to)) errors.push('起動条件のID・種類・接続先が不正です。');
+      tids.add(t?.id);
+      const key=t?.event+'|'+(t?.event==='time'?t.seconds:'');
+      if (events.has(key)) errors.push('同じイベント・時刻の起動条件は一つだけ指定できます。');
+      events.add(key);
+      if (t?.event==='time' && !number(t.seconds,0,86400)) errors.push('起動時刻はシーン開始から0～86400秒です。');
+      if (t?.policy!==undefined && !['idle','interrupt'].includes(t.policy)) errors.push('起動方法はidle・interruptです。');
+      if (t?.once!==undefined && typeof t.once!=='boolean') errors.push('起動条件のonceはbooleanです。');
+      if (t?.x!==undefined && !number(t.x,0,4000) || t?.y!==undefined && !number(t.y,0,4000)) errors.push('起動条件の位置が不正です。');
+    }
     for (const e of g.edges) {
       const key = e?.from + '|' + e?.when, node = nodes.get(e?.from);
       if (!e || !node || !nodes.has(e.to) || !(NODE_EVENTS[node.kind] ?? []).includes(e.when) || outgoing.has(key)) errors.push('接続条件が始点ノードに対応しないか、接続が不正・重複しています。');
@@ -89,9 +119,9 @@ export function sharedErrors(s) {
 }
 export function patrolGraph(id = 'patrol-return', receiverId) {
   return {
-    id, name: '周回監視・報告・帰投', entry: 'patrol', nodes: [
+    id, name: '周回監視・報告・帰投', triggers: [{id:'scene-start',event:'scenarioStart',to:'patrol',x:40,y:70}], nodes: [
     {
-      id: 'patrol', kind: 'patrol', speedFraction: .7, x: 40, y: 70
+      id: 'patrol', kind: 'patrol', speedFraction: .7, x: 340, y: 70
     },
     {
       id: 'report', kind: 'report', ...(receiverId ? {
@@ -99,13 +129,13 @@ export function patrolGraph(id = 'patrol-return', receiverId) {
       }
       : {
         receiverRole: 'report'
-      }), x: 340, y: 70
+      }), x: 640, y: 70
     },
     {
-      id: 'home', kind: 'return', x: 640, y: 70
+      id: 'home', kind: 'return', x: 940, y: 70
     },
     {
-      id: 'wait', kind: 'wait', seconds: 300, x: 640, y: 270
+      id: 'wait', kind: 'wait', seconds: 300, x: 940, y: 270
     }
     ], edges: [{
       from: 'patrol', to: 'report', when: 'detected'

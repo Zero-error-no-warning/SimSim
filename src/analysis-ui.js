@@ -1,3 +1,5 @@
+import { TRIGGER_EVENTS } from './shared-settings.js';
+import { RECORD_MODEL } from './recording.js';
 import { numericScale } from './chart-scale.js';
 import { clone,validateScenario } from './engine.js';
 import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js';
@@ -392,7 +394,7 @@ export class AnalysisUI {
       row.className='event-item'+(event.type==='sendFailed'?' failed':'');
       const text=document.createElement('span'),button=document.createElement('button');
       const details={
-        detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 経路終点に到着'
+        triggered:name(event.unitId)+' · '+(TRIGGER_EVENTS[event.event]??'起動条件')+'で挙動開始',detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 経路終点に到着'
       };
       text.textContent=minutes(event.time)+' · '+(details[event.type]??(event.type==='nodeChanged'?'挙動切替 '+name(event.unitId)+' → '+event.nodeId:event.type==='elapsed'?'待機終了 '+name(event.unitId):event.type));
       button.textContent='この時刻';
@@ -406,7 +408,7 @@ export class AnalysisUI {
   }
   export() {
     const payload={
-      type:'SimSim-analysis',version:5,model:'unified-behavior-v2',confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
+      type:'SimSim-analysis',version:5,model:RECORD_MODEL,confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
     };
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{
       type:'text/plain;charset=utf-8'

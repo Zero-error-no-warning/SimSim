@@ -1,5 +1,5 @@
 import { readParameter } from './parameters.js';
-import { sharedErrors } from './shared-settings.js';
+import { sharedErrors, migrateTriggers } from './shared-settings.js';
 import { actionErrors } from './action-settings.js';
 import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js';
 import { expandGroups, noiseVector, random01, streamKey } from './random.js';
@@ -92,7 +92,7 @@ export function validateScenario(value) {
     }
   }
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));
-  return clone(value);
+  return migrateTriggers(clone(value));
 }
 export class Terrain {
   constructor(data) {

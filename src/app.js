@@ -17,7 +17,7 @@ const SYMBOLS={
   ground:'■',surface:'◆',subsurface:'●',air:'▲'
 };
 const STATUS_NAMES={
-  standby:'指令待ち',preparing:'出発準備中',idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'出発待ち'
+  standby:'イベント待ち',preparing:'出発準備中',idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'時間待ち'
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];

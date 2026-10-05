@@ -27,7 +27,7 @@ export function recordingPayload(model) {
   return payload;
 }
 const position = p => p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
-const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing']);
+const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','triggered']);
 export function restoreRecording(payload) {
   if(payload?.type!=='SimSim-recording'||payload.version!==2||payload.model!==RECORD_MODEL||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
   const model=new RecordedSimulation(payload.source),n=model.states.length;
@@ -39,7 +39,9 @@ export function restoreRecording(payload) {
     const values=decode(f.values,Float32Array,n*5),nodes=decode(f.nodes,Uint16Array,n),status=decode(f.status,Uint8Array,n);
     if(values.some(v=>!Number.isFinite(v))||status.some(v=>v>=STATUS.length))throw Error('記録値が不正です。');
     nodes.forEach((v,i)=>{
-      const s=model.states[i],name=model.nodeNames[v-1];if(s.graph? !name||!s.graph.nodes.some(node=>s.graph.id+':'+node.id===name):v!==0)throw Error('記録ノードが担当の挙動と一致しません。');
+      const s=model.states[i],name=model.nodeNames[v-1];
+      if(s.graph&&v===0&&![STATUS.indexOf('standby'),STATUS.indexOf('blocked')].includes(status[i]))throw Error('起動前の記録状態が不正です。');
+      if(s.graph? v!==0&&(!name||!s.graph.nodes.some(node=>s.graph.id+':'+node.id===name)):v!==0)throw Error('記録ノードが担当の挙動と一致しません。');
     });
     return {
       time:f.time,values,nodes,status
@@ -59,6 +61,7 @@ export function restoreRecording(payload) {
       if(e.type==='detected'&&(!e.targetId||!position(e.targetPosition)||!position(e.observerPosition)))throw Error('探知情報が不正です。');
       if(e.type==='received'&&(!e.senderId||!position(e.sourcePosition)||!position(e.receiverPosition)))throw Error('受信情報が不正です。');
       const s=model.byId.get(e.unitId);
+      if(e.type==='triggered'&&!s.graph?.triggers.some(t=>t.id===e.triggerId&&t.event===e.event&&t.to===e.nodeId))throw Error('起動イベントの条件が不正です。');
       if(e.nodeId!==undefined&&!s.graph?.nodes.some(n=>n.id===e.nodeId))throw Error('イベントのノードが不正です。');
     }
   }

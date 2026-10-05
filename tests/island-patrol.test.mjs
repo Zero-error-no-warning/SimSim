@@ -18,5 +18,5 @@ for(const condition of conditions){const trials=[];for(let trial=0;trial<50;tria
 // Paired streams preserve discoveries when adding observers, and when increasing their range.
 for(let trial=0;trial<50;trial++)for(const a of rows)for(const b of rows){const [n1,r1]=a.condition.settings.map(s=>s.value),[n2,r2]=b.condition.settings.map(s=>s.value);if(n2>=n1&&r2>=r1&&a.trials[trial].success){assert(b.trials[trial].success);assert(b.trials[trial].successTime<=a.trials[trial].successTime);}}
 assert(rows[0].rate<rows.at(-1).rate,'Sample must exercise the requested quantity/range comparison');
-const result=restoreAnalysisResult({type:'SimSim-analysis',version:5,model:'unified-behavior-v2',source:importScenario(source),rows});assert.equal(result.completed,600);
+const result=restoreAnalysisResult({type:'SimSim-analysis',version:5,model:'trigger-behavior-v3',source:importScenario(source),rows});assert.equal(result.completed,600);
 console.log(JSON.stringify({status:'PASS',checks:'fictitious two-island terrain, valid transit and patrol, phased group modes, paired quantities/ranges, 600 trials, result round-trip',elapsedMs:Math.round(performance.now()-start),rows:rows.map(r=>({count:r.condition.settings[0].value,range:r.condition.settings[1].value,successes:r.successes,total:r.total}))}));

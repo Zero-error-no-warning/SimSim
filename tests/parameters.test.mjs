@@ -39,7 +39,7 @@ const rows=prepareAnalysis(deadline).conditions.map(condition=>{
   const trials=[];for(let trial=0;trial<5;trial++){const sample=trialScenario(deadline,condition,trial),r=runDetection(new Simulation(sample.scenario));trials.push({...r,trial,sampled:sample.sampled});}
   return {...summarizeRow(condition.count,trials),condition};
 });
-const payload={type:'SimSim-analysis',version:5,model:'unified-behavior-v2',source:deadline,rows};
+const payload={type:'SimSim-analysis',version:5,model:'trigger-behavior-v3',source:deadline,rows};
 assert.equal(restoreAnalysisResult(payload).completed,10);
 const tamper=clone(payload);tamper.rows[0].trials[0].sampled[0].value+=.1;assert.throws(()=>restoreAnalysisResult(tamper),/抽出値/);
 const aggregate=clone(payload);aggregate.rows[0].rate=99;assert.equal(restoreAnalysisResult(aggregate).rows[0].rate,rows[0].rate);

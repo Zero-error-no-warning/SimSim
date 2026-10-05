@@ -1,4 +1,4 @@
-import { sharedSteps,RecordedSimulation } from './recorded-engine.js';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js';
 import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js';
 import { clone,validateScenario } from './engine.js';
 import { missionErrors,analysisErrors } from './detection-settings.js';
@@ -71,7 +71,7 @@ export function summarizeRow(count,trials) {
   };
 }
 export function restoreAnalysisResult(payload) {
-  if(!payload||payload.type!=='SimSim-analysis'||payload.version!==5||payload.model!=='unified-behavior-v2')throw new Error('この分析結果の形式・モデル版は読み込めません。');
+  if(!payload||payload.type!=='SimSim-analysis'||payload.version!==5||payload.model!==RECORD_MODEL)throw new Error('この分析結果の形式・モデル版は読み込めません。');
   const {
     scenario,analysis,startTrial,conditions
   }

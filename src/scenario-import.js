@@ -31,16 +31,16 @@ export function importScenario(value) {
       if (s.behaviors.some(g => g.id === id) || s.behaviorAssignments.some(a => a.id === id)) throw Error('変換先IDが重複しています: ' + id);
       const start = b.hold ? 'signal' : 'follow';
       const nodes = [{
-        id: start, kind: b.hold ? 'signal' : 'follow', x: 40, y: 70
+        id: start, kind: b.hold ? 'signal' : 'follow', x: 320, y: 70
       }], edges = [];
       if (b.hold) nodes.push({
-        id: 'follow', kind: 'follow', x: 800, y: 70
+        id: 'follow', kind: 'follow', x: 1080, y: 70
       });
       b.rules.forEach((r, i) => {
         const from = r.when === 'received' && b.hold ? 'signal' : 'follow';
         if (r.action === 'depart') {
           nodes.push({
-            id: r.id, kind: 'wait', parameter: 'preparation', seconds: b.preparation, x: 400, y: 70 + i * 150
+            id: r.id, kind: 'wait', parameter: 'preparation', seconds: b.preparation, x: 680, y: 70 + i * 150
           });
           edges.push({
             from, to: r.id, when: r.when, once: r.once
@@ -49,7 +49,7 @@ export function importScenario(value) {
           });
         } else {
           nodes.push({
-            id: r.id, kind: 'report', receiverId: r.receiverId, x: 400, y: 70 + i * 150
+            id: r.id, kind: 'report', receiverId: r.receiverId, x: 680, y: 70 + i * 150
           });
           edges.push({
             from, to: r.id, when: r.when, once: r.once
@@ -61,7 +61,7 @@ export function importScenario(value) {
         }
       });
       s.behaviors.push({
-        id, name: u.name + 'の挙動', entry: start, nodes, edges
+        id, name: u.name + 'の挙動', triggers: [{id:'scene-start',event:'scenarioStart',to:start}], nodes, edges
       });
       s.behaviorAssignments.push({
         id, name: u.name + 'のタスク', behaviorId: id, targets: [target], spacing: 'none', preparation: b.preparation

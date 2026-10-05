@@ -6199,17 +6199,25 @@
     {
       "id": "island-patrol",
       "name": "周回して監視",
-      "entry": "patrol",
       "nodes": [
         {
           "id": "patrol",
           "kind": "patrol",
           "speedFraction": 1,
-          "x": 120,
+          "x": 400,
           "y": 120
         }
       ],
-      "edges": []
+      "edges": [],
+      "triggers": [
+        {
+          "id": "scene-start",
+          "event": "scenarioStart",
+          "to": "patrol",
+          "x": 40,
+          "y": 70
+        }
+      ]
     }
   ],
   "behaviorAssignments": [

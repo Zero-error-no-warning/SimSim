@@ -6258,19 +6258,18 @@
     {
       "id": "import-unit-control",
       "name": "管制ノードの挙動",
-      "entry": "follow",
       "nodes": [
         {
           "id": "follow",
           "kind": "follow",
-          "x": 40,
+          "x": 320,
           "y": 70
         },
         {
           "id": "order",
           "kind": "report",
           "receiverId": "response-uav",
-          "x": 400,
+          "x": 680,
           "y": 70
         }
       ],
@@ -6293,23 +6292,25 @@
           "when": "sendFailed",
           "resume": true
         }
+      ],
+      "triggers": [
+        {
+          "id": "scene-start",
+          "event": "scenarioStart",
+          "to": "follow",
+          "x": 40,
+          "y": 70
+        }
       ]
     },
     {
       "id": "import-unit-response-uav",
       "name": "対応UAVの挙動",
-      "entry": "signal",
       "nodes": [
-        {
-          "id": "signal",
-          "kind": "signal",
-          "x": 40,
-          "y": 70
-        },
         {
           "id": "follow",
           "kind": "follow",
-          "x": 800,
+          "x": 640,
           "y": 70
         },
         {
@@ -6317,40 +6318,42 @@
           "kind": "wait",
           "parameter": "preparation",
           "seconds": 180,
-          "x": 400,
+          "x": 340,
           "y": 70
         }
       ],
       "edges": [
         {
-          "from": "signal",
-          "to": "launch",
-          "when": "received",
-          "once": true
-        },
-        {
           "from": "launch",
           "to": "follow",
           "when": "elapsed"
+        }
+      ],
+      "triggers": [
+        {
+          "id": "on-information",
+          "event": "received",
+          "to": "launch",
+          "x": 40,
+          "y": 70
         }
       ]
     },
     {
       "id": "import-group-patrol-uuv",
       "name": "周回UUV（架空）の挙動",
-      "entry": "follow",
       "nodes": [
         {
           "id": "follow",
           "kind": "follow",
-          "x": 40,
+          "x": 320,
           "y": 70
         },
         {
           "id": "report",
           "kind": "report",
           "receiverId": "control",
-          "x": 400,
+          "x": 680,
           "y": 70
         }
       ],
@@ -6372,6 +6375,15 @@
           "to": "follow",
           "when": "sendFailed",
           "resume": true
+        }
+      ],
+      "triggers": [
+        {
+          "id": "scene-start",
+          "event": "scenarioStart",
+          "to": "follow",
+          "x": 40,
+          "y": 70
         }
       ]
     }

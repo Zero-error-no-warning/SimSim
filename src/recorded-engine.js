@@ -2,8 +2,9 @@ import { Simulation } from './engine.js';
 import { importScenario } from './scenario-import.js';
 import { random01, streamKey } from './random.js';
 import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js';
+import { graphTriggers } from './shared-settings.js';
 export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js';
-export const RECORD_MODEL = 'unified-behavior-v2';
+export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
 const dist = (a, b) => Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z);
@@ -35,6 +36,7 @@ export class RecordedSimulation extends Simulation {
     this.computeCount=0;
     this.nodeNames=[];
     this.assignments=this.source.behaviorAssignments;
+    this.initialEvents=[];
     const graphs=new Map(this.source.behaviors.map(g=>[g.id,g]));
     this.states=[];
     this.byId=new Map();
@@ -53,7 +55,7 @@ export class RecordedSimulation extends Simulation {
       const s={
         unit:u,assignment,graph,path,node:null,nodeTime:0,position:{
           ...path.nodes[0]
-        },heading:0,status:'idle',distance:0,progress:0,segment:-1,error:path.errorAt==='初期位置'?path.error:null,fired:new Set(),observation:null,trace:[],routeStarted:null,routePaused:0
+        },heading:0,status:'idle',distance:0,progress:0,segment:-1,error:path.errorAt==='初期位置'?path.error:null,fired:new Set(),triggerFired:new Set(),activated:false,observation:null,trace:[],routeStarted:null,routePaused:0
       };
       this.states.push(s);
       this.byId.set(u.id,s);
@@ -63,7 +65,9 @@ export class RecordedSimulation extends Simulation {
       const members=this.states.filter(s=>s.assignment===a);
       members.forEach((s,i)=>{
         s.initialPhase=mod((a.phase??0)+(a.spacing==='none'?(s.unit.motion?.loopStart??0):i/members.length),1);
-        this.enter(s,s.graph.entry,0,true);
+        s.status=s.error?'blocked':'standby';
+        // No execution node exists before a trigger fires.
+        this.activate(s,'scenarioStart',0,this.initialEvents);
       });
     }
     for (const s of this.states) if (!s.graph) Object.assign(s,super.evaluateUnit(s.unit,0));
@@ -111,8 +115,31 @@ export class RecordedSimulation extends Simulation {
     else if (s.node.kind==='wait') s.status=s.node.parameter==='preparation'?'preparing':'waiting';
     else if (s.node.kind==='return') s.status='moving';
   }
+  activate(s, event, t, events, payload) {
+    if(!s?.graph || s.status==='blocked')return false;
+    const trigger=graphTriggers(s.graph).find(x=>x.event===event && (event!=='time'||Math.abs(x.seconds-t)<1e-8)
+      && (!s.triggerFired.has(x.id) || x.once===false && !['scenarioStart','time'].includes(event))
+      && ((x.policy??'idle')==='interrupt' || !s.node || s.node.kind==='stop'));
+    if(!trigger)return false;
+    const key=s.unit.id+'|trigger|'+trigger.id;
+    if(payload?.trace?.includes(key))return false;
+    if(payload){s.observation=payload;s.trace=[...(payload.trace??[]),key];}
+    else {s.observation=null;s.trace=[];}
+    if(s.trace.length>64)throw Error('情報の中継が64段を超えました。');
+    s.triggerFired.add(trigger.id);
+    const from=s.node?.id,initial=!s.activated&&event==='scenarioStart';
+    s.activated=true;
+    this.enter(s,trigger.to,t,initial);
+    events.push({type:'triggered',time:t,unitId:s.unit.id,triggerId:trigger.id,event,nodeId:trigger.to});
+    events.push({type:'nodeChanged',time:t,unitId:s.unit.id,from:from??null,nodeId:trigger.to});
+    if(s.node.parameter==='preparation')events.push({type:'preparing',time:t,unitId:s.unit.id,nodeId:s.node.id});
+    if(!initial&&s.node.kind==='follow')events.push({type:'departed',time:t,unitId:s.unit.id,nodeId:s.node.id});
+    return true;
+  }
   transition(s, when, t, events, payload) {
     if (!s?.graph || s.status==='blocked') return false;
+    if(this.activate(s,when,t,events,payload))return true;
+    if(!s.node)return false;
     const edge=s.graph.edges.find(e=>e.from===s.node.id&&e.when===when);
     if (!edge) return false;
     const key=s.unit.id+'|'+edge.from+'|'+when;
@@ -196,7 +223,7 @@ export class RecordedSimulation extends Simulation {
     if(frames.at(-1)?.time===t)return;
     const n=this.states.length,values=new Float32Array(n*5),nodes=new Uint16Array(n),status=new Uint8Array(n);
     this.states.forEach((s,i)=>{
-      values.set([s.position.x,s.position.y,s.position.z,s.heading,s.distance],i*5);nodes[i]=s.graph?this.nodeNames.indexOf(s.graph.id+':'+s.node.id)+1:0;status[i]=STATUS.indexOf(s.status);
+      values.set([s.position.x,s.position.y,s.position.z,s.heading,s.distance],i*5);nodes[i]=s.node?this.nodeNames.indexOf(s.graph.id+':'+s.node.id)+1:0;status[i]=STATUS.indexOf(s.status);
     });
     frames.push({
       time:t,values,nodes,status
@@ -237,7 +264,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   if(!Number.isFinite(horizon)||horizon<0||horizon>model.source.duration)throw Error('計算終了時刻が不正です。');
   if(model.computeCount)throw Error('計算済みです。新しい試行を作成してください。');
   model.computeCount++;
-  const states=model.states,events=[],detected=new Map(),pairs=new Set(),messages=[],frames=record?[]:null;
+  const states=model.states,events=[...model.initialEvents],detected=new Map(),pairs=new Set(),messages=[],frames=record?[]:null;
   const targets=states.filter(s=>s.unit.faction!=='neutral'),goalTargets=mission?.targetIds?mission.targetIds.map(id=>model.byId.get(id)):states.filter(s=>mission?s.unit.faction===mission.targetFaction:s.unit.faction!=='neutral');
   if(mission&&(!goalTargets.length||goalTargets.some(s=>!s||s.unit.faction!==mission.targetFaction)))throw Error('成功条件に合う対象がありません。');
   const responders=mission?.type==='arrive'?mission.responderIds:[];
@@ -289,6 +316,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   }
   function immediate(t) {
     let changed=false;
+    for(const s of states)changed=model.activate(s,'time',t,events)||changed;
     const settle=s=>{
       for(let depth=0;depth<64;depth++){
         if(s.status==='blocked')return;
@@ -328,7 +356,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         const seconds=s.node.parameter==='preparation'?s.assignment.preparation??s.node.seconds:s.node.seconds;
         if(s.nodeTime+seconds>start+1e-8)nextEvent=Math.min(nextEvent,s.nodeTime+seconds);
       }
-      if((!s.graph||s.node.kind==='follow')&&!s.path.periodic&&s.path.length&&s.path.actualSpeed&&!s.routeArrived){
+      for(const trigger of s.graph?.triggers??[])if(trigger.event==='time'&&!s.triggerFired.has(trigger.id)&&trigger.seconds>start+1e-8)nextEvent=Math.min(nextEvent,trigger.seconds);
+      if((!s.graph||s.node?.kind==='follow')&&!s.path.periodic&&s.path.length&&s.path.actualSpeed&&!s.routeArrived){
         const at=(s.graph?s.routeStarted??0:0)+s.path.delay+s.path.length/s.path.actualSpeed;
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
       }
@@ -341,6 +370,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     let changed=false;
     for(const s of states){
       if(s.status==='blocked')continue;
+      if(s.graph&&!s.node)continue;
       if(!s.graph||s.node.kind==='follow'){
         const prev=s.status,oldSegment=s.segment,offset=s.graph?s.routeStarted??0:0;
         const state=Simulation.prototype.evaluateUnit.call(model,s.unit,Math.max(0,end-offset));

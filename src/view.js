@@ -715,7 +715,7 @@ export class MapView {
       if(label){
         const unit=this.markers.get(state.id)?.unit;
         label.querySelector('small').textContent=DOMAIN_NAMES[unit.domain]+' · '+({
-          standby:'指令待ち',preparing:'出発準備',moving:'移動中',arrived:'到着',blocked:'停止',waiting:'出発待ち',idle:'待機'
+          standby:'イベント待ち',preparing:'出発準備',moving:'移動中',arrived:'到着',blocked:'停止',waiting:'時間待ち',idle:'待機'
         })[state.status];
       }
     }

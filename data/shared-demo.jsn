@@ -191,33 +191,32 @@
     {
       "id": "patrol-return",
       "name": "周回監視・報告・帰投",
-      "entry": "patrol",
       "nodes": [
         {
           "id": "patrol",
           "kind": "patrol",
           "speedFraction": 0.7,
-          "x": 40,
+          "x": 320,
           "y": 70
         },
         {
           "id": "report",
           "kind": "report",
           "receiverId": "control",
-          "x": 340,
+          "x": 620,
           "y": 70
         },
         {
           "id": "home",
           "kind": "return",
-          "x": 640,
+          "x": 920,
           "y": 70
         },
         {
           "id": "wait",
           "kind": "wait",
           "seconds": 300,
-          "x": 640,
+          "x": 920,
           "y": 270
         }
       ],
@@ -241,6 +240,15 @@
           "to": "wait",
           "when": "arrived",
           "from": "home"
+        }
+      ],
+      "triggers": [
+        {
+          "id": "scene-start",
+          "event": "scenarioStart",
+          "to": "patrol",
+          "x": 40,
+          "y": 70
         }
       ]
     }

@@ -1225,9 +1225,15 @@ fieldset:disabled {
   grid-template-columns:minmax(0,1fr) 230px;
   gap:14px
 }
-.behavior-layout:has(#node-properties[hidden]) {
-  grid-template-columns:1fr
-}
+.behavior-viewport { position:relative; min-width:0; }
+#behavior-minimap { position:absolute; right:12px; bottom:12px; width:170px; height:100px; background:#0b1729e8; border:1px solid #7499af; border-radius:7px; cursor:crosshair; touch-action:none; }
+.minimap-viewport { fill:#bcd6ef18; stroke:#ffdb95; stroke-width:2; vector-effect:non-scaling-stroke; pointer-events:none; }
+.behavior-node.trigger-node rect { fill:#44315f; stroke:#bc95ea; }
+.behavior-edge.trigger-edge { stroke:#bc95ea; }
+#behavior-zoom-label { min-width:4em; font-variant-numeric:tabular-nums; }
+.behavior-properties .field { margin-bottom:12px; }
+.behavior-properties select { width:100%; }
+.behavior-properties .route-help { margin:12px 0; }
 #behavior-canvas {
   width:100%;
   min-height:280px;
@@ -1571,3 +1577,5 @@ h3 {
     flex-basis:100%
   }
 }
+
+@media(max-width:700px) { .behavior-layout { grid-template-columns:1fr; } #behavior-canvas { height:320px; } #behavior-minimap { width:120px; height:75px; } }
