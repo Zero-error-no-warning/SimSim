@@ -1,4 +1,4 @@
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261005-startup-1';
 let simulation, latest, generation=0, state='idle', failure=null;
 function send() {
   if(!simulation||!latest)return;
@@ -19,6 +19,11 @@ function send() {
 self.onmessage=({
   data
 })=>{
+  // Probe this actual module graph independently of page initialization.
+  if(data.type==='ping'){
+    self.postMessage({type:'pong'});
+    return;
+  }
   try {
     if(data.type==='scenario') {
       const token=++generation;

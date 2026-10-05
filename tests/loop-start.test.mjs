@@ -1,8 +1,8 @@
-import {importScenario} from '../src/scenario-import.js';
+import {importScenario} from '../src/scenario-import.js?v=20261005-startup-1';
 import assert from 'node:assert/strict';
-import {clone,Simulation,validateScenario} from '../src/engine.js';
-import {availableBindings,analysisConditions,trialScenario} from '../src/parameters.js';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js';
+import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261005-startup-1';
+import {availableBindings,analysisConditions,trialScenario} from '../src/parameters.js?v=20261005-startup-1';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-startup-1';
 const source={version:1,unitsSystem:'SI',title:'Loop departure',duration:3600,seed:'loop-test',trial:3,
   terrain:{columns:11,rows:11,spacing:250,origin:{x:0,y:0},seaLevel:0,elevations:Array(121).fill(-500)},
   units:[{id:'patrol',name:'Patrol',domain:'surface',faction:'friendly',manned:false,speed:10,initial:{x:500,y:500,z:0},route:[{x:1500,y:500,z:0},{x:1500,y:1000,z:0},{x:500,y:1000,z:0}],routeMode:'loop'}]};

@@ -1,9 +1,9 @@
-import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js';
-import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js';
-import { clone,validateScenario } from './engine.js';
-import { missionErrors,analysisErrors } from './detection-settings.js';
-export { terrainVisible,contactProbability } from './contact.js';
-import { importScenario } from './scenario-import.js';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261005-startup-1';
+import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261005-startup-1';
+import { clone,validateScenario } from './engine.js?v=20261005-startup-1';
+import { missionErrors,analysisErrors } from './detection-settings.js?v=20261005-startup-1';
+export { terrainVisible,contactProbability } from './contact.js?v=20261005-startup-1';
+import { importScenario } from './scenario-import.js?v=20261005-startup-1';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
   if(!(model instanceof RecordedSimulation)&&model.source.version!==3&&step!==undefined){

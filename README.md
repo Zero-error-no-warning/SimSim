@@ -50,6 +50,10 @@ node tests/browser-smoke.mjs
 
 Playwrightのモジュール指定は `SIMSIM_PLAYWRIGHT`、Chromiumの実行ファイル指定は `SIMSIM_BROWSER_EXECUTABLE`。通常のアプリ配布にこれらは不要です。検証範囲は [検証](docs/workspace-v3.md#検証) を参照してください。
 
+画面・JavaScriptを更新して公開する前に、`src/ui-dom.js` の `UI_BUILD` を変更し、`node tools/version-assets.mjs` を実行してください。HTML・起動スクリプト・依存モジュール・Workerの読み込みURLを同じ版で更新します。HTMLとJavaScriptの版が混在した場合は起動を止め、画面内に版情報・エラー詳細・最新版の再読込リンクを表示します。画面初期化失敗をWorkerのタイムアウトとして表示しません。
+
+起動不具合の回帰テストは `node tests/startup-browser.mjs`。旧HTMLとの混在、画面部品の欠落、キャッシュされた旧モジュールの回避、実際のWorker無応答、環境確認の本体Workerを検証します。
+
 本アプリの地形・装備性能・サンプルは架空です。水中探知は距離・確率・直線遮蔽の簡易モデルです。実際のソナー伝搬や装備の必要数を検証したモデルではありません。
 
 依存ライブラリ: Three.js 0.170.0と同版OrbitControlsを固定して同梱。MITライセンスと取得元は `vendor/three/` に収録しています。[環境確認](environment-check/check.html) ではWebGL・Worker・静的データ取得を確認できます。

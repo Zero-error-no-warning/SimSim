@@ -1,9 +1,9 @@
-import { Simulation } from './engine.js';
-import { importScenario } from './scenario-import.js';
-import { random01, streamKey } from './random.js';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js';
-import { graphTriggers } from './shared-settings.js';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js';
+import { Simulation } from './engine.js?v=20261005-startup-1';
+import { importScenario } from './scenario-import.js?v=20261005-startup-1';
+import { random01, streamKey } from './random.js?v=20261005-startup-1';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-startup-1';
+import { graphTriggers } from './shared-settings.js?v=20261005-startup-1';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-startup-1';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;

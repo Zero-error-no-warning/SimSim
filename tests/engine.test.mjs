@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Simulation, Terrain, validateScenario, clone} from '../src/engine.js';
+import {Simulation, Terrain, validateScenario, clone} from '../src/engine.js?v=20261005-startup-1';
 import fs from 'node:fs';
 
 const terrain={columns:5,rows:5,spacing:500,origin:{x:0,y:0},seaLevel:0,elevations:Array(25).fill(-500)};

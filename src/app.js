@@ -1,15 +1,17 @@
-import { BehaviorUI } from './behavior-ui.js';
-import { createSimulation } from './recorded-engine.js';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js';
-import { importScenario } from './scenario-import.js';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js';
-import { restoreAnalysisResult } from './detection.js';
-import { AnalysisUI } from './analysis-ui.js';
-import { MapView } from './view.js';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-startup-1';
+import { createSimulation } from './recorded-engine.js?v=20261005-startup-1';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-startup-1';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-startup-1';
+import { importScenario } from './scenario-import.js?v=20261005-startup-1';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-startup-1';
+import { restoreAnalysisResult } from './detection.js?v=20261005-startup-1';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-startup-1';
+import { MapView } from './view.js?v=20261005-startup-1';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-startup-1';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-startup-1';
+assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
-const $=id=>document.getElementById(id);
+const $=requireElement;
 const FACTION_NAMES={
   friendly:'味方',hostile:'相手側',neutral:'中立'
 };
@@ -21,22 +23,30 @@ const STATUS_NAMES={
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261005-startup-1',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
-let workerReady=false;
-const timeout=setTimeout(()=>{
-  if(!workerReady)showError('計算Workerの応答がありません。src/worker.jsとsrc/engine.jsの配信・MIMEタイプを確認してください。');
-},12000);
+let workerReady=false,timeout=null;
+window.addEventListener('simsim-boot-failed',()=>{
+  clearTimeout(timeout);
+  worker.terminate();
+},{once:true});
 worker.onerror=event=>{
   event.preventDefault();
   pause();
   clearTimeout(timeout);
-  showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'F12のConsoleを確認してください。'));
+  showError('計算Workerの起動・実行に失敗しました。\n'+(event.message||'詳細メッセージなし')+'\n'+(event.filename||'src/worker.js')+':'+(event.lineno||0));
+};
+worker.onmessageerror=()=>{
+  clearTimeout(timeout);
+  pause();
+  showError('計算Workerの返信を読み取れませんでした。');
 };
 worker.onmessage=({
   data
 })=>{
+  workerReady=true;
+  clearTimeout(timeout);
   if(data.revision!==revision)return;
   if(data.type==='recordingProgress'){
     $('recording-info').textContent='計算中 '+Math.round(data.time/data.duration*100)+'%';
@@ -207,6 +217,10 @@ function currentUnit(){
 }
 function post(type='seek',extra={
 }){
+  // UI initialization errors must not be reported as worker timeouts.
+  if(!workerReady&&timeout===null)timeout=setTimeout(()=>{
+    if(!workerReady)showError('シナリオを計算Workerへ送信しましたが、12秒以内に返信がありませんでした。\n環境確認のWorkerは別の簡易プログラムです。src/worker.jsとその依存ファイルの配信を確認してください。');
+  },12000);
   worker.postMessage({
     type,revision,request:++request,time,selected,showTrails:view.showTrails,scenario:type==='scenario'?scenario:undefined,...extra
   });

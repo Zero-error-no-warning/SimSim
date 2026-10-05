@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {clone,validateScenario,Simulation} from '../src/engine.js';
-import {definition,moveDefinition,editWaypoint,removeDefinition,circleRoute} from '../src/editor.js';
+import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261005-startup-1';
+import {definition,moveDefinition,editWaypoint,removeDefinition,circleRoute} from '../src/editor.js?v=20261005-startup-1';
 const u=(id,faction='friendly')=>({id,name:id,domain:'surface',faction,manned:false,speed:1,initial:{x:500,y:500,z:0},route:[{x:1000,y:500,z:0}],routeMode:'once'});
 const source={version:1,unitsSystem:'SI',title:'Editing',duration:600,terrain:{columns:6,rows:6,spacing:1000,origin:{x:0,y:0},seaLevel:0,elevations:Array(36).fill(-500)},units:[u('observer'),u('target','hostile')],groups:[{id:'g',name:'Group',count:3,placement:'random',width:100,height:100,template:u('template')},{id:'g__nested',name:'Nested ID',count:1,placement:'grid',width:0,height:0,template:u('template')}],mission:{type:'detect',observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:500},analysis:{factors:[{target:'group:g',parameter:'capacity.population',values:[1,3]}],uncertainties:[],trials:5,step:10,requiredRate:.9}};
 const moved=clone(source);moveDefinition(moved,'observer',{x:200,y:100});assert.deepEqual(moved.units[0].initial,{x:700,y:600,z:0});assert.deepEqual(moved.units[0].route[0],{x:1200,y:600,z:0});assert.deepEqual(source.units[0].initial,{x:500,y:500,z:0});

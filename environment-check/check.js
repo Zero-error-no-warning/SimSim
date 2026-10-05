@@ -14,7 +14,7 @@
     updateReport();
   });
   function updateReport() {
-    report.value = ['SimSim environment check v1.1', new Date().toISOString(),
+    report.value = ['SimSim environment check v1.2', new Date().toISOString(),
       'Protocol: ' + location.protocol,
       'Secure context: ' + window.isSecureContext,
       'Browser: ' + navigator.userAgent,
@@ -139,6 +139,25 @@
       }
     });
   }
+  function applicationWorkerTest(){
+    setResult('application','pending','src/worker.jsと依存モジュールを読み込んでいます…');
+    return new Promise(resolve=>{
+      let worker,timer,finished=false;
+      const finish=(state,detail)=>{
+        if(finished)return;
+        finished=true;clearTimeout(timer);worker?.terminate();
+        setResult('application',state,detail);resolve();
+      };
+      try{
+        worker=new Worker(new URL('../src/worker.js?v=20261005-startup-1',document.baseURI),{type:'module',name:'SimSim application probe'});
+        worker.onerror=event=>{event.preventDefault();finish('fail',(event.message||'本体Workerの読み込みに失敗しました。')+'\n'+(event.filename||'src/worker.js')+':'+(event.lineno||0));};
+        worker.onmessageerror=()=>finish('fail','本体Workerの返信を読み取れませんでした。');
+        worker.onmessage=({data})=>{if(data.type==='pong')finish('ok','本体の計算Workerと依存モジュールを読み込み、応答を確認しました。画面の初期化やシナリオ計算の成否は別です。');};
+        timer=setTimeout(()=>finish('fail','本体Workerから10秒以内に応答がありません。SimSim本体と同じフォルダ構成で配置してください。'),10000);
+        worker.postMessage({type:'ping'});
+      }catch(error){finish('fail',error.name+': '+error.message);}
+    });
+  }
   async function jsonTest() {
     setResult('json','pending','probe.jsnを読み込んでいます…');
     const controller = new AbortController();
@@ -160,7 +179,7 @@
     runButton.disabled = true; copyButton.disabled = true;
     document.getElementById('copy-status').textContent = '';
     summary.textContent = location.protocol === 'file:' ? 'ファイルとして開いています。社内ポータルのHTTP／HTTPS URLでも必ず確認してください。' : '確認中です。通常は数秒、応答がない場合は約10秒かかります。';
-    await Promise.all([workerTest('classic', {name:'SimSim classic probe'}), workerTest('module', {type:'module',name:'SimSim module probe'}),jsonTest(),Promise.resolve().then(() => glTest('gl2','webgl2')),Promise.resolve().then(() => glTest('gl1','webgl'))]);
+    await Promise.all([workerTest('classic', {name:'SimSim classic probe'}), workerTest('module', {type:'module',name:'SimSim module probe'}),applicationWorkerTest(),jsonTest(),Promise.resolve().then(() => glTest('gl2','webgl2')),Promise.resolve().then(() => glTest('gl1','webgl'))]);
     if (location.protocol === 'file:') {
       summary.textContent = '確認終了。ただしfile:での結果です。配信条件の確認には社内ポータルのURLから開いてください。';
     } else if (results.classic.state === 'ok' && results.gl2.state === 'ok') {

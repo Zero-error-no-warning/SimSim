@@ -1,5 +1,5 @@
-import { validateScenario } from './engine.js';
-import { normalizedAnalysis } from './parameters.js';
+import { validateScenario } from './engine.js?v=20261005-startup-1';
+import { normalizedAnalysis } from './parameters.js?v=20261005-startup-1';
 // Compatibility ends here: the application and workers execute version 3 only.
 export function importScenario(value) {
   const s = validateScenario(value);

@@ -1,7 +1,8 @@
-import { removeAssignment,removeBehavior } from './editor.js';
-import { clone,validateScenario } from './engine.js';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js';
-const $=id=>document.getElementById(id),ns='http://www.w3.org/2000/svg';
+import { removeAssignment,removeBehavior } from './editor.js?v=20261005-startup-1';
+import { clone,validateScenario } from './engine.js?v=20261005-startup-1';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-startup-1';
+import { requireElement } from './ui-dom.js?v=20261005-startup-1';
+const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
     getScenario,getSelected,commit,pickRoute,pickBase,showError

@@ -1,4 +1,4 @@
-SimSim 環境確認 v1.1
+SimSim 環境確認 v1.2
 
 1. ZIPを展開してください。
 2. check.html / check.css / check.js / worker.js / probe.jsn を、社内ポータルの同じフォルダに配置してください。
@@ -7,6 +7,8 @@ SimSim 環境確認 v1.1
 5. 通常のWorker、WebGL 2、静的JSONが成功すれば、想定する静的アプリの基本動作を確認できています。
    module Workerの成否は構成選択の参考です。WebGL 1だけの成功では現行Three.jsの条件を満たしません。
 6. 必要なら「結果をコピー」を押してください。HTTP等でクリップボードが使えない場合は、結果欄を選択しCtrl+Cでコピーできます。
+
+「SimSim本体の計算Worker」は environment-check を本体の隣に置いた構成で ../src/worker.js とその依存ファイルの読み込み・応答を確認します。環境確認フォルダ単体では失敗します。簡易Workerの成功は、本体の画面初期化や依存ファイルの配信を保証しません。
 
 データはJSON形式ですが、社内ポータルの拡張子制限に合わせて .jsn を使用します。
 
