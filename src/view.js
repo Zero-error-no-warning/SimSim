@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261005-state-measurement-8';
-import { sharedAssignment } from './shared-settings.js?v=20261005-state-measurement-8';
+import { editableDefinition } from './editor.js?v=20261005-terrain-pick-9';
+import { sharedAssignment } from './shared-settings.js?v=20261005-terrain-pick-9';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-state-measurement-8';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-terrain-pick-9';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -93,8 +93,8 @@ export class MapView {
     canvas.addEventListener('lostpointercapture',()=>this.cancelDrag());
     canvas.addEventListener('contextmenu',event=>{
       event.preventDefault();if(this.spaceHeld||this.cameraGesture?.space)return;
-      if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)return;
-      if(this.cameraGesture){this.pendingMenu={clientX:event.clientX,clientY:event.clientY};return;}
+      if(this.down&&(this.down.moved||Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5))return;
+      if(this.cameraGesture){this.pendingMenu={clientX:event.clientX,clientY:event.clientY,shiftKey:event.shiftKey};return;}
       this.openContext(event);
     });
     canvas.addEventListener('pointermove',event=>this.pointerMove(event),true);
@@ -107,7 +107,7 @@ export class MapView {
   }
   openContext(event){
     this.updatePointer(event);const handle=this.authoring?this.pickHandle(event):null,unit=this.pickUnit(event);
-    this.onContext?.({x:event.clientX,y:event.clientY,id:unit??handle?.id,handle,point:this.pointFor(null)});
+    this.onContext?.({x:event.clientX,y:event.clientY,id:unit??handle?.id,handle,menu:event.shiftKey,point:this.editMode==='terrain'?this.mapPoint():this.pointFor(null)});
   }
   editableUnit(){
     return editableDefinition(this.scenario,this.selected)?.unit;
@@ -200,7 +200,7 @@ export class MapView {
     this.renderer.domElement.setPointerCapture(event.pointerId);
   }
   pointerMove(event) {
-    if(this.cameraGesture)return;
+    if(this.cameraGesture){if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)this.down.moved=true;return;}
     this.updatePointer(event);
     if(this.editMode==='terrain'){
       const point=this.mapPoint();this.terrainBrush(point);
@@ -278,7 +278,7 @@ export class MapView {
   pointerUp(event) {
     if(this.cameraGesture?.pointerId===event.pointerId){
       this.cameraGesture=null;queueMicrotask(()=>{
-        this.cameraButtons();if(this.pendingMenu){const context=this.pendingMenu;this.pendingMenu=null;if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<=5)this.openContext(context);}
+        this.cameraButtons();if(this.pendingMenu){const context=this.pendingMenu;this.pendingMenu=null;if(this.down&&!this.down.moved&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<=5)this.openContext(context);}
       });return;
     }
     if(this.terrainStroke!==undefined){

@@ -1,4 +1,4 @@
-export const UI_BUILD='20261005-state-measurement-8';
+export const UI_BUILD='20261005-terrain-pick-9';
 
 export function requireElement(id){
   const element=document.getElementById(id);

@@ -1,16 +1,16 @@
-import {ContextMenu} from './context-menu.js?v=20261005-state-measurement-8';
-import {TerrainUI} from './terrain-ui.js?v=20261005-state-measurement-8';
-import { BehaviorUI } from './behavior-ui.js?v=20261005-state-measurement-8';
-import { createSimulation } from './recorded-engine.js?v=20261005-state-measurement-8';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-state-measurement-8';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-state-measurement-8';
-import { importScenario } from './scenario-import.js?v=20261005-state-measurement-8';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-state-measurement-8';
-import { restoreAnalysisResult } from './detection.js?v=20261005-state-measurement-8';
-import { AnalysisUI } from './analysis-ui.js?v=20261005-state-measurement-8';
-import { MapView } from './view.js?v=20261005-state-measurement-8';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-state-measurement-8';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-state-measurement-8';
+import {ContextMenu} from './context-menu.js?v=20261005-terrain-pick-9';
+import {TerrainUI} from './terrain-ui.js?v=20261005-terrain-pick-9';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-terrain-pick-9';
+import { createSimulation } from './recorded-engine.js?v=20261005-terrain-pick-9';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-terrain-pick-9';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-terrain-pick-9';
+import { importScenario } from './scenario-import.js?v=20261005-terrain-pick-9';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-terrain-pick-9';
+import { restoreAnalysisResult } from './detection.js?v=20261005-terrain-pick-9';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-terrain-pick-9';
+import { MapView } from './view.js?v=20261005-terrain-pick-9';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-terrain-pick-9';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-terrain-pick-9';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -27,7 +27,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261005-state-measurement-8',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261005-terrain-pick-9',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -521,7 +521,7 @@ function setEditMode(mode) {
   $('route-edit').classList.toggle('active',mode==='route');
   $('place').textContent=mode==='place'?'指定を終了':currentUnit()?.routeMode==='loop'?'地図で基準点を指定':'地図で初期位置を指定';
   $('route-edit').textContent=mode==='route'?'✓ 経由点の追加を終了':'＋ 地図で経由点を追加';
-  $('map-instruction').textContent=mode==='terrain'?'左ドラッグで地形編集 · Space＋ドラッグで視点操作 · 右クリックでブラシ・適用 · Escで取消':mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · Space＋ドラッグで視点操作':'クリックで選択 · Space＋ドラッグで視点操作 · ホイールで拡大';
+  $('map-instruction').textContent=mode==='terrain'?'左ドラッグで地形編集 · Space＋ドラッグで視点操作 · 右クリックで標高取得 · Shift＋右クリックで編集メニュー · Escで取消':mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · Space＋ドラッグで視点操作':'クリックで選択 · Space＋ドラッグで視点操作 · ホイールで拡大';
 }
 function bindUnit(id,mutate,message) {
   $(id).addEventListener('change',()=>{
@@ -813,6 +813,8 @@ function openMapMenu(context){
   const items=[],d=context.id?definition(scenario,context.id):null;
   const add=(label,action,disabled=false)=>items.push({label,action,disabled}),separator=()=>items.push(null);
   if(terrainUI.active){
+    if(context.point&&!context.menu){mapMenu.close(false);terrainUI.sample(context.point);return;}
+    if(context.point)add('ここの標高を取得してそろえる',()=>terrainUI.sample(context.point));
     for(const [value,label] of [['raise','高くする'],['lower','低くする'],['flatten','標高をそろえる'],['smooth','平滑化']])add(label,()=>{$('terrain-brush-mode').value=value;terrainUI.fields();});
     separator();add('一筆を元に戻す　Ctrl+Z',()=>terrainUI.history(false),!terrainUI.past.length);add('一筆をやり直す　Ctrl+Shift+Z',()=>terrainUI.history(true),!terrainUI.future.length);
     separator();add('地形を適用',()=>terrainUI.apply());add('地形編集を取り消す　Esc',()=>terrainUI.cancel());

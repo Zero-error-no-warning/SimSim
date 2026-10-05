@@ -1,5 +1,5 @@
-import {paintTerrain,resizeTerrain} from './terrain-editor.js?v=20261005-state-measurement-8';
-import {requireElement} from './ui-dom.js?v=20261005-state-measurement-8';
+import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261005-terrain-pick-9';
+import {requireElement} from './ui-dom.js?v=20261005-terrain-pick-9';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){
@@ -8,7 +8,7 @@ export class TerrainUI{
     $('terrain-resize').onclick=()=>this.resize();
     $('terrain-apply').onclick=()=>this.apply();$('terrain-cancel').onclick=()=>this.cancel();
     $('terrain-undo').onclick=()=>this.history(false);$('terrain-redo').onclick=()=>this.history(true);
-    for(const id of ['terrain-brush-mode','terrain-brush-radius','terrain-brush-amount','terrain-brush-target'])$(id).onchange=()=>this.fields();
+    for(const id of ['terrain-brush-mode','terrain-brush-radius','terrain-brush-amount','terrain-brush-target','terrain-brush-strength'])$(id).onchange=()=>this.fields();
     view.onTerrainStroke=(phase,point)=>this.stroke(phase,point);
   }
   open(){
@@ -17,7 +17,7 @@ export class TerrainUI{
     this.setMode('terrain');$('terrain-panel').hidden=false;$('terrain-edit').classList.add('active');
     this.sizeFields();const cell=Math.min(this.draft.spacing,this.draft.spacingY??this.draft.spacing);
     $('terrain-brush-radius').value=Math.max(cell*3,500);$('terrain-brush-radius').min=cell/2;
-    this.fields();this.notify('左ドラッグで地形編集 · Space＋ドラッグで視点操作 · 右クリックでブラシ・適用 · Escで取消');
+    this.fields();this.notify('左ドラッグで地形編集 · Space＋ドラッグで視点操作 · 右クリックで標高取得 · Shift＋右クリックで編集メニュー · Escで取消');
   }
   sizeFields(){
     const d=this.draft;
@@ -48,14 +48,23 @@ export class TerrainUI{
       this.notify('領域サイズをプレビューしました。グリッド数は固定です。適用で確定、取消で元に戻します。');return true;
     }catch(error){$('terrain-size-error').textContent=error.message;$('terrain-size-error').hidden=false;return false;}
   }
+  sample(point){
+    if(!this.active)return false;
+    const height=sampleTerrainHeight(this.draft,point);if(height===null)return false;
+    this.stroke('end');
+    $('terrain-brush-target').value=height;
+    $('terrain-brush-mode').value='flatten';this.fields();
+    this.notify('標高 '+Number(height.toFixed(3))+' m を取得しました。「指定標高にそろえる」で塗れます。');return true;
+  }
   fields(){
     const minimum=Math.min(this.draft.spacing,this.draft.spacingY??this.draft.spacing)/2;$('terrain-brush-radius').min=minimum;
     const mode=$('terrain-brush-mode').value;
-    $('terrain-brush-target').parentElement.hidden=mode!=='flatten';$('terrain-brush-amount').parentElement.hidden=mode==='flatten';
-    $('terrain-brush-amount-label').textContent=mode==='smooth'?'平滑化の強さ（%）':'一筆の変化量（m）';
-    $('terrain-brush-amount').max=mode==='smooth'?100:10000;
-    this.brush={mode,radius:Number($('terrain-brush-radius').value),amount:Number($('terrain-brush-amount').value),target:Number($('terrain-brush-target').value)};
-    this.valid=['terrain-brush-radius','terrain-brush-amount','terrain-brush-target'].every(id=>$(id).value.trim()&&$(id).checkValidity());
+    const strengthMode=mode==='flatten'||mode==='smooth';
+    $('terrain-brush-target').parentElement.hidden=mode!=='flatten';$('terrain-brush-amount').parentElement.hidden=strengthMode;
+    $('terrain-brush-strength').parentElement.hidden=!strengthMode;
+    this.brush={mode,radius:Number($('terrain-brush-radius').value),amount:strengthMode?0:Number($('terrain-brush-amount').value),target:mode==='flatten'?Number($('terrain-brush-target').value):0,strength:strengthMode?Number($('terrain-brush-strength').value)/100:1};
+    const fields=['terrain-brush-radius',strengthMode?'terrain-brush-strength':'terrain-brush-amount',...(mode==='flatten'?['terrain-brush-target']:[])];
+    this.valid=fields.every(id=>$(id).value.trim()&&$(id).checkValidity());
     this.view.terrainBrushRadius=this.brush.radius;this.buttons();
   }
   buttons(){
