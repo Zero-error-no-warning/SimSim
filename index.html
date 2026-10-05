@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261005-worker-wait-2">
+<html lang="ja" data-simsim-build="20261005-select-after-create-3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261005-worker-wait-2">
-<script src="src/bootstrap.js?v=20261005-worker-wait-2" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261005-select-after-create-3">
+<script src="src/bootstrap.js?v=20261005-select-after-create-3" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
@@ -341,30 +341,17 @@
 <select id="behavior-list" aria-label="挙動"></select><button id="behavior-new">＋ 挙動</button><button id="behavior-duplicate">複製</button><button id="behavior-delete">削除</button><button id="behavior-undo">↶</button><button id="behavior-redo">↷</button><label>挙動名<input id="behavior-name" maxlength="120"></label>
 </div>
 <div class="behavior-toolbar">
-<select id="trigger-kind" aria-label="追加する起動条件"><option value="scenarioStart">シーン開始</option><option value="received">情報受信</option><option value="time">指定時間経過</option><option value="detected">対象探知</option></select><button id="trigger-add">＋ 起動条件</button>
-<select id="node-kind" aria-label="追加するノード"><option value="follow">経路を進む</option>
-<option value="patrol">協調して周回</option>
-<option value="signal">情報を待つ</option>
-<option value="report">報告</option>
-<option value="return">帰投</option>
-<option value="wait">時間待ち</option>
-<option value="stop">終了</option></select><button id="node-add">＋ ノード</button><label>接続条件<select id="edge-condition"><option value="detected">敵を探知</option>
-<option value="sent">送信成功</option>
-<option value="sendFailed">送信失敗</option>
-<option value="arrived">到着</option>
-<option value="elapsed">待機終了</option>
-<option value="received">情報受信</option></select></label>
-</div>
-<div class="behavior-toolbar">
+<details id="graph-add-menu" class="menu-popover graph-add-menu"><summary>＋ 追加</summary><div><button id="trigger-add">開始ノードを作る</button><button id="node-add">状態ノードを作る</button></div></details>
 <button id="behavior-zoom-in" title="挙動図を拡大">＋ 拡大</button><button id="behavior-zoom-out" title="挙動図を縮小">− 縮小</button><button id="behavior-fit">全体表示</button><output id="behavior-zoom-label" aria-label="表示倍率"></output><span class="route-help">ホイールで拡大縮小 · 背景をドラッグして移動</span>
 </div>
 <p id="behavior-instruction" class="route-help"></p>
 <div class="behavior-layout">
-<div class="behavior-viewport"><svg id="behavior-canvas" role="img" aria-label="共有挙動のノードエディタ" viewbox="0 0 1000 450"></svg><svg id="behavior-minimap" aria-label="ノード図のミニマップ。クリック・ドラッグで表示位置を移動"></svg></div><aside class="behavior-properties"><section id="trigger-properties" hidden><h3>挙動の起動条件</h3>
-<label class="field">イベント<select id="trigger-event"></select></label><label id="trigger-seconds-field" class="field">シーン開始からの秒数<input id="trigger-seconds" type="number" min="0" max="86400" step="any"></label>
+<div class="behavior-viewport"><svg id="behavior-canvas" role="img" aria-label="共有挙動のノードエディタ" viewbox="0 0 1000 450"></svg><svg id="behavior-minimap" aria-label="ノード図のミニマップ。クリック・ドラッグで表示位置を移動"></svg></div><aside class="behavior-properties"><p id="graph-selection-help" class="route-help">ノードや線をクリックすると、ここで種類・遷移条件を設定できます。</p><section id="trigger-properties" hidden><h3>開始ノード</h3>
+<label class="field">開始する契機<select id="trigger-event"></select></label><label id="trigger-seconds-field" class="field">シーン開始からの秒数<input id="trigger-seconds" type="number" min="0" max="86400" step="any"></label>
 <label class="field">開始する処理<select id="trigger-target"></select></label><label class="field">実行中の挙動<select id="trigger-policy"><option value="idle">実行中は起動しない</option><option value="interrupt">実行中の処理を中断して起動</option></select></label>
-<label class="check-field"><input id="trigger-once" type="checkbox" checked>各ユニットで一度だけ起動</label><p class="route-help">情報受信・探知はイベント発生時に判定します。実行中に見送ったイベントは後から実行しません。</p><button id="trigger-delete">起動条件を削除</button></section><section id="node-properties" hidden><h3 id="node-selected"></h3>
-<label id="node-value-field" class="field"><span id="node-value-label"></span><input id="node-value" type="number" min="0" step="any"></label><label id="node-receiver-field" class="field">報告先<select id="node-receiver"></select></label><button id="node-delete">ノードを削除</button><label class="check-field"><input id="node-sensor" type="checkbox" checked>この動作中にセンサーを使用</label></section></aside>
+<label class="check-field"><input id="trigger-once" type="checkbox" checked>各ユニットで一度だけ起動</label><p class="route-help">情報受信・探知はイベント発生時に判定します。実行中に見送ったイベントは後から実行しません。</p><button id="trigger-delete">開始ノードを削除</button></section><section id="node-properties" hidden><h3 id="node-selected"></h3>
+<label class="field">状態の種類<select id="node-kind"></select></label>
+<label id="node-value-field" class="field"><span id="node-value-label"></span><input id="node-value" type="number" min="0" step="any"></label><label id="node-receiver-field" class="field">報告先<select id="node-receiver"></select></label><button id="node-delete">ノードを削除</button><label class="check-field"><input id="node-sensor" type="checkbox" checked>この動作中にセンサーを使用</label></section><section id="edge-properties" hidden><h3>遷移線</h3><p id="edge-summary" class="route-help"></p><label class="field">遷移する条件<select id="edge-condition"></select></label><p id="edge-warning" class="route-help" hidden></p><button id="edge-delete">線を削除</button></section></aside>
 </div>
 </section><p class="route-help">ノード切替と経路の曲がり角は通常の間隔以外にも記録します。間隔維持は経路上の距離に対する速度調整で、速度上限に従って徐々に調整します。帰投は指定高度・深度の地点への移動で、着陸・浮上は未モデル化。</p>
 <div class="dialog-actions">

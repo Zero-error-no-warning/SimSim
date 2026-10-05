@@ -34,7 +34,9 @@ try {
   assert(await page.locator('#graph-editor').isHidden());
   await page.locator('#graph-edit-tab').click();
   await page.locator('[data-node="patrol"] rect').click();
-  assert.deepEqual(await page.locator('#edge-condition option').evaluateAll(xs=>xs.map(x=>x.value)),['detected','received']);
+  assert(await page.locator('#edge-condition').isHidden());
+  assert.equal(await page.locator('#trigger-kind').count(),0);
+  assert.equal(await page.locator('.behavior-toolbar #node-kind,.behavior-toolbar #edge-condition').count(),0);
   assert.equal(await page.locator('#node-entry').count(),0);
   assert.equal(await page.locator('#behavior-canvas [data-trigger] rect').count(),1);
   const viewport=()=>page.locator('#behavior-canvas').evaluate(el=>el.getAttribute('viewBox').split(' ').map(Number));
@@ -66,12 +68,76 @@ try {
   await page.mouse.move(start.x,start.y);await page.mouse.down();await page.mouse.move(start.x+35,start.y+20);await page.mouse.up();
   const moved=await rect.evaluate(el=>({x:Number(el.getAttribute('x')),y:Number(el.getAttribute('y'))}));
   assert(Math.abs(moved.x-old.x-(wq.x-wp.x))<.01);assert(Math.abs(moved.y-old.y-(wq.y-wp.y))<.01);
-  await page.locator('#node-kind').selectOption('wait');await page.locator('#node-add').click();
+  const addNode=async id=>{await page.locator('#graph-add-menu summary').click();await page.locator('#'+id).click();};
+  await addNode('node-add');
   const temporaryWait=await page.locator('#behavior-canvas .behavior-node.selected').getAttribute('data-node');
-  // Only explicit event types are offered as new entrances. Trigger ports cannot receive edges.
-  assert.deepEqual(await page.locator('#trigger-kind option').evaluateAll(xs=>xs.map(x=>x.value)),['received','time','detected']);
-  await page.locator('#trigger-kind').selectOption('received');await page.locator('#trigger-add').click();
-  assert(await page.locator('#trigger-properties').isVisible());assert.equal(await page.locator('#trigger-event').inputValue(),'received');
+  assert.equal(await page.locator('#node-kind').inputValue(),'');
+  assert((await page.locator('#behavior-canvas .behavior-node.selected').textContent()).includes('未設定'));
+  await page.locator('#behavior-apply').click();
+  assert(await page.locator('#behavior-dialog').isVisible());
+  assert((await page.locator('#behavior-validation').innerText()).includes('未設定の状態'));
+  await page.locator('#node-kind').selectOption('wait');
+  assert.equal(await page.locator('#node-value').inputValue(),'300');
+  await page.locator('#behavior-fit').click();
+  const connect=async(from,to)=>{
+    await page.locator('#behavior-canvas [data-node="'+from+'"][data-port="out"]').click();
+    await page.locator('#behavior-canvas [data-node="'+to+'"][data-port="in"]').click();
+  };
+  const clickLine=async index=>{
+    const hit=page.locator('#behavior-canvas [data-edge="'+index+'"] .behavior-edge-hit');
+    await hit.scrollIntoViewIfNeeded();
+    const point=await hit.evaluate(el=>{
+      const p=el.getPointAtLength(el.getTotalLength()/2),q=el.ownerSVGElement.createSVGPoint();q.x=p.x;q.y=p.y;
+      const screen=q.matrixTransform(el.getScreenCTM());return {x:screen.x,y:screen.y};
+    });
+    await page.mouse.click(point.x,point.y);
+  };
+  // A line exists before a condition is chosen. Clicking its body selects it.
+  await connect('patrol',temporaryWait);
+  assert(await page.locator('#edge-properties').isVisible());assert.equal(await page.locator('#edge-condition').inputValue(),'');
+  assert((await page.locator('#behavior-canvas [data-edge="0"]').textContent()).includes('条件を設定'));
+  await page.locator('#behavior-apply').click();assert((await page.locator('#behavior-validation').innerText()).includes('遷移条件が未設定'));
+  await page.locator('#edge-condition').selectOption('detected');
+  await page.locator('#behavior-canvas [data-node="patrol"] rect').click();assert(await page.locator('#edge-condition').isHidden());
+  await clickLine(0);assert.equal(await page.locator('#edge-condition').inputValue(),'detected');
+  assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),1);
+  await page.locator('#edge-condition').selectOption('received');await page.locator('#behavior-undo').click();
+  assert.equal(await page.locator('#edge-condition').inputValue(),'detected');
+  await page.locator('#behavior-redo').click();assert.equal(await page.locator('#edge-condition').inputValue(),'received');
+  // Another wire preserves the first branch and only offers unused conditions.
+  await connect('patrol',temporaryWait);
+  assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),2);
+  assert(await page.locator('#edge-condition option[value="received"]').evaluate(el=>el.disabled),JSON.stringify(await page.evaluate(()=>({labels:[...document.querySelectorAll('#behavior-canvas [data-edge]')].map(e=>e.textContent),options:[...document.getElementById('edge-condition').options].map(o=>({value:o.value,disabled:o.disabled})),summary:document.getElementById('edge-summary').textContent}))));
+  await page.locator('#edge-condition').selectOption('detected');
+  await clickLine(0);assert.equal(await page.locator('#edge-condition').inputValue(),'received');
+  await clickLine(1);assert.equal(await page.locator('#edge-condition').inputValue(),'detected');
+  await connect(temporaryWait,'patrol');await page.locator('#edge-condition').selectOption('elapsed');
+  // Changing a state retains connections, but incompatible conditions need editing.
+  await page.locator('#behavior-canvas [data-node="'+temporaryWait+'"] rect').click();
+  await page.locator('#node-kind').selectOption('report');
+  assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
+  assert((await page.locator('#behavior-canvas [data-edge="2"]').textContent()).includes('条件を設定'));
+  await page.locator('#node-kind').selectOption('wait');
+  await clickLine(2);await page.locator('#edge-condition').selectOption('elapsed');
+  await page.locator('#edge-delete').click();assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),2);
+  await page.locator('#behavior-undo').click();assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
+  // Completed drafts use the existing persisted model and reopen with conditions.
+  await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
+  const editedSave=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);
+  await editedSave[0].saveAs(path.join(folder,'edited-scenario.jsn'));
+  const editedSource=JSON.parse(fs.readFileSync(path.join(folder,'edited-scenario.jsn'))),editedGraph=editedSource.behaviors.find(g=>g.nodes.some(n=>n.id===temporaryWait));
+  assert.equal(editedGraph.nodes.find(n=>n.id===temporaryWait).kind,'wait');
+  assert.deepEqual(editedGraph.edges.map(e=>e.when),['received','detected','elapsed']);
+  await page.locator('#file').setInputFiles(path.join(folder,'edited-scenario.jsn'));
+  await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
+  assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
+  // Entrances are placed before their kind is chosen, and have no automatic target.
+  await addNode('trigger-add');
+  assert(await page.locator('#trigger-properties').isVisible());assert.equal(await page.locator('#trigger-event').inputValue(),'');
+  assert.equal(await page.locator('#trigger-target').inputValue(),'');
+  await page.locator('#behavior-apply').click();assert((await page.locator('#behavior-validation').innerText()).includes('未設定の開始ノード'));
+  assert(await page.locator('#trigger-event option[value="scenarioStart"]').evaluate(el=>el.disabled));
+  await page.locator('#trigger-event').selectOption('received');
   await page.locator('#trigger-event').selectOption('time');await page.locator('#trigger-seconds').fill('22.5');await page.locator('#trigger-seconds').press('Tab');
   await page.locator('#trigger-policy').selectOption('interrupt');await page.locator('#behavior-fit').click();
   const added=page.locator('#behavior-canvas .trigger-node').last();
@@ -82,7 +148,7 @@ try {
   assert.equal(await page.locator('#trigger-seconds').inputValue(),'22.5');
   await page.locator('#trigger-delete').click();assert.equal(await page.locator('#behavior-canvas .trigger-node').count(),1);
   await page.locator('#behavior-canvas [data-node="'+temporaryWait+'"] rect').click();await page.locator('#node-delete').click();
-  await page.locator('#node-kind').selectOption('stop');await page.locator('#node-add').click();await page.locator('#behavior-fit').click();
+  await addNode('node-add');await page.locator('#node-kind').selectOption('stop');await page.locator('#behavior-fit').click();
   assert.equal(await page.locator('#behavior-canvas .behavior-node.selected [data-port="out"]').count(),0);await page.locator('#node-delete').click();
   await page.locator('#behavior-fit').click();
   if(process.env.SIMSIM_GRAPH_SCREENSHOT)await page.locator('#behavior-dialog').screenshot({path:process.env.SIMSIM_GRAPH_SCREENSHOT});
@@ -123,10 +189,15 @@ try {
   await page.locator('.unit-item[data-id="patrol-uuv__1"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert(await page.locator('#behavior-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));
+  await addNode('node-add');await page.locator('#node-kind').selectOption('wait');await page.locator('#behavior-fit').click();
+  const mobileWait=await page.locator('#behavior-canvas .behavior-node.selected').getAttribute('data-node');
+  await connect('patrol',mobileWait);await page.locator('#edge-condition').selectOption('received');
+  await clickLine(0);assert.equal(await page.locator('#edge-condition').inputValue(),'received');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await page.locator('#behavior-cancel').click();
   assert.deepEqual(errors,[]);
   if(process.env.SIMSIM_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_SCREENSHOT,fullPage:true});
-  console.log('PASS: offline CSP / static .jsn, desktop and mobile layout, contextual tasks, event entrances and graphical connection, anchored wheel zoom, pan, fit, minimap, scaled node drag, terminal ports, valid edge choices, canonical definition save, worker calculation, seek, recording reopen, new/undo, Monte Carlo and trial replay, label toggle, no browser errors');
+  console.log('PASS: offline CSP; desktop/mobile create-before-configure; draft validation; clickable wires and labels; edge condition Undo/Redo; duplicate-condition protection; state-kind edits retain wires; graph definition save/reopen; trigger editing; zoom/pan/fit/minimap; scaled drag; calculation/record seek/reopen; Monte Carlo/replay; no browser errors');
 } finally {
   await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});
 }

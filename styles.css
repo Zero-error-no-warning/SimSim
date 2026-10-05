@@ -1234,6 +1234,14 @@ fieldset:disabled {
 .behavior-properties .field { margin-bottom:12px; }
 .behavior-properties select { width:100%; }
 .behavior-properties .route-help { margin:12px 0; }
+.graph-add-menu>div { left:0; right:auto; padding:8px; display:grid; gap:8px; }
+.graph-add-menu>div button { text-align:left; width:100%; }
+.behavior-node.unconfigured rect { stroke-dasharray:6 4; }
+.behavior-connection { cursor:pointer; }
+.behavior-connection.selected .behavior-edge { stroke:#ffd18b; stroke-width:4; }
+.behavior-edge.unconfigured { stroke:#a6b2c0; stroke-dasharray:6 4; }
+.behavior-edge-hit { fill:none; stroke:transparent; stroke-width:18; pointer-events:stroke; }
+.behavior-connection:focus-visible .behavior-edge { stroke:#ffd18b; }
 #behavior-canvas {
   width:100%;
   min-height:280px;

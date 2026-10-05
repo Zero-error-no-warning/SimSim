@@ -1,4 +1,4 @@
-export const UI_BUILD='20261005-worker-wait-2';
+export const UI_BUILD='20261005-select-after-create-3';
 
 export function requireElement(id){
   const element=document.getElementById(id);

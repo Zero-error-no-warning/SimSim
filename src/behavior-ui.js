@@ -1,7 +1,7 @@
-import { removeAssignment,removeBehavior } from './editor.js?v=20261005-worker-wait-2';
-import { clone,validateScenario } from './engine.js?v=20261005-worker-wait-2';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-worker-wait-2';
-import { requireElement } from './ui-dom.js?v=20261005-worker-wait-2';
+import { removeAssignment,removeBehavior } from './editor.js?v=20261005-select-after-create-3';
+import { clone,validateScenario } from './engine.js?v=20261005-select-after-create-3';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-select-after-create-3';
+import { requireElement } from './ui-dom.js?v=20261005-select-after-create-3';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -15,6 +15,7 @@ export class BehaviorUI{
     this.minimap=$('behavior-minimap');
     this.past=[];
     this.future=[];
+    this.selectedEdge=null;
     $('behaviors-open').onclick=()=>this.open(null,true);
     $('task-edit-tab').onclick=()=>this.tab('task');
     $('graph-edit-tab').onclick=()=>this.tab('graph');
@@ -35,11 +36,13 @@ export class BehaviorUI{
       this.connecting=null;
       this.selected=null;
       this.selectedTrigger=null;
+      this.selectedEdge=null;
       this.render();
     };
     $('assignment-list').onchange=()=>{
       this.assignmentId=$('assignment-list').value;
       this.graphId=this.assignment()?.behaviorId??this.graphId;
+      this.selected=null;this.selectedTrigger=null;this.selectedEdge=null;this.connecting=null;
       this.render();
     };
     $('behavior-new').onclick=()=>{
@@ -52,6 +55,7 @@ export class BehaviorUI{
       this.connecting=null;
       this.selected=null;
       this.selectedTrigger=null;
+      this.selectedEdge=null;
       this.render();
     };
     $('behavior-duplicate').onclick=()=>{
@@ -64,6 +68,7 @@ export class BehaviorUI{
       this.graphId=g.id;
       this.canvasView=null;
       this.connecting=null;
+      this.selected=null;this.selectedTrigger=null;this.selectedEdge=null;
       this.render();
     };
     $('behavior-delete').onclick=()=>{
@@ -75,20 +80,20 @@ export class BehaviorUI{
       this.assignmentId=this.draft.behaviorAssignments[0]?.id;
       this.selected=null;
       this.selectedTrigger=null;
+      this.selectedEdge=null;
       this.render();
     };
     $('node-add').onclick=()=>{
       if(!this.graph())return;
       this.remember();
-      const kind=$('node-kind').value,id='node-'+Date.now().toString(36),n={
-        id,kind,x:360+(this.graph().nodes.length%3)*260,y:400+Math.floor(this.graph().nodes.length/3)*100
-      };
-      if(kind==='wait')n.seconds=300;
-      if(kind==='patrol')n.speedFraction=.7;
-      if(kind==='report')n.receiverRole='report';
+      const id=this.newId('node'),n={id,...this.newPosition(false)};
       this.graph().nodes.push(n);
       this.selected=id;
       this.selectedTrigger=null;
+      this.selectedEdge=null;
+      this.connecting=null;
+      $('graph-add-menu').open=false;
+      this.reveal(n);
       this.render();
     };
     $('node-delete').onclick=()=>{
@@ -100,27 +105,39 @@ export class BehaviorUI{
       g.triggers=g.triggers.filter(t=>t.to!==this.selected);
       this.selected=null;
       this.selectedTrigger=null;
+      this.selectedEdge=null;
       this.render();
     };
     $('trigger-add').onclick=()=>{
       if(!this.graph())return;
       this.remember();
-      const g=this.graph(),id='trigger-'+Date.now().toString(36),event=$('trigger-kind').value;
-      if(!event)return;
-      const times=g.triggers.filter(t=>t.event==='time').map(t=>t.seconds),seconds=times.length?Math.max(...times)+300:300;
-      g.triggers.push({id,event,to:this.selected??g.nodes[0].id,x:40,y:70+g.triggers.length*120,...(event==='time'?{seconds:Math.min(86400,seconds)}:{})});
+      const g=this.graph(),id=this.newId('trigger');
+      g.triggers.push({id,...this.newPosition(true)});
       this.selected=null;
       this.selectedTrigger=id;
+      this.selectedEdge=null;
+      this.connecting=null;
+      $('graph-add-menu').open=false;
+      this.reveal(g.triggers.at(-1));
       this.render();
     };
     $('trigger-delete').onclick=()=>{
       this.remember();
       this.graph().triggers=this.graph().triggers.filter(t=>t.id!==this.selectedTrigger);
       this.selectedTrigger=null;
+      this.selectedEdge=null;
       this.render();
     };
+    $('edge-delete').onclick=()=>{
+      if(!this.edge())return;
+      this.remember();
+      this.graph().edges.splice(this.selectedEdge,1);
+      this.selectedEdge=null;
+      this.render();
+    };
+    $('edge-condition').onchange=()=>this.readFields('edge-condition');
     for(const id of ['trigger-event','trigger-target','trigger-seconds','trigger-policy','trigger-once'])$(id).onchange=()=>this.readFields(id);
-    for(const id of ['behavior-name','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
+    for(const id of ['behavior-name','node-kind','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
     $('assignment-new').onclick=()=>{
       const targets=[...this.draft.units.map(u=>['unit:'+u.id,u]),...(this.draft.groups??[]).map(g=>['group:'+g.id,g.template])].filter(([id])=>!this.draft.behaviorAssignments.some(a=>a.targets.includes(id)));
       const selected=this.getSelected(),preferred=selected?.groupId?'group:'+selected.groupId:'unit:'+selected?.id;
@@ -226,7 +243,7 @@ export class BehaviorUI{
     });
     this.svg.addEventListener('pointercancel',()=>{
       if(this.drag){
-        this.draft=this.past.pop();this.drag=null;this.render();
+        if(this.drag.recorded)this.draft=this.past.pop();this.drag=null;this.render();
       }else{this.pan=null;
       }
     });
@@ -240,6 +257,28 @@ export class BehaviorUI{
   }
   assignment(){
     return this.draft?.behaviorAssignments.find(a=>a.id===this.assignmentId);
+  }
+  edge(){return this.selectedEdge===null?null:this.graph()?.edges[this.selectedEdge];}
+  newId(prefix){
+    const ids=new Set([...this.graph().nodes,...this.graph().triggers].map(n=>n.id));
+    let index=1;while(ids.has(prefix+'-'+index))index++;
+    return prefix+'-'+index;
+  }
+  newPosition(trigger){
+    const v=this.canvasView??{x:0,y:0,w:1000,h:450},items=this.items();
+    const x=Math.max(0,Math.min(3790,v.x+v.w/2-105-(trigger?240:0))),y=Math.max(0,Math.min(3928,v.y+v.h/2-36));
+    for(let i=0;i<30;i++){
+      const p={x:Math.max(0,Math.min(3790,x+(i%3)*40)),y:Math.max(0,Math.min(3928,y+Math.floor(i/3)*85))};
+      if(!items.some(n=>Math.abs(n.x-p.x)<220&&Math.abs(n.y-p.y)<80))return p;
+    }
+    return {x,y};
+  }
+  reveal(n){
+    const v=this.canvasView;if(!v)return;
+    if(n.x<v.x+20)v.x=n.x-20;
+    if(n.x+230>v.x+v.w)v.x=n.x+230-v.w;
+    if(n.y<v.y+20)v.y=n.y-20;
+    if(n.y+92>v.y+v.h)v.y=n.y+92-v.h;
   }
   remember(){
     this.past.push(clone(this.draft));
@@ -266,6 +305,7 @@ export class BehaviorUI{
     this.assignmentId=a?.id??null;
     this.selected=null;
     this.selectedTrigger=null;
+    this.selectedEdge=null;
     this.connecting=null;
     this.canvasView=null;
     this.fitAll=false;
@@ -278,6 +318,12 @@ export class BehaviorUI{
   }
   apply(){
     try{
+      for(const g of this.draft.behaviors){
+        if(g.nodes.some(n=>!NODE_KINDS[n.kind]))throw Error('未設定の状態ノードがあります。ノードをクリックして種類を選択してください。');
+        if(g.triggers.some(t=>!TRIGGER_EVENTS[t.event]))throw Error('未設定の開始ノードがあります。ノードをクリックして開始する契機を選択してください。');
+        if(g.triggers.some(t=>!g.nodes.some(n=>n.id===t.to)))throw Error('開始ノードの接続先がありません。開始ノードから状態ノードへ線をつないでください。');
+        if(g.edges.some(e=>!NODE_EVENTS[g.nodes.find(n=>n.id===e.from)?.kind]?.includes(e.when)))throw Error('遷移条件が未設定の線があります。線をクリックして条件を選択してください。終了ノードからの線は削除してください。');
+      }
       validateScenario(this.draft);
       if(JSON.stringify(this.draft)===JSON.stringify(this.getScenario())||this.commit(this.draft,'タスクと挙動を変更しました。計算を実行してください。'))this.dialog.close();
     }catch(e){
@@ -286,16 +332,44 @@ export class BehaviorUI{
     }
   }
   readFields(id){
+    const g=this.graph(),n=g?.nodes.find(n=>n.id===this.selected),a=this.assignment(),t=g?.triggers.find(t=>t.id===this.selectedTrigger),edge=this.edge();
+    if(id==='edge-condition'&&edge){
+      const when=$('edge-condition').value;
+      if(when&&g.edges.some(e=>e!==edge&&e.from===edge.from&&e.when===when)){
+        this.render();$('edge-warning').hidden=false;$('edge-warning').textContent='この条件は同じ状態の別の線で使用しています。別の条件を選択してください。';return;
+      }
+    }
     this.remember();
-    const g=this.graph(),n=g?.nodes.find(n=>n.id===this.selected),a=this.assignment(),t=g?.triggers.find(t=>t.id===this.selectedTrigger);
+    if(id==='edge-condition'&&edge){
+      const value=$('edge-condition').value;
+      if(value)edge.when=value;else delete edge.when;
+    }
     if(t){
-      if(id==='trigger-event'){t.event=$('trigger-event').value;if(t.event==='time')t.seconds??=300;else delete t.seconds;}
+      if(id==='trigger-event'){
+        const event=$('trigger-event').value;
+        if(event)t.event=event;else delete t.event;
+        if(t.event==='time'){
+          const used=new Set(g.triggers.filter(other=>other!==t&&other.event==='time').map(other=>other.seconds));
+          let seconds=t.seconds??300;while(used.has(seconds)&&seconds<86400)seconds+=300;
+          t.seconds=Math.min(86400,seconds);
+        }else delete t.seconds;
+        if(['scenarioStart','time'].includes(t.event))t.once=true;
+      }
       if(id==='trigger-target')t.to=$('trigger-target').value;
       if(id==='trigger-seconds')t.seconds=Number($('trigger-seconds').value);
       if(id==='trigger-policy')t.policy=$('trigger-policy').value;
       if(id==='trigger-once')t.once=$('trigger-once').checked;
     }
     if(id==='behavior-name'&&g)g.name=$('behavior-name').value;
+    if(id==='node-kind'&&n){
+      const kind=$('node-kind').value;
+      if(kind)n.kind=kind;else delete n.kind;
+      if(kind==='wait')n.seconds??=300;else {delete n.seconds;delete n.parameter;}
+      if(kind==='patrol')n.speedFraction??=.7;else delete n.speedFraction;
+      if(kind==='report'){if(!n.receiverId&&!n.receiverRole)n.receiverRole='report';}
+      else {delete n.receiverId;delete n.receiverRole;}
+      for(const e of g.edges.filter(e=>e.from===n.id))if(!NODE_EVENTS[kind]?.includes(e.when))delete e.when;
+    }
     if(id==='node-value'&&n){
       if(n.kind==='wait')n.seconds=Number($('node-value').value);
       else if(n.kind==='patrol')n.speedFraction=Number($('node-value').value)/100;
@@ -347,10 +421,16 @@ export class BehaviorUI{
     this.render();
     this.dialog.showModal();
   }
-  edgeOptions(kind){
+  edgeOptions(kind,edge){
     const select=$('edge-condition');
     select.replaceChildren();
-    for(const k of NODE_EVENTS[kind]??[])select.append(new Option(EDGE_EVENTS[k],k));
+    select.append(new Option('条件を選択してください',''));
+    for(const k of NODE_EVENTS[kind]??[]){
+      const option=new Option(EDGE_EVENTS[k],k);
+      option.disabled=this.graph().edges.some(e=>e!==edge&&e.from===edge?.from&&e.when===k);
+      select.append(option);
+    }
+    select.value=edge?.when??'';
   }
   coord(e){
     const p=this.svg.createSVGPoint();
@@ -364,46 +444,54 @@ export class BehaviorUI{
     if(port){
       if(port.dataset.port==='out'){
         this.connecting={id:port.dataset.trigger??port.dataset.node,trigger:!!port.dataset.trigger};
-        if(this.connecting.trigger){
-          $('edge-condition').replaceChildren(new Option('起動','activate'));
-        }else{
-          const kind=this.graph().nodes.find(n=>n.id===this.connecting.id).kind;
-          this.edgeOptions(kind);
-        }
-        $('behavior-instruction').textContent='接続先の左の丸をクリックしてください。起動条件からは処理ノードだけに接続できます。';
+        $('behavior-instruction').textContent='接続先の左の丸をクリックしてください。線を作った後に条件を設定できます。';
       }else if(this.connecting&&port.dataset.node){
         const g=this.graph();
+        this.remember();
+        this.selected=null;
         if(this.connecting.trigger){
-          this.remember();
           g.triggers.find(t=>t.id===this.connecting.id).to=port.dataset.node;
+          this.selectedTrigger=this.connecting.id;
+          this.selectedEdge=null;
         }else{
-          const kind=g.nodes.find(n=>n.id===this.connecting.id)?.kind,when=$('edge-condition').value;
-          if(!NODE_EVENTS[kind]?.includes(when))return;
-          this.remember();
-          g.edges=g.edges.filter(x=>!(x.from===this.connecting.id&&x.when===when));
-          g.edges.push({from:this.connecting.id,to:port.dataset.node,when});
+          g.edges.push({from:this.connecting.id,to:port.dataset.node});
+          this.selectedEdge=g.edges.length-1;
+          this.selectedTrigger=null;
         }
         this.connecting=null;
         this.render();
       }
       return;
     }
-    if(e.target.closest('.edge-label'))return;
+    const connection=e.target.closest('[data-edge]'),startLine=e.target.closest('[data-start-line]');
+    if(connection||startLine){
+      this.selectConnection(connection?Number(connection.dataset.edge):null,startLine?.dataset.startLine);
+      return;
+    }
     if(!node&&!trigger){
       if(!this.canvasView)return;
       this.connecting=null;
+      this.selected=null;this.selectedTrigger=null;this.selectedEdge=null;
       const p=this.coord(e);
       this.pan={x:p.x,y:p.y,view:{...this.canvasView},matrix:this.svg.getScreenCTM().inverse()};
       this.svg.setPointerCapture(e.pointerId);
+      this.render();
       return;
     }
     this.connecting=null;
     this.selected=node?.dataset.node??null;
     this.selectedTrigger=trigger?.dataset.trigger??null;
-    this.remember();
+    this.selectedEdge=null;
     const n=this.items().find(n=>n.trigger? n.id===this.selectedTrigger:n.id===this.selected),p=this.coord(e);
-    this.drag={id:n.id,trigger:n.trigger,x:p.x-n.x,y:p.y-n.y};
+    this.drag={id:n.id,trigger:n.trigger,x:p.x-n.x,y:p.y-n.y,recorded:false};
     this.svg.setPointerCapture(e.pointerId);
+    this.render();
+  }
+  selectConnection(index,triggerId){
+    this.selected=null;
+    this.selectedTrigger=triggerId??null;
+    this.selectedEdge=index;
+    this.connecting=null;
     this.render();
   }
   move(e){
@@ -417,8 +505,10 @@ export class BehaviorUI{
     }
     if(!this.drag)return;
     const p=this.coord(e),n=(this.drag.trigger?this.graph().triggers:this.graph().nodes).find(n=>n.id===this.drag.id);
-    n.x=Math.max(0,Math.min(4000,p.x-this.drag.x));
-    n.y=Math.max(0,Math.min(4000,p.y-this.drag.y));
+    const x=Math.max(0,Math.min(4000,p.x-this.drag.x)),y=Math.max(0,Math.min(4000,p.y-this.drag.y));
+    if(Math.abs((n.x??0)-x)<.01&&Math.abs((n.y??0)-y)<.01)return;
+    if(!this.drag.recorded){this.remember();this.drag.recorded=true;}
+    n.x=x;n.y=y;
     this.renderGraph();
   }
   miniMove(e){
@@ -467,22 +557,23 @@ export class BehaviorUI{
     for(const id of ['assignment-spacing','assignment-distance','assignment-gain','assignment-phase'])$(id).parentElement.hidden=!patrol;
     $('assignment-preparation').parentElement.hidden=!graph?.nodes.some(n=>n.parameter==='preparation');
     $('assignment-receiver').parentElement.hidden=!graph?.nodes.some(n=>n.receiverRole);
-    const n=this.graph()?.nodes.find(n=>n.id===this.selected),t=this.graph()?.triggers.find(t=>t.id===this.selectedTrigger);
+    const n=this.graph()?.nodes.find(n=>n.id===this.selected),t=this.graph()?.triggers.find(t=>t.id===this.selectedTrigger),edge=this.edge();
+    $('graph-selection-help').hidden=!!(n||t||edge);
     $('trigger-properties').hidden=!t;
-    select('trigger-event',Object.entries(TRIGGER_EVENTS),t?.event);
-    select('trigger-target',this.graph()?.nodes.map(n=>[n.id,NODE_KINDS[n.kind]+' ('+n.id+')'])??[],t?.to);
+    select('trigger-event',[['','種類を選択してください'],...Object.entries(TRIGGER_EVENTS)],t?.event);
+    for(const option of $('trigger-event').options)option.disabled=!!option.value&&option.value!=='time'&&this.graph()?.triggers.some(other=>other!==t&&other.event===option.value);
+    select('trigger-target',[['','状態ノードに接続してください'],...(this.graph()?.nodes.map(n=>[n.id,NODE_KINDS[n.kind]??'未設定の状態'])??[])],t?.to);
     $('trigger-seconds-field').hidden=t?.event!=='time';
     $('trigger-seconds').value=t?.seconds??300;
     $('trigger-policy').value=t?.policy??'idle';
     $('trigger-once').checked=t?.once!==false;
     $('trigger-once').disabled=['scenarioStart','time'].includes(t?.event);
-    const available=Object.entries(TRIGGER_EVENTS).filter(([event])=>event==='time'||!this.graph()?.triggers.some(t=>t.event===event));
-    select('trigger-kind',available,$('trigger-kind').value);
     $('trigger-add').disabled=!this.graph();
     $('trigger-delete').disabled=(this.graph()?.triggers.length??0)<=1;
     $('node-delete').disabled=(this.graph()?.nodes.length??0)<=1;
     $('node-properties').hidden=!n;
-    $('node-selected').textContent=n?NODE_KINDS[n.kind]:'';
+    $('node-selected').textContent=n?(NODE_KINDS[n.kind]??'未設定の状態'):'';
+    select('node-kind',[['','種類を選択してください'],...Object.entries(NODE_KINDS)],n?.kind);
     $('node-value-field').hidden=!n||!['wait','patrol'].includes(n.kind);
     $('node-value-label').textContent=n?.kind==='wait'?'待機秒数':'能力速度に対する巡回速度 (%)';
     $('node-value').value=n?.kind==='wait'?(n.parameter==='preparation'?a?.preparation??0:n.seconds):(n?.speedFraction??.7)*100;
@@ -491,9 +582,13 @@ export class BehaviorUI{
     $('node-receiver-field').hidden=n?.kind!=='report';
     select('node-receiver',[['role','タスクの報告先'],...this.draft.units.map(u=>[u.id,u.name])],n?.receiverRole?'role':n?.receiverId);
     $('node-sensor').checked=n?.sensor!==false;
-    if(n)this.edgeOptions(n.kind);
-    else if(t)$('edge-condition').replaceChildren(new Option('起動','activate'));
-    else $('edge-condition').replaceChildren();
+    $('edge-properties').hidden=!edge;
+    const source=this.graph()?.nodes.find(n=>n.id===edge?.from),target=this.graph()?.nodes.find(n=>n.id===edge?.to);
+    $('edge-summary').textContent=edge?(NODE_KINDS[source?.kind]??'未設定の状態')+' → '+(NODE_KINDS[target?.kind]??'未設定の状態'):'';
+    this.edgeOptions(source?.kind,edge);
+    $('edge-condition').disabled=!(NODE_EVENTS[source?.kind]?.length);
+    $('edge-warning').hidden=!edge||!!NODE_EVENTS[source?.kind]?.length;
+    $('edge-warning').textContent=source?.kind==='stop'?'終了ノードからは遷移できません。この線を削除するか、始点の種類を変更してください。':'始点のノードをクリックして、状態の種類を設定してください。';
     $('behavior-duplicate').disabled=!this.graph();
     $('behavior-delete').disabled=!this.graph();
     $('node-add').disabled=!this.graph();
@@ -501,7 +596,7 @@ export class BehaviorUI{
     $('behavior-validation').hidden=true;
     $('behavior-undo').disabled=!this.past.length;
     $('behavior-redo').disabled=!this.future.length;
-    $('behavior-instruction').textContent='ノードをドラッグ · 右の丸→接続先の左の丸で接続 · 設定は選択して編集';
+    $('behavior-instruction').textContent='＋追加でノードを作成 · 丸同士をつないで線を作成 · ノードや線をクリックして設定';
     this.renderGraph();
   }
   zoom(f,anchor){
@@ -538,29 +633,31 @@ export class BehaviorUI{
       const marker=add('marker',{id,viewBox:'0 0 10 10',refX:9,refY:5,markerWidth:5,markerHeight:5,orient:'auto'},undefined,defs);
       add('path',{d:'M0 0 L10 5 L0 10 Z',fill:color},undefined,marker);
     }
-    const connections=[...g.triggers.map(t=>({from:t.id,to:t.to,trigger:true})),...g.edges];
+    const connections=[...g.triggers.map(t=>({from:t.id,to:t.to,trigger:true})),...g.edges.map((e,index)=>({...e,index}))];
     const counts=new Map();
     for(const edge of connections){
       const a=items.find(n=>n.id===edge.from&&!!n.trigger===!!edge.trigger),b=items.find(n=>n.id===edge.to&&!n.trigger);
       if(!a||!b)continue;
       const x=a.x+210,y=a.y+36,bx=b.x,by=b.y+36;
-      add('path',{d:`M${x},${y} C${x+65},${y} ${bx-65},${by} ${bx},${by}`,class:'behavior-edge'+(edge.trigger?' trigger-edge':''),'marker-end':edge.trigger?'url(#trigger-arrow)':'url(#behavior-arrow)'});
-      if(edge.trigger)continue;
-      const key=edge.from+'|'+edge.to,count=counts.get(key)??0;counts.set(key,count+1);
-      const label=add('text',{x:(x+bx)/2,y:(y+by)/2-12+count*18,class:'edge-label',tabindex:0,role:'button'},EDGE_EVENTS[edge.when]+' ×');
-      const remove=()=>{this.remember();g.edges=g.edges.filter(e=>e!==edge);this.render();};
-      label.addEventListener('click',remove);
-      label.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key==='Delete'){e.preventDefault();remove();}});
+      const key=(edge.trigger?'trigger:':'state:')+edge.from+'|'+edge.to,count=counts.get(key)??0;counts.set(key,count+1);
+      const offset=count*32,d=`M${x},${y} C${x+65},${y+offset} ${bx-65},${by+offset} ${bx},${by}`;
+      const attrs=edge.trigger?{'data-start-line':edge.from}:{'data-edge':edge.index};
+      const group=add('g',{...attrs,class:'behavior-connection'+((edge.trigger?this.selectedTrigger===edge.from:this.selectedEdge===edge.index)?' selected':''),tabindex:0,role:'button','aria-label':edge.trigger?'開始ノードの接続':(EDGE_EVENTS[edge.when]??'遷移条件を設定')+'：'+(NODE_KINDS[a.kind]??'未設定の状態')+' → '+(NODE_KINDS[b.kind]??'未設定の状態')});
+      add('path',{d,class:'behavior-edge'+(edge.trigger?' trigger-edge':!edge.when?' unconfigured':''),'marker-end':edge.trigger?'url(#trigger-arrow)':'url(#behavior-arrow)'},undefined,group);
+      add('path',{d,class:'behavior-edge-hit'},undefined,group);
+      if(!edge.trigger)add('text',{x:(x+bx)/2,y:(y+by)/2-12+offset*.75,class:'edge-label'},EDGE_EVENTS[edge.when]??'条件を設定',group);
+      group.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();this.selectConnection(edge.trigger?null:edge.index,edge.trigger?edge.from:undefined);}});
     }
     for(const n of items){
       const x=n.x,y=n.y,attrs=n.trigger?{'data-trigger':n.id}:{'data-node':n.id};
-      const group=add('g',{...attrs,class:'behavior-node'+(n.trigger?' trigger-node':'')+((n.trigger?this.selectedTrigger:this.selected)===n.id?' selected':'')});
+      const missing=n.trigger?!TRIGGER_EVENTS[n.event]:!NODE_KINDS[n.kind];
+      const group=add('g',{...attrs,class:'behavior-node'+(n.trigger?' trigger-node':'')+(missing?' unconfigured':'')+((n.trigger?this.selectedTrigger:this.selected)===n.id?' selected':'')});
       add('rect',{x,y,width:210,height:72,rx:n.trigger?28:12},undefined,group);
-      add('text',{x:x+14,y:y+29},n.trigger?TRIGGER_EVENTS[n.event]:NODE_KINDS[n.kind],group);
-      add('text',{x:x+14,y:y+52,class:'node-small'},n.trigger?(n.event==='time'?'シーン開始から '+n.seconds+' 秒':'起動条件'):
+      add('text',{x:x+14,y:y+29},n.trigger?(TRIGGER_EVENTS[n.event]??'未設定の開始ノード'):(NODE_KINDS[n.kind]??'未設定の状態'),group);
+      add('text',{x:x+14,y:y+52,class:'node-small'},missing?'クリックして種類を設定':n.trigger?(n.event==='time'?'シーン開始から '+n.seconds+' 秒':'開始する契機'):
         n.kind==='patrol'?'群で間隔を調整':n.kind==='wait'?n.seconds+'秒':n.kind==='report'?'情報を送信':n.id,group);
       if(!n.trigger)add('circle',{cx:x,cy:y+36,r:9,'data-port':'in',...attrs,class:'behavior-port'},undefined,group);
-      if(n.trigger||NODE_EVENTS[n.kind]?.length)add('circle',{cx:x+210,cy:y+36,r:9,'data-port':'out',...attrs,class:'behavior-port'},undefined,group);
+      if(n.trigger||missing||NODE_EVENTS[n.kind]?.length)add('circle',{cx:x+210,cy:y+36,r:9,'data-port':'out',...attrs,class:'behavior-port'},undefined,group);
     }
     // Include the viewport so its rectangle remains visible when panning beyond the graph.
     const mx=Math.min(minX,v.x),my=Math.min(minY,v.y),mw=Math.max(maxX,v.x+v.w)-mx,mh=Math.max(maxY,v.y+v.h)-my;

@@ -1,9 +1,9 @@
-import { Simulation } from './engine.js?v=20261005-worker-wait-2';
-import { importScenario } from './scenario-import.js?v=20261005-worker-wait-2';
-import { random01, streamKey } from './random.js?v=20261005-worker-wait-2';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-worker-wait-2';
-import { graphTriggers } from './shared-settings.js?v=20261005-worker-wait-2';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-worker-wait-2';
+import { Simulation } from './engine.js?v=20261005-select-after-create-3';
+import { importScenario } from './scenario-import.js?v=20261005-select-after-create-3';
+import { random01, streamKey } from './random.js?v=20261005-select-after-create-3';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-select-after-create-3';
+import { graphTriggers } from './shared-settings.js?v=20261005-select-after-create-3';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-select-after-create-3';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
