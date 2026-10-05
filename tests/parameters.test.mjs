@@ -1,10 +1,10 @@
-import {importScenario} from '../src/scenario-import.js?v=20261005-navigation-5';
+import {importScenario} from '../src/scenario-import.js?v=20261005-parameters-terrain-6';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261005-navigation-5';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-navigation-5';
-import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261005-navigation-5';
-import {numericScale} from '../src/chart-scale.js?v=20261005-navigation-5';
+import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261005-parameters-terrain-6';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261005-parameters-terrain-6';
+import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261005-parameters-terrain-6';
+import {numericScale} from '../src/chart-scale.js?v=20261005-parameters-terrain-6';
 const source=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.jsn',import.meta.url),'utf8'));
 const range={target:'group:observers',parameter:'extent.sense.radius',values:[300,900]};
 const speed={target:'unit:hostile-transit',parameter:'rate.movement.speed',distribution:'uniform',min:10,max:24};

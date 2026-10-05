@@ -1,0 +1,320 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "担当値を変えて同じ挙動を実行",
+  "notes": "架空の平坦な海域。共通の挙動に「待機時間・巡回経路・移動先・接近距離」を定義し、東航ユニットと北航ユニットで具体値を変える。担当・共有設定でこの担当で使う値を編集できる。",
+  "duration": 300,
+  "seed": "assignment-demo",
+  "terrain": {
+    "columns": 9,
+    "rows": 9,
+    "spacing": 1000,
+    "origin": {
+      "x": -1000,
+      "y": -1000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "east",
+      "name": "東航ユニット",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 20,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "north",
+      "name": "北航ユニット",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 20,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    }
+  ],
+  "routes": [
+    {
+      "id": "east-route",
+      "name": "東へ進む航路",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 2000,
+          "y": 0,
+          "z": 0
+        }
+      ],
+      "mode": "once"
+    },
+    {
+      "id": "north-route",
+      "name": "北へ進む航路",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 2000,
+          "z": 0
+        }
+      ],
+      "mode": "once"
+    }
+  ],
+  "destinations": [
+    {
+      "id": "east-goal",
+      "name": "東の目的地",
+      "kind": "point",
+      "point": {
+        "x": 4000,
+        "y": 0,
+        "z": 0
+      }
+    },
+    {
+      "id": "north-goal",
+      "name": "北の目的地",
+      "kind": "point",
+      "point": {
+        "x": 0,
+        "y": 4000,
+        "z": 0
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "common",
+      "name": "待機・経路移動・目的地へ接近",
+      "initial": "wait",
+      "parameters": [
+        {
+          "id": "wait-time",
+          "name": "待機時間",
+          "type": "number",
+          "unit": "s",
+          "default": 10
+        },
+        {
+          "id": "route",
+          "name": "巡回経路",
+          "type": "route"
+        },
+        {
+          "id": "goal",
+          "name": "移動先",
+          "type": "destination"
+        },
+        {
+          "id": "near-distance",
+          "name": "接近距離",
+          "type": "number",
+          "unit": "m",
+          "default": 300
+        }
+      ],
+      "nodes": [
+        {
+          "id": "wait",
+          "kind": "wait",
+          "seconds": {
+            "$param": "wait-time"
+          },
+          "x": 40,
+          "y": 100
+        },
+        {
+          "id": "follow",
+          "kind": "follow",
+          "routeId": {
+            "$param": "route"
+          },
+          "joinMode": "nearest",
+          "x": 330,
+          "y": 100
+        },
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": {
+            "$param": "goal"
+          },
+          "x": 620,
+          "y": 100
+        },
+        {
+          "id": "stop",
+          "kind": "stop",
+          "x": 910,
+          "y": 100
+        }
+      ],
+      "triggers": [],
+      "edges": [
+        {
+          "to": "follow",
+          "when": "elapsed",
+          "from": "wait"
+        },
+        {
+          "to": "move",
+          "when": "arrived",
+          "from": "follow"
+        },
+        {
+          "to": "stop",
+          "when": "near",
+          "destinationId": {
+            "$param": "goal"
+          },
+          "distance": {
+            "$param": "near-distance"
+          },
+          "distanceMode": "horizontal",
+          "from": "move"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "east-task",
+      "name": "東航の担当",
+      "behaviorId": "common",
+      "targets": [
+        "unit:east"
+      ],
+      "spacing": "none",
+      "parameters": {
+        "route": "east-route",
+        "goal": "east-goal"
+      }
+    },
+    {
+      "id": "north-task",
+      "name": "北航の担当",
+      "behaviorId": "common",
+      "targets": [
+        "unit:north"
+      ],
+      "spacing": "none",
+      "parameters": {
+        "route": "north-route",
+        "goal": "north-goal",
+        "wait-time": 30,
+        "near-distance": 600
+      }
+    }
+  ],
+  "recording": {
+    "step": 5,
+    "interval": 5
+  }
+}

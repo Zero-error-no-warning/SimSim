@@ -1,5 +1,5 @@
-import {navigationErrors} from './navigation.js?v=20261005-navigation-5';
-import {requireElement} from './ui-dom.js?v=20261005-navigation-5';
+import {navigationErrors} from './navigation.js?v=20261005-parameters-terrain-6';
+import {requireElement} from './ui-dom.js?v=20261005-parameters-terrain-6';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint}){
@@ -67,7 +67,7 @@ export class NavigationUI{
   }
   remove(){
     const draft=this.getDraft(),field=this.kind==='route'?'routeId':'destinationId';
-    if(draft.behaviors.some(g=>[...g.nodes,...g.edges,...g.triggers].some(n=>n[field]===this.item.id))){this.error('ノードまたは遷移条件で使用中です。参照先を変更してから削除してください。');return;}
+    if(draft.behaviors.some(g=>g.parameters?.some(p=>p.type===this.kind&&p.default===this.item.id))||draft.behaviorAssignments.some(a=>{const g=draft.behaviors.find(g=>g.id===a.behaviorId);return g?.parameters?.some(p=>p.type===this.kind&&a.parameters?.[p.id]===this.item.id);})||draft.behaviors.some(g=>[...g.nodes,...g.edges,...g.triggers].some(n=>n[field]===this.item.id))){this.error('ノードまたは遷移条件で使用中です。参照先を変更してから削除してください。');return;}
     this.remember();draft[this.key]=draft[this.key].filter(item=>item.id!==this.item.id);this.dialog.close();this.render();
   }
   addPoint(point){this.item.points.push({...point});return this.item.points.length;}

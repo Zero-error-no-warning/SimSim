@@ -1,8 +1,8 @@
-import { readParameter } from './parameters.js?v=20261005-navigation-5';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-navigation-5';
-import { actionErrors } from './action-settings.js?v=20261005-navigation-5';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-navigation-5';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-navigation-5';
+import { readParameter } from './parameters.js?v=20261005-parameters-terrain-6';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261005-parameters-terrain-6';
+import { actionErrors } from './action-settings.js?v=20261005-parameters-terrain-6';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261005-parameters-terrain-6';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261005-parameters-terrain-6';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -273,8 +273,8 @@ export class Simulation {
       time:t,units:this.scenario.units.map(u=>this.evaluateUnit(u,t))
     };
   }
-  evaluateUnit(u,time) {
-    const t=Math.min(this.scenario.duration,Math.max(0,Number(time)||0));
+  evaluateUnit(u,time,limitTime=true) {
+    const elapsed=Math.max(0,Number(time)||0),t=limitTime?Math.min(this.scenario.duration,elapsed):elapsed;
     const path=this.paths.get(u.id),actualSpeed=path.actualSpeed??u.speed;
     const delay=path.delay??0,rawTravel=actualSpeed*Math.max(0,t-delay);
     const travel=!path.periodic&&actualSpeed>0&&t>=delay+path.length/actualSpeed?Math.max(rawTravel,path.length):rawTravel;

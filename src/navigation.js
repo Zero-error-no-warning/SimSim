@@ -1,14 +1,17 @@
+import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261005-parameters-terrain-6';
 // Named navigation resources, shared by state nodes and proximity conditions.
 export function routeFor(s,a,n,u){
-  const route=n?.routeId?s.routes?.find(r=>r.id===n.routeId):null;
+  const graph=s.behaviors?.find(g=>g.id===a?.behaviorId),id=resolveValue(n?.routeId,graph,a);
+  const route=id?s.routes?.find(r=>r.id===id):null;
   return {id:route?.id??'default',points:route?.points??a?.route??[u.initial,...u.route],mode:n?.kind==='patrol'?'loop':route?.mode??a?.routeMode??u.routeMode};
 }
 export function destinationFor(s,a,n){
-  return n?.destinationId?s.destinations?.find(d=>d.id===n.destinationId):a?.base?{kind:'point',point:a.base}:null;
+  const id=resolveValue(n?.destinationId,s.behaviors?.find(g=>g.id===a?.behaviorId),a);
+  return id?s.destinations?.find(d=>d.id===id):a?.base?{kind:'point',point:a.base}:null;
 }
 export function conditionKey(c){
   const event=c.when??c.event;
-  return event==='near'?[event,c.destinationId,c.distance,c.distanceMode??'absolute'].join('|'):event==='time'?event+'|'+c.seconds:event;
+  return event==='near'?[event,c.destinationId,c.distance,c.distanceMode??'absolute'].map(v=>isParameterRef(v)?JSON.stringify(v):v).join('|'):event==='time'?event+'|'+(isParameterRef(c.seconds)?JSON.stringify(c.seconds):c.seconds):event;
 }
 export const measuredDistance=(a,b,mode='absolute')=>Math.hypot(a.x-b.x,a.y-b.y,mode==='horizontal'?0:a.z-b.z);
 export function navigationErrors(s){
@@ -32,10 +35,10 @@ export function navigationErrors(s){
   }
   return errors;
 }
-export function proximityErrors(s,c){
+export function proximityErrors(s,c,allowRefs=false){
   const errors=[];
-  if(!Array.isArray(s.destinations)||!s.destinations.some(d=>d?.id===c.destinationId))errors.push('接近条件の目的地を選択してください。');
-  if(!Number.isFinite(c.distance)||c.distance<0||c.distance>1000000)errors.push('接近距離は0～1000000mです。');
+  if(!(allowRefs&&isParameterRef(c.destinationId))&&(!Array.isArray(s.destinations)||!s.destinations.some(d=>d?.id===c.destinationId)))errors.push('接近条件の目的地を選択してください。');
+  if(!(allowRefs&&isParameterRef(c.distance))&&(!Number.isFinite(c.distance)||c.distance<0||c.distance>1000000))errors.push('接近距離は0～1000000mです。');
   if(!['horizontal','absolute'].includes(c.distanceMode??'absolute'))errors.push('距離の種類は水平距離または絶対距離です。');
   return errors;
 }

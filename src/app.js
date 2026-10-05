@@ -1,14 +1,15 @@
-import { BehaviorUI } from './behavior-ui.js?v=20261005-navigation-5';
-import { createSimulation } from './recorded-engine.js?v=20261005-navigation-5';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-navigation-5';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-navigation-5';
-import { importScenario } from './scenario-import.js?v=20261005-navigation-5';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-navigation-5';
-import { restoreAnalysisResult } from './detection.js?v=20261005-navigation-5';
-import { AnalysisUI } from './analysis-ui.js?v=20261005-navigation-5';
-import { MapView } from './view.js?v=20261005-navigation-5';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-navigation-5';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-navigation-5';
+import {TerrainUI} from './terrain-ui.js?v=20261005-parameters-terrain-6';
+import { BehaviorUI } from './behavior-ui.js?v=20261005-parameters-terrain-6';
+import { createSimulation } from './recorded-engine.js?v=20261005-parameters-terrain-6';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261005-parameters-terrain-6';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261005-parameters-terrain-6';
+import { importScenario } from './scenario-import.js?v=20261005-parameters-terrain-6';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261005-parameters-terrain-6';
+import { restoreAnalysisResult } from './detection.js?v=20261005-parameters-terrain-6';
+import { AnalysisUI } from './analysis-ui.js?v=20261005-parameters-terrain-6';
+import { MapView } from './view.js?v=20261005-parameters-terrain-6';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261005-parameters-terrain-6';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261005-parameters-terrain-6';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -23,7 +24,7 @@ const STATUS_NAMES={
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
-const worker=new Worker(new URL('./worker.js?v=20261005-navigation-5',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261005-parameters-terrain-6',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -133,6 +134,7 @@ const behaviorUI=new BehaviorUI({
     setEditMode('shared-base');view.placementUnit=behaviorUI.mapUnit();notify('目的地を地図でクリックしてください。');
   }
 });
+const terrainUI=new TerrainUI({getScenario:()=>scenario,view,setMode:setEditMode,commit,notify});
 $('unit-task-open').onclick=()=>behaviorUI.open();
 $('record-run').onclick=()=>{
   pause();
@@ -248,6 +250,7 @@ function applyScenario(next,{
 }
 ={
 }) {
+  if(terrainUI.active)terrainUI.cancel();
   closeMapMenu();
   const checked=importScenario(next),compiled=createSimulation(checked);
   scenario=checked;
@@ -495,6 +498,7 @@ function updateClock() {
   if(document.activeElement!==$('timeline'))$('timeline').value=snapshot?.time??time;
 }
 function setEditMode(mode) {
+  if(terrainUI.active&&mode!=='terrain')terrainUI.cancel();
   if(mode)setAuthoring(true);
   else {
     pendingPlacement=null;
@@ -510,7 +514,7 @@ function setEditMode(mode) {
   $('route-edit').classList.toggle('active',mode==='route');
   $('place').textContent=mode==='place'?'指定を終了':currentUnit()?.routeMode==='loop'?'地図で基準点を指定':'地図で初期位置を指定';
   $('route-edit').textContent=mode==='route'?'✓ 経由点の追加を終了':'＋ 地図で経由点を追加';
-  $('map-instruction').textContent=mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · 背景ドラッグで視点操作':'クリックで選択 · 背景ドラッグで視点操作 · ホイールで拡大';
+  $('map-instruction').textContent=mode==='terrain'?'ドラッグで地形編集 · 右ドラッグで視点移動 · 適用で確定 · Escで取消':mode==='create'?'置きたい場所をクリック · Escで取り消し':mode==='circle-center'?'周回の中心をクリック · Escで取り消し':mode==='circle-radius'?'半径と開始位置をクリック · Escで取り消し':mode==='place'?'初期位置をクリック · Escで終了':mode==='route'?'地図クリックで経由点を追加 · Escで終了':authoring?'ユニット・経由点をドラッグ · 右クリックで操作 · 背景ドラッグで視点操作':'クリックで選択 · 背景ドラッグで視点操作 · ホイールで拡大';
 }
 function bindUnit(id,mutate,message) {
   $(id).addEventListener('change',()=>{
@@ -653,6 +657,7 @@ function newId(prefix){
   return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);
 }
 function setAuthoring(enabled){
+  if(!enabled&&terrainUI.active)terrainUI.cancel();
   pause();
   if(enabled&&time!==0){
     time=0;
@@ -968,10 +973,10 @@ window.addEventListener('keydown',event=>{
   if(document.querySelector('dialog[open]'))return;
   if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){
-    event.preventDefault();$(event.shiftKey?'redo':'undo').click();
+    event.preventDefault();if(terrainUI.active)terrainUI.history(event.shiftKey);else $(event.shiftKey?'redo':'undo').click();
   }
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){
-    event.preventDefault();$('redo').click();
+    event.preventDefault();if(terrainUI.active)terrainUI.history(true);else $('redo').click();
   }
   if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){
     event.preventDefault();const d=definition(scenario,selected);if(d)beginPlacement(d.unit.domain,d.group??d.unit);

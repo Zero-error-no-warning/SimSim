@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261005-navigation-5';
-import { sharedAssignment } from './shared-settings.js?v=20261005-navigation-5';
+import { editableDefinition } from './editor.js?v=20261005-parameters-terrain-6';
+import { sharedAssignment } from './shared-settings.js?v=20261005-parameters-terrain-6';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-navigation-5';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261005-parameters-terrain-6';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -153,6 +153,12 @@ export class MapView {
     this.down={
       x:event.clientX,y:event.clientY,pointerId:event.pointerId
     };
+    if(event.button===0&&this.editMode==='terrain'){
+      event.stopImmediatePropagation();event.preventDefault();this.updatePointer(event);
+      const point=this.mapPoint();if(!point)return;
+      this.terrainStroke=event.pointerId;this.controls.enabled=false;
+      this.renderer.domElement.setPointerCapture(event.pointerId);this.onTerrainStroke?.('start',point);return;
+    }
     if(event.button!==0||!this.authoring||this.editMode)return;
     this.updatePointer(event);
     const id=this.pickUnit(event),handle=id?null:this.pickHandle(event);
@@ -172,6 +178,11 @@ export class MapView {
   }
   pointerMove(event) {
     this.updatePointer(event);
+    if(this.editMode==='terrain'){
+      const point=this.mapPoint();this.terrainBrush(point);
+      if(this.terrainStroke!==undefined){event.stopImmediatePropagation();if(event.pointerId===this.terrainStroke)this.onTerrainStroke?.('move',point);}
+      this.onHover(point);return;
+    }
     if(!this.drag){
       this.onHover(this.mapPoint());
       return;
@@ -241,6 +252,11 @@ export class MapView {
     this.routes.add(this.dragPreview);
   }
   pointerUp(event) {
+    if(this.terrainStroke!==undefined){
+      event.stopImmediatePropagation();if(event.pointerId!==this.terrainStroke)return;
+      this.terrainStroke=undefined;this.controls.enabled=true;this.onTerrainStroke?.('end');
+      if(this.renderer.domElement.hasPointerCapture(event.pointerId))this.renderer.domElement.releasePointerCapture(event.pointerId);return;
+    }
     if(this.drag){
       event.stopImmediatePropagation();
       if(event.pointerId!==this.drag.pointerId)return;
@@ -273,6 +289,7 @@ export class MapView {
     if(id)this.onSelect(id);
   }
   cancelDrag(){
+    this.cancelTerrainStroke();
     if(!this.drag)return;
     this.drag=null;
     this.controls.enabled=true;
@@ -280,6 +297,29 @@ export class MapView {
     this.buildRoutes();
     this.updateSnapshot(this.snapshot);
     this.onDragState?.('ドラッグを取り消しました。');
+  }
+  cancelTerrainStroke(){
+    if(this.terrainStroke===undefined)return;
+    const id=this.terrainStroke;this.terrainStroke=undefined;this.controls.enabled=true;this.onTerrainStroke?.('cancel');
+    if(this.renderer.domElement.hasPointerCapture(id))this.renderer.domElement.releasePointerCapture(id);
+  }
+  clearTerrainBrush(){
+    if(this.brushLine){this.scene.remove(this.brushLine);this.brushLine.geometry.dispose();this.brushLine.material.dispose();this.brushLine=null;}
+  }
+  terrainBrush(point){
+    this.clearTerrainBrush();if(!point||!Number.isFinite(this.terrainBrushRadius))return;
+    const points=Array.from({length:65},(_,i)=>{const x=point.x+this.terrainBrushRadius*Math.cos(i/64*Math.PI*2),y=point.y+this.terrainBrushRadius*Math.sin(i/64*Math.PI*2);return this.world({x,y,z:this.terrain.height(x,y)??point.z},35);});
+    this.brushLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#ffd18b',depthTest:false}));this.brushLine.renderOrder=20;this.scene.add(this.brushLine);
+  }
+  previewTerrain(data){
+    this.terrainPreviewData=data;this.terrain=new Terrain(data);this.terrainKey=null;
+    const geometry=this.terrainMesh.geometry,position=geometry.getAttribute('position'),color=geometry.getAttribute('color');
+    const deep=new THREE.Color('#244960'),shallow=new THREE.Color('#397c87'),lowland=new THREE.Color('#5c896c'),peak=new THREE.Color('#d9d6b6');
+    for(let i=0;i<data.elevations.length;i++){
+      const h=data.elevations[i];position.setY(i,h*this.exaggeration);
+      const c=h<=data.seaLevel?deep.clone().lerp(shallow,Math.max(0,1-(data.seaLevel-h)/1000)):lowland.clone().lerp(peak,Math.min(1,(h-data.seaLevel)/1000));color.setXYZ(i,c.r,c.g,c.b);
+    }
+    position.needsUpdate=true;color.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();
   }
   setAuthoring(enabled){
     this.cancelDrag();
@@ -433,11 +473,12 @@ export class MapView {
     }
   }
   setExaggeration(value) {
+    const preview=this.editMode==='terrain'?this.terrainPreviewData:null;
     this.exaggeration=value;
     this.terrainKey=null;
     if(this.scenario){
       this.setScenario(this.scenario,this.selected,this.model);
-      this.updateSnapshot(this.snapshot);
+      this.updateSnapshot(this.snapshot);if(preview)this.previewTerrain(preview);
     }
   }
   world(point,offset=0) {
@@ -742,13 +783,14 @@ export class MapView {
     this.raycaster.setFromCamera(this.pointer,this.camera);
   }
   mapPoint() {
+    if(this.editMode==='terrain'){const hit=this.raycaster.intersectObject(this.terrainMesh)[0];return hit?{x:hit.point.x,y:-hit.point.z,z:hit.point.y/this.exaggeration}:null;}
     return this.pointFor(this.editMode==='create'||this.editMode?.startsWith('shared-')?this.placementUnit:this.editMode?this.editableUnit():null);
   }
   setLabelsVisible(visible){
     this.labelLayer.hidden=!visible;
   }
   render() {
-    if(!this.drag)this.controls.update();
+    if(!this.drag&&this.terrainStroke===undefined)this.controls.update();
     const width=this.element.clientWidth,height=this.element.clientHeight,occupied=[];
     this.camera.updateMatrixWorld();
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));

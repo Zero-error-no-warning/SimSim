@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {paintTerrain} from '../src/terrain-editor.js?v=20261005-parameters-terrain-6';
+import {Terrain} from '../src/engine.js?v=20261005-parameters-terrain-6';
+import {terrainVisible} from '../src/contact.js?v=20261005-parameters-terrain-6';
+const data={columns:7,rows:7,spacing:100,origin:{x:0,y:0},seaLevel:0,elevations:Array(49).fill(-100)};
+const original=structuredClone(data);const center={x:300,y:300};
+assert(paintTerrain(data,center,{mode:'raise',radius:200,amount:300}));assert.equal(data.elevations[24],200);assert.equal(data.elevations[0],-100);assert.equal(data.elevations[22],-100);
+const terrain=new Terrain(data);assert(terrain.project({x:300,y:300,z:0},'surface').error);assert.equal(terrain.project({x:300,y:300,z:0},'ground').point.z,200);
+assert(!terrainVisible(terrain,{x:0,y:300,z:100},{x:600,y:300,z:100}));assert(terrainVisible(new Terrain(original),{x:0,y:300,z:100},{x:600,y:300,z:100}));
+paintTerrain(data,center,{mode:'lower',radius:200,amount:300});assert.equal(data.elevations[24],-100);
+paintTerrain(data,center,{mode:'flatten',radius:200,target:1000});assert.equal(data.elevations[24],1000);assert.equal(data.elevations[0],-100);
+paintTerrain(data,center,{mode:'smooth',radius:200,amount:100});assert(data.elevations[24]<1000);assert(data.elevations[24]>-100);
+paintTerrain(data,center,{mode:'raise',radius:200,amount:1e6});assert.equal(data.elevations[24],10000);paintTerrain(data,center,{mode:'lower',radius:200,amount:1e6});assert.equal(data.elevations[24],-12000);
+assert.throws(()=>paintTerrain(data,center,{mode:'raise',radius:1,amount:10}),/ブラシ/);
+console.log('PASS: terrain brush bounds/falloff, raise/lower/flatten/smooth, SI heights, domain constraints and sensor terrain occlusion');

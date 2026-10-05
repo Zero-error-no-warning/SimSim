@@ -1,10 +1,11 @@
-import { Simulation } from './engine.js?v=20261005-navigation-5';
-import { importScenario } from './scenario-import.js?v=20261005-navigation-5';
-import { random01, streamKey } from './random.js?v=20261005-navigation-5';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-navigation-5';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-navigation-5';
-import { graphTriggers } from './shared-settings.js?v=20261005-navigation-5';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-navigation-5';
+import {resolveGraph} from './behavior-parameters.js?v=20261005-parameters-terrain-6';
+import { Simulation } from './engine.js?v=20261005-parameters-terrain-6';
+import { importScenario } from './scenario-import.js?v=20261005-parameters-terrain-6';
+import { random01, streamKey } from './random.js?v=20261005-parameters-terrain-6';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261005-parameters-terrain-6';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261005-parameters-terrain-6';
+import { graphTriggers } from './shared-settings.js?v=20261005-parameters-terrain-6';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261005-parameters-terrain-6';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -26,6 +27,15 @@ function pathPoint(path, along) {
     point:mix(a,b,b.d>a.d?(d-a.d)/(b.d-a.d):0), segment:l, heading:Math.atan2(b.x-a.x,b.y-a.y)
   };
 }
+export function closestPathPoint(path,position){
+  let best={point:path.nodes[0],along:0,distance:Infinity};
+  for(let i=1;i<path.nodes.length;i++){
+    const a=path.nodes[i-1],b=path.nodes[i],dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z,length2=dx*dx+dy*dy+dz*dz;
+    const f=length2?Math.max(0,Math.min(1,((position.x-a.x)*dx+(position.y-a.y)*dy+(position.z-a.z)*dz)/length2)):0,point=mix(a,b,f),distance=dist(position,point);
+    if(distance<best.distance)best={point,along:a.d+(b.d-a.d)*f,distance};
+  }
+  return best;
+}
 // One execution model for ordinary routes, tasks, zero-population trials and recordings.
 export class RecordedSimulation extends Simulation {
   constructor(value) {
@@ -43,7 +53,7 @@ export class RecordedSimulation extends Simulation {
     this.byId=new Map();
     for (const u of [...this.scenario.units].sort((a,b)=>a.id.localeCompare(b.id))) {
       const assignment=this.assignments.find(a=>a.targets.includes('unit:'+u.id)||u.groupId&&a.targets.includes('group:'+u.groupId));
-      const graph=assignment?graphs.get(assignment.behaviorId):null;
+      const graph=assignment?resolveGraph(graphs.get(assignment.behaviorId),assignment):null;
       const initialNode=graph?.nodes.find(n=>n.id===graph.initial),chosen=routeFor(this.source,assignment,initialNode,u);
       const shared=assignment?.route?.length>=2||initialNode?.routeId;
       const geometry=shared?{
@@ -56,6 +66,7 @@ export class RecordedSimulation extends Simulation {
           ...path.nodes[0]
         },heading:0,status:'idle',distance:0,progress:0,segment:-1,error:path.errorAt==='初期位置'?path.error:null,fired:new Set(),triggerFired:new Set(),triggerTimes:new Map(),activated:false,observation:null,trace:[],routeStarted:null,routePaused:0
       };
+      if(initialNode?.joinMode==='nearest'){const departure=this.terrain.project(u.initial,u.domain);s.position=departure.point;if(departure.error)s.error=departure.error;}
       this.states.push(s);
       this.byId.set(u.id,s);
       for (const n of graph?.nodes??[]) if (!this.nodeNames.includes(graph.id+':'+n.id)) this.nodeNames.push(graph.id+':'+n.id);
@@ -76,7 +87,7 @@ export class RecordedSimulation extends Simulation {
   }
   enter(s, id, t, initial=false, resume=false) {
     const previous=s.node;
-    if(previous?.kind==='follow')s.routeContexts.set(previous.routeId??'default',{path:s.path,started:s.routeStarted,travel:s.routeTravel??0,paused:t,join:s.join});
+    if(previous?.kind==='follow')s.routeContexts.set(previous.routeId??'default',{path:s.path,started:s.routeStarted,travel:s.routeTravel??0,offset:s.routeOffset??0,paused:t,join:s.join});
     s.node=s.graph.nodes.find(n=>n.id===id);
     s.nodeTime=t;
     s.sent=false;
@@ -99,33 +110,24 @@ export class RecordedSimulation extends Simulation {
     }
     s.status='idle';
     if (s.node.kind==='patrol') {
-      if (initial) {
-        s.progress=s.initialPhase*s.path.length;
-        const p=pathPoint(s.path,s.progress);
-        s.position=p.point;
-        s.heading=p.heading;
-        s.segment=p.segment;
-      }
-      else {
-        let best=Infinity;
-        for(const n of s.path.nodes){
-          const d=dist(n,s.position);
-          if(d<best){
-            best=d;
-            s.progress=n.d;
-          }
-        }
-        s.join=pathPoint(s.path,s.progress).point;
+      if(initial&&s.node.joinMode!=='nearest'){
+        s.progress=(s.node.joinMode==='start'?0:s.initialPhase)*s.path.length;
+        const p=pathPoint(s.path,s.progress);s.position=p.point;s.heading=p.heading;s.segment=p.segment;
+      }else{
+        const nearest=(s.node.joinMode??'nearest')==='nearest'?closestPathPoint(s.path,s.position):pathPoint(s.path,0);
+        s.progress=nearest.along??0;s.join=nearest.point;
       }
       s.readyAt=t+(initial?s.path.delay:0);
       s.status=t<s.readyAt?'waiting':'moving';
     } else if (s.node.kind==='follow') {
       const saved=resume?s.routeContexts.get(s.node.routeId??'default'):null;
-      if(saved&&saved.path===s.path){s.routeStarted=saved.started===null?null:saved.started+t-saved.paused;s.routeTravel=saved.travel;s.join=saved.join;}
+      if(saved&&saved.path===s.path){s.routeStarted=saved.started===null?null:saved.started+t-saved.paused;s.routeTravel=saved.travel;s.routeOffset=saved.offset;s.join=saved.join;}
       else{
-        s.routeTravel=0;s.routeArrived=false;
-        s.join=!initial&&dist(s.position,s.path.nodes[0])>1e-7?s.path.nodes[0]:null;
-        s.routeStarted=s.join?null:t;
+        const entry=s.node.joinMode==='nearest'?closestPathPoint(s.path,s.position):{point:s.path.nodes[0],along:0};
+        s.routeOffset=entry.along;s.routeTravel=entry.along;s.routeArrived=false;
+        s.join=(!initial||s.node.joinMode==='nearest')&&dist(s.position,entry.point)>1e-7?entry.point:null;
+        s.routeStarted=s.join?null:t-(s.path.actualSpeed?s.routeOffset/s.path.actualSpeed:0)-(s.routeOffset>0?s.path.delay:0);
+
       }
       s.status=s.join?'moving':t<(s.routeStarted??t)+(initial?s.path.delay:0)?'waiting':s.path.length&&s.path.actualSpeed?'moving':'idle';
     } else if (s.node.kind==='signal') s.status='standby';
@@ -194,7 +196,7 @@ export class RecordedSimulation extends Simulation {
     if(s.status==='blocked'||!s.node&&s.graph)return s.position;
     if(!s.graph||s.node.kind==='follow'&&!s.join){
       const offset=s.graph?s.routeStarted??0:0;
-      return Simulation.prototype.evaluateUnit.call(this,s.unit,Math.max(0,seconds-offset)).position;
+      return Simulation.prototype.evaluateUnit.call(this,s.unit,Math.max(0,seconds-offset),false).position;
     }
     const dt=Math.max(0,seconds-(this.currentTime??0));
     if(s.node.kind==='patrol'&&!s.join)return pathPoint(s.path,mod(s.progress+(speeds.get(s.unit.id)??s.path.actualSpeed)*Math.max(0,seconds-Math.max(this.currentTime??0,s.readyAt)),s.path.length||1)).point;
@@ -203,11 +205,23 @@ export class RecordedSimulation extends Simulation {
     const length=dist(s.position,target),travel=Math.min(length,s.path.actualSpeed*dt);
     return mix(s.position,target,length?travel/length:1);
   }
-  stateSnapshot(s) {
+  replayPath(s,t){
+    if(!s.graph)return s.path;
+    if(!s.replayRoutes){
+      s.replayRoutes=[{time:0,node:s.graph.nodes.find(n=>n.id===s.graph.initial)}];
+      for(const event of this.result.actionEvents)if(event.unitId===s.unit.id&&event.type==='nodeChanged')s.replayRoutes.push({time:event.time,node:s.graph.nodes.find(n=>n.id===event.nodeId)});
+      s.replayRoutes=s.replayRoutes.filter(entry=>['follow','patrol'].includes(entry.node?.kind));
+    }
+    const node=s.replayRoutes.findLast(entry=>entry.time<=t)?.node;if(!node)return s.basePath;
+    const selected=routeFor(this.source,s.assignment,node,s.unit),key=selected.id+'|'+node.kind;
+    if(!s.pathCache.has(key))s.pathCache.set(key,this.compile({...s.unit,initial:selected.points[0],route:selected.points.slice(1),routeMode:selected.mode,motion:{...s.unit.motion,...(!node.routeId?{}:{loopStart:0})}}));
+    return s.pathCache.get(key);
+  }
+  stateSnapshot(s,path=s.path) {
     return {
       id:s.unit.id,position:{
         x:s.position.x,y:s.position.y,z:s.position.z
-      },heading:s.heading,status:s.status,distance:s.distance,routeDistance:s.path.length,error:s.error,errorAt:s.path.errorAt,actualSpeed:s.path.actualSpeed,startDelay:s.path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null
+      },heading:s.heading,status:s.status,distance:s.distance,routeDistance:path.length,error:s.error,errorAt:path.errorAt,actualSpeed:path.actualSpeed,startDelay:path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null
     };
   }
   evaluate(time) {
@@ -225,7 +239,7 @@ export class RecordedSimulation extends Simulation {
     const units=this.states.map((s,i)=>{
       const k=i*5,x=a.values,y=b.values,node=this.nodeNames[a.nodes[i]-1],d=mod(y[k+3]-x[k+3]+Math.PI,Math.PI*2)-Math.PI;
       return {
-        ...this.stateSnapshot(s),position:{
+        ...this.stateSnapshot(s,this.replayPath(s,t)),position:{
           x:x[k]+(y[k]-x[k])*f,y:x[k+1]+(y[k+1]-x[k+1])*f,z:x[k+2]+(y[k+2]-x[k+2])*f
         },heading:x[k+3]+d*f,distance:x[k+4]+(y[k+4]-x[k+4])*f,status:STATUS[a.status[i]],nodeId:node?.split(':')[1],error:a.status[i]===3?'記録された地形制約停止':null,actualSpeed:b.time>a.time?Math.max(0,(y[k+4]-x[k+4])/(b.time-a.time)):0
       };
@@ -473,12 +487,12 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       if(s.status==='blocked')continue;
       if(s.graph&&!s.node)continue;
       if(s.node?.kind==='follow'&&s.join){
-        if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end;s.routeTravel=0;}
+        if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end-(s.path.actualSpeed?s.routeOffset/s.path.actualSpeed:0)-(s.routeOffset>0?s.path.delay:0);s.routeTravel=s.routeOffset;}
         changed=true;continue;
       }
       if(!s.graph||s.node.kind==='follow'){
         const prev=s.status,oldSegment=s.segment,offset=s.graph?s.routeStarted??0:0;
-        const state=Simulation.prototype.evaluateUnit.call(model,s.unit,Math.max(0,end-offset));
+        const state=Simulation.prototype.evaluateUnit.call(model,s.unit,Math.max(0,end-offset),false);
         if(s.graph){const cumulative=s.distance+Math.max(0,state.distance-(s.routeTravel??0));s.routeTravel=state.distance;Object.assign(s,state);s.distance=cumulative;}else Object.assign(s,state);
         s.segment=pathPoint(s.path,s.path.periodic?state.distance%s.path.length:state.distance).segment;
         if(prev!==s.status||oldSegment!==s.segment)changed=true;

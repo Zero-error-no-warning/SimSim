@@ -1,4 +1,4 @@
-import('./app.js?v=20261005-navigation-5').catch(error => {
+import('./app.js?v=20261005-parameters-terrain-6').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

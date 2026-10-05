@@ -1,10 +1,10 @@
-import { TRIGGER_EVENTS } from './shared-settings.js?v=20261005-navigation-5';
-import { RECORD_MODEL } from './recording.js?v=20261005-navigation-5';
-import { numericScale } from './chart-scale.js?v=20261005-navigation-5';
-import { clone,validateScenario } from './engine.js?v=20261005-navigation-5';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-navigation-5';
-import { ParameterEditor } from './parameter-ui.js?v=20261005-navigation-5';
-import { requireElement } from './ui-dom.js?v=20261005-navigation-5';
+import { TRIGGER_EVENTS } from './shared-settings.js?v=20261005-parameters-terrain-6';
+import { RECORD_MODEL } from './recording.js?v=20261005-parameters-terrain-6';
+import { numericScale } from './chart-scale.js?v=20261005-parameters-terrain-6';
+import { clone,validateScenario } from './engine.js?v=20261005-parameters-terrain-6';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261005-parameters-terrain-6';
+import { ParameterEditor } from './parameter-ui.js?v=20261005-parameters-terrain-6';
+import { requireElement } from './ui-dom.js?v=20261005-parameters-terrain-6';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -15,7 +15,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-navigation-5',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261005-parameters-terrain-6',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

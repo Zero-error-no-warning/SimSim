@@ -1,4 +1,4 @@
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261005-navigation-5';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261005-parameters-terrain-6';
 let simulation, latest, generation=0, state='idle', failure=null;
 function send() {
   if(!simulation||!latest)return;
