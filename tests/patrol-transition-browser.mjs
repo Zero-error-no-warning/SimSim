@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261006-patrol-transition-18';
-import {UI_VERSION} from '../src/ui-dom.js?v=20261006-patrol-transition-18';
+import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261006-patrol-cruise-19';
+import {UI_VERSION} from '../src/ui-dom.js?v=20261006-patrol-cruise-19';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-patrol-transition-'));
 const server=http.createServer((req,res)=>{
@@ -46,6 +46,25 @@ try{
     await page.waitForFunction(()=>!document.getElementById('play').disabled);
     assert(!await page.locator('#error-dialog').isVisible());
   }
+  // Run the reported distributed-stall case through the deployed Worker too.
+  const uneven=JSON.parse(fs.readFileSync(new URL('fixtures/patrol-spacing.txt',import.meta.url)));
+  const input=path.join(folder,'uneven.txt');fs.writeFileSync(input,JSON.stringify(uneven));
+  await page.locator('#file').setInputFiles(input);
+  await page.waitForFunction(()=>document.getElementById('title').value==='不均等な配置での協調周回');
+  await page.locator('#record-run').click();
+  await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
+  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);
+  const archive=path.join(folder,'uneven-record.txt');await download.saveAs(archive);
+  const recording=restoreRecording(JSON.parse(fs.readFileSync(archive)));
+  const local=createSimulation(uneven);for(const _ of sharedSteps(local,undefined,undefined,{record:true})){}
+  for(let time=10;time<=600;time+=10){
+    const before=recording.evaluate(time-1).units,after=recording.evaluate(time).units;
+    assert(after.every((u,i)=>u.distance-before[i].distance>=.7-1e-3),'Every unit keeps cruising');
+    assert.deepEqual(after,local.evaluate(time).units,'Worker and local calculations agree');
+  }
+  await page.locator('#file').setInputFiles(archive);
+  await page.waitForFunction(()=>!document.getElementById('play').disabled);
+  assert(!await page.locator('#error-dialog').isVisible());
   assert.deepEqual(errors,[]);
-  console.log('PASS: move -> arrival/proximity -> cooperative patrol in Worker, separated movement, saved recording, seeking/reopen and visible version');
+  console.log('PASS: move -> arrival/proximity -> cooperative patrol, uneven placement without stops, Worker/local agreement, saved recording, seeking/reopen and visible version');
 }finally{await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});}

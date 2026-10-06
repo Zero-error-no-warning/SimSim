@@ -1,7 +1,7 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 1.4 / 更新日: 2026-10-06
-対象: SimSim、feat/shared-behavior-replay、UIビルド 20261006-patrol-transition-18
+文書版: 1.5 / 更新日: 2026-10-06
+対象: SimSim、feat/shared-behavior-replay、UIビルド 20261006-patrol-cruise-19
 生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
 仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 
@@ -572,7 +572,8 @@ behaviorAssignmentsの各要素:
 - spacing: none / even / fixed、省略時none。
 - spacingDistance: 0～100000m、省略時500。spacing:fixedの目標間隔。
 - gain: 0～1、省略時0.01。協調patrolの間隔調整係数。
-- 同じ経路上の同位置ではユニットIDで順序を固定し、最後尾から先頭への一周分の空きを含めて速度を調整する。同じ地点から合流した場合も、spacing:even/fixedかつgain>0なら順に動き出して間隔を広げる。spacing:noneまたはgain:0は分散させない。
+- 巡回速度はactualSpeed×speedFraction。間隔補正はgain×(前方の間隔−目標間隔)を滑らかに制限し、減速は巡回速度の半分まで、加速はactualSpeedまで。間隔調整だけで速度0にはしない。
+- 経路上の現在位置で順序を決め、完全に同位置の場合だけユニットIDで順序を固定し、最後尾から先頭への一周分の空きを含めて速度を調整する。同じ地点から合流した場合も、spacing:even/fixedかつgain>0なら速度差で間隔を広げる。spacing:noneまたはgain:0は分散させない。
 - phase: 0～1、省略時0。共有周回の出発位相。
 - receiverId: receiverRoleを使う場合に必要。units内の単体ID。
 - parameters: 必要時だけ、下記の担当値。

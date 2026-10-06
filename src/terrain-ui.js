@@ -1,5 +1,5 @@
-import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261006-patrol-transition-18';
-import {requireElement} from './ui-dom.js?v=20261006-patrol-transition-18';
+import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261006-patrol-cruise-19';
+import {requireElement} from './ui-dom.js?v=20261006-patrol-cruise-19';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){

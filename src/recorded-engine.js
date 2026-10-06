@@ -1,13 +1,13 @@
-import {measurePoints} from './measurement-points.js?v=20261006-patrol-transition-18';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-patrol-transition-18';
-import {resolveGraph} from './behavior-parameters.js?v=20261006-patrol-transition-18';
-import { Simulation } from './engine.js?v=20261006-patrol-transition-18';
-import { importScenario } from './scenario-import.js?v=20261006-patrol-transition-18';
-import { random01, streamKey } from './random.js?v=20261006-patrol-transition-18';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-patrol-transition-18';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-patrol-transition-18';
-import { graphTriggers } from './shared-settings.js?v=20261006-patrol-transition-18';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-patrol-transition-18';
+import {measurePoints} from './measurement-points.js?v=20261006-patrol-cruise-19';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-patrol-cruise-19';
+import {resolveGraph} from './behavior-parameters.js?v=20261006-patrol-cruise-19';
+import { Simulation } from './engine.js?v=20261006-patrol-cruise-19';
+import { importScenario } from './scenario-import.js?v=20261006-patrol-cruise-19';
+import { random01, streamKey } from './random.js?v=20261006-patrol-cruise-19';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-patrol-cruise-19';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-patrol-cruise-19';
+import { graphTriggers } from './shared-settings.js?v=20261006-patrol-cruise-19';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-patrol-cruise-19';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -364,8 +364,18 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
           // The last member's forward gap wraps around the route once. Even
           // when all phases coincide, the empty lap belongs to this member;
           // modulo alone would turn that lap into zero and stop everyone.
-          const s=members[i],next=members[(i+1)%members.length],gap=(next.progress/next.path.length-s.progress/s.path.length+(i===members.length-1?1:0))*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length,max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
-          speeds.set(s.unit.id,a.spacing==='none'||members.length===1?nominal:Math.max(0,Math.min(max,nominal+(a.gain??.01)*(gap-desired))));
+          const s=members[i],next=members[(i+1)%members.length],max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
+          let speed=nominal;
+          if(a.spacing!=='none'&&members.length>1){
+            const gap=(next.progress/next.path.length-s.progress/s.path.length+(i===members.length-1?1:0))*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length;
+            const correction=(a.gain??.01)*(gap-desired);
+            // Keep cruising while correcting spacing. Bound deceleration at
+            // half the nominal cruise speed and acceleration at actualSpeed;
+            // smooth saturation preserves gain near the desired interval.
+            const allowance=correction<0?nominal*.5:max-nominal;
+            if(allowance>0)speed+=allowance*Math.tanh(correction/allowance);
+          }
+          speeds.set(s.unit.id,speed);
         }
       }
     }

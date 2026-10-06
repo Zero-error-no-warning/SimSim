@@ -1,4 +1,4 @@
-import('./app.js?v=20261006-patrol-transition-18').catch(error => {
+import('./app.js?v=20261006-patrol-cruise-19').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

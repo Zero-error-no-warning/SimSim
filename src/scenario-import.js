@@ -1,5 +1,5 @@
-import { validateScenario } from './engine.js?v=20261006-patrol-transition-18';
-import { normalizedAnalysis } from './parameters.js?v=20261006-patrol-transition-18';
+import { validateScenario } from './engine.js?v=20261006-patrol-cruise-19';
+import { normalizedAnalysis } from './parameters.js?v=20261006-patrol-cruise-19';
 // Compatibility ends here: the application and workers execute version 3 only.
 export function importScenario(value) {
   const s = validateScenario(value);

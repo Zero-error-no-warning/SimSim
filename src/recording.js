@@ -1,8 +1,8 @@
-import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261006-patrol-transition-18';
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-patrol-transition-18';
-export { RECORD_MODEL } from './recorded-engine.js?v=20261006-patrol-transition-18';
-import { clone } from './engine.js?v=20261006-patrol-transition-18';
-import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261006-patrol-transition-18';
+import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261006-patrol-cruise-19';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-patrol-cruise-19';
+export { RECORD_MODEL } from './recorded-engine.js?v=20261006-patrol-cruise-19';
+import { clone } from './engine.js?v=20261006-patrol-cruise-19';
+import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261006-patrol-cruise-19';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);

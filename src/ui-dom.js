@@ -1,4 +1,4 @@
-export const UI_BUILD='20261006-patrol-transition-18';
+export const UI_BUILD='20261006-patrol-cruise-19';
 // The visible version follows the dated build revision used for cache updates.
 export const UI_VERSION='v'+UI_BUILD.replace(/^(\d{4})(\d{2})(\d{2})-.*-(\d+)$/,'$1.$2.$3.$4');
 

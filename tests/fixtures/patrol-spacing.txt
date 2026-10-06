@@ -1,0 +1,252 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "不均等な配置での協調周回",
+  "duration": 600,
+  "terrain": {
+    "columns": 3,
+    "rows": 3,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "6",
+      "name": "6",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "7",
+      "name": "7",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 100,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "9",
+      "name": "9",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 600,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "8",
+      "name": "8",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 700,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "1",
+      "name": "1",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 2500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "5",
+      "name": "5",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 7500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "3",
+      "name": "3",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 10000,
+        "y": 2000,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "4",
+      "name": "4",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 10000,
+        "y": 8000,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "2",
+      "name": "2",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 3000,
+        "y": 10000,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    }
+  ],
+  "routes": [
+    {
+      "id": "r",
+      "name": "四角形",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 10000,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 10000,
+          "y": 10000,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 10000,
+          "z": 0
+        }
+      ]
+    }
+  ],
+  "destinations": [
+    {
+      "id": "d",
+      "name": "合流地点",
+      "kind": "point",
+      "point": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "g",
+      "name": "移動と周回",
+      "initial": "patrol",
+      "nodes": [
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "d"
+        },
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "r",
+          "speedFraction": 0.7,
+          "joinMode": "nearest"
+        }
+      ],
+      "edges": []
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "a",
+      "name": "同じタスク",
+      "behaviorId": "g",
+      "targets": [
+        "unit:6",
+        "unit:7",
+        "unit:9",
+        "unit:8",
+        "unit:1",
+        "unit:5",
+        "unit:3",
+        "unit:4",
+        "unit:2"
+      ],
+      "spacing": "even",
+      "spacingDistance": 1000
+    }
+  ],
+  "recording": {
+    "step": 1,
+    "interval": 1
+  }
+}

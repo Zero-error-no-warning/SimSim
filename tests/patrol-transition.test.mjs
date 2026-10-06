@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone} from '../src/engine.js?v=20261006-patrol-transition-18';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-patrol-transition-18';
+import {clone} from '../src/engine.js?v=20261006-patrol-cruise-19';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-patrol-cruise-19';
 
 const point=(x,y=0)=>({x,y,z:0});
 const fixture=JSON.parse(readFileSync(new URL('fixtures/patrol-transition.txt',import.meta.url)));
@@ -49,4 +49,35 @@ for(const joinMode of ['start','nearest']){
   const source=scenario({joinMode});source.behaviors[0].initial='patrol';
   const {model}=run(source);assert(model.states.every(s=>s.distance>4000));
 }
-console.log('PASS: coincident arrivals/proximity -> patrol, start/nearest entry, even/fixed spacing, continuous positions, deterministic order, summary/replay and initial departures');
+// Distributed, uneven placements used to leave four of nine units stationary
+// for the entire 600 seconds, despite distinct positions and a valid route.
+const uneven=JSON.parse(readFileSync(new URL('fixtures/patrol-spacing.txt',import.meta.url)));
+for(const spacing of ['even','fixed'])for(const gain of [.01,1])for(const fraction of [.05,.7,1])for(const step of [1,10]){
+  const source=clone(uneven);
+  source.behaviorAssignments[0].spacing=spacing;source.behaviorAssignments[0].gain=gain;
+  source.behaviors[0].nodes[1].speedFraction=fraction;
+  source.recording={step,interval:step};
+  const {model}=run(source);
+  for(let time=2*step;time<=600;time+=step){
+    const before=model.evaluate(time-step).units,after=model.evaluate(time).units;
+    for(let i=0;i<after.length;i++){
+      const travel=after[i].distance-before[i].distance;
+      assert(travel>=2*fraction*.5*step-1e-3,`Spacing must not stop ${after[i].id}: ${JSON.stringify({spacing,gain,fraction,step,time,travel})}`);
+      assert(travel<=2*step+1e-3,'Patrol must stay within the unit speed limit');
+    }
+  }
+}
+// The adjustment must still spread the group, rather than merely forcing all
+// units to move at the same slow speed. IDs cannot impose a formation order.
+const converging=clone(uneven);converging.duration=20000;converging.recording={step:5,interval:5};
+const settled=run(converging).model;
+const phases=settled.states.map(s=>s.progress/s.path.length).sort((a,b)=>a-b);
+for(let i=0;i<phases.length;i++)near(phases[(i+1)%phases.length]-phases[i]+(i===phases.length-1?1:0),1/phases.length);
+const renamed=clone(uneven);renamed.units.forEach((u,i)=>{u.id='x'+(8-i);});renamed.behaviorAssignments[0].targets=renamed.units.map(u=>'unit:'+u.id);
+const original=run(uneven).model,changedIds=run(renamed).model;
+for(const state of original.states){const other=changedIds.states.find(s=>s.unit.name===state.unit.name);assert.deepEqual(other.position,state.position);near(other.distance,state.distance);}
+// Disabling feedback keeps the requested cruise speed even with uneven gaps.
+const unadjusted=clone(uneven);unadjusted.behaviorAssignments[0].gain=0;
+const constant=run(unadjusted).model;
+for(const s of constant.states)near(s.distance,599*1.4);
+console.log('PASS: coincident arrivals/proximity -> patrol, distributed uneven spacing without stops, start/nearest entry, even/fixed spacing, continuous positions, deterministic order, summary/replay and initial departures');
