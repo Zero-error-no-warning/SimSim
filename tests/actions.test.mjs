@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {clone,validateScenario} from '../src/engine.js?v=20261005-text-files-10';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261005-text-files-10';
-import {importScenario} from '../src/scenario-import.js?v=20261005-text-files-10';
-import {prepareAnalysis,runDetection,restoreAnalysisResult,summarizeRow,snapshotMission} from '../src/detection.js?v=20261005-text-files-10';
-import {trialScenario,readParameter,availableBindings} from '../src/parameters.js?v=20261005-text-files-10';
+import {clone,validateScenario} from '../src/engine.js?v=20261006-empty-task-11';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-empty-task-11';
+import {importScenario} from '../src/scenario-import.js?v=20261006-empty-task-11';
+import {prepareAnalysis,runDetection,restoreAnalysisResult,summarizeRow,snapshotMission} from '../src/detection.js?v=20261006-empty-task-11';
+import {trialScenario,readParameter,availableBindings} from '../src/parameters.js?v=20261006-empty-task-11';
 const unit=(id,faction,x=0)=>({id,name:id,domain:'surface',faction,manned:false,speed:0,initial:{x,y:0,z:0},route:[],routeMode:'once'});
 const communication={enabled:true,range:20000,delay:7,probability:1,terrainLOS:false};
 const reportGraph=(id,entry,when,receiver)=>({id,name:id,entry,nodes:[{id:entry,kind:entry==='signal'?'signal':'follow'},{id:'report',kind:'report',receiverId:receiver}],edges:[{from:entry,to:'report',when},{from:'report',to:entry,when:'sent',resume:true},{from:'report',to:entry,when:'sendFailed',resume:true}]});

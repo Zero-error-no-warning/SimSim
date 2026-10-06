@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261005-text-files-10';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261005-text-files-10';
-import {isParameterRef} from './behavior-parameters.js?v=20261005-text-files-10';
-import {NavigationUI} from './navigation-ui.js?v=20261005-text-files-10';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261005-text-files-10';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261005-text-files-10';
-import { clone,validateScenario } from './engine.js?v=20261005-text-files-10';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261005-text-files-10';
-import { requireElement } from './ui-dom.js?v=20261005-text-files-10';
+import {ContextMenu} from './context-menu.js?v=20261006-empty-task-11';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-empty-task-11';
+import {isParameterRef} from './behavior-parameters.js?v=20261006-empty-task-11';
+import {NavigationUI} from './navigation-ui.js?v=20261006-empty-task-11';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-empty-task-11';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-empty-task-11';
+import { clone,validateScenario } from './engine.js?v=20261006-empty-task-11';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-empty-task-11';
+import { requireElement } from './ui-dom.js?v=20261006-empty-task-11';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -705,7 +705,8 @@ export class BehaviorUI{
     this.parameters.assignments();
     $('assignment-preparation').parentElement.hidden=!graph?.nodes.some(n=>n.parameter==='preparation');
     $('assignment-receiver').parentElement.hidden=!graph?.nodes.some(n=>n.receiverRole&&!n.receiverId);
-    const n=this.graph()?.nodes.find(n=>n.id===this.selected),t=this.graph()?.triggers.find(t=>t.id===this.selectedTrigger),edge=this.edge();
+    const selectedGraph=this.graph(),n=selectedGraph?.nodes.find(n=>n.id===this.selected),t=selectedGraph?.triggers.find(t=>t.id===this.selectedTrigger),edge=this.edge();
+    const canMeasure=!!a&&!!selectedGraph&&a.behaviorId===selectedGraph.id;
     $('graph-selection-help').hidden=!!(n||t||edge);
     $('trigger-properties').hidden=!t;
     select('trigger-event',[['','種類を選択してください'],...Object.entries(TRIGGER_EVENTS)],t?.event);
@@ -724,9 +725,9 @@ export class BehaviorUI{
     select('node-kind',[['','種類を選択してください'],...Object.entries(NODE_KINDS)],n?.kind);
     $('node-initial').checked=!!n&&this.graph()?.initial===n.id;
     const measured=this.draft.mission?.type==='state'&&this.draft.mission.assignmentId===a?.id&&this.draft.mission.nodeId===n?.id;
-    $('node-measure').disabled=!n||!n.kind||a?.behaviorId!==this.graph()?.id;
+    $('node-measure').disabled=!n||!n.kind||!canMeasure;
     $('node-measure').textContent=measured?'計測対象に設定済み':'この状態を計測対象にする';
-    $('node-measure-note').textContent=a?.behaviorId===this.graph()?.id?'タスク「'+a.name+'」の初回到達を計測します。人数条件・期限は分析で設定できます。':'この挙動を使うタスクを担当タブで選択してください。';
+    $('node-measure-note').textContent=canMeasure?'タスク「'+a.name+'」の初回到達を計測します。人数条件・期限は分析で設定できます。':'この挙動を使うタスクを担当タブで選択してください。';
     $('node-route-fields').hidden=!['follow','patrol'].includes(n?.kind);
     const u=this.mapUnit(),legacyRoute=u?routeFor(this.draft,a,{kind:n?.kind},u):null;
     select('node-route',[['','担当の既存経路'+(legacyRoute?'（'+legacyRoute.points.length+'点）':'')],...this.draft.routes.map(r=>[r.id,r.name+'（'+r.points.length+'点）'])],n?.routeId??'');

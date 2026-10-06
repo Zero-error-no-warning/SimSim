@@ -1,4 +1,4 @@
-export const UI_BUILD='20261005-text-files-10';
+export const UI_BUILD='20261006-empty-task-11';
 
 export function requireElement(id){
   const element=document.getElementById(id);

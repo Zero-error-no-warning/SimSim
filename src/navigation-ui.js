@@ -1,5 +1,5 @@
-import {navigationErrors} from './navigation.js?v=20261005-text-files-10';
-import {requireElement} from './ui-dom.js?v=20261005-text-files-10';
+import {navigationErrors} from './navigation.js?v=20261006-empty-task-11';
+import {requireElement} from './ui-dom.js?v=20261006-empty-task-11';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint}){
