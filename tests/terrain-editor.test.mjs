@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {paintTerrain} from '../src/terrain-editor.js?v=20261006-route-planning-13';
-import {Terrain} from '../src/engine.js?v=20261006-route-planning-13';
-import {terrainVisible} from '../src/contact.js?v=20261006-route-planning-13';
+import {paintTerrain} from '../src/terrain-editor.js?v=20261006-measurement-history-14';
+import {Terrain} from '../src/engine.js?v=20261006-measurement-history-14';
+import {terrainVisible} from '../src/contact.js?v=20261006-measurement-history-14';
 const data={columns:7,rows:7,spacing:100,origin:{x:0,y:0},seaLevel:0,elevations:Array(49).fill(-100)};
 const original=structuredClone(data);const center={x:300,y:300};
 assert(paintTerrain(data,center,{mode:'raise',radius:200,amount:300}));assert.equal(data.elevations[24],200);assert.equal(data.elevations[0],-100);assert.equal(data.elevations[22],-100);
@@ -14,7 +14,7 @@ paintTerrain(data,center,{mode:'raise',radius:200,amount:1e6});assert.equal(data
 assert.throws(()=>paintTerrain(data,center,{mode:'raise',radius:1,amount:10}),/ブラシ/);
 console.log('PASS: terrain brush bounds/falloff, raise/lower/flatten/smooth, SI heights, domain constraints and sensor terrain occlusion');
 
-const {resizeTerrain}=await import('../src/terrain-editor.js?v=20261006-route-planning-13');
+const {resizeTerrain}=await import('../src/terrain-editor.js?v=20261006-measurement-history-14');
 const slope={...structuredClone(original),elevations:Array.from({length:49},(_,i)=>i%7+Math.floor(i/7)*10)};
 const resized=resizeTerrain(slope,600,1200),rect=new Terrain(resized);
 assert.equal(resized.columns,7);assert.equal(resized.rows,7);assert.equal(resized.spacing,100);assert.equal(resized.spacingY,200);
@@ -28,7 +28,7 @@ assert.throws(()=>resizeTerrain(slope,0,100),/領域サイズ/);assert.throws(()
 assert(!('spacingY' in resizeTerrain(resized,600,600)));
 console.log('PASS: fixed-count rectangular resize, exact independent dimensions, interpolation/edge fill, circular brush and sensor occlusion with unequal grid intervals');
 
-const {sampleTerrainHeight}=await import('../src/terrain-editor.js?v=20261006-route-planning-13');
+const {sampleTerrainHeight}=await import('../src/terrain-editor.js?v=20261006-measurement-history-14');
 const gradual={...structuredClone(original),elevations:Array(49).fill(0)};
 paintTerrain(gradual,center,{mode:'flatten',radius:200,target:100,strength:.2});assert.equal(gradual.elevations[24],20);assert.equal(gradual.elevations[23],11.25);
 paintTerrain(gradual,center,{mode:'flatten',radius:200,target:100,strength:.2});assert.equal(gradual.elevations[24],36);

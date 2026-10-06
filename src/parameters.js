@@ -1,5 +1,5 @@
-import { sharedAssignment } from './shared-settings.js?v=20261006-route-planning-13';
-import { random01,streamKey } from './random.js?v=20261006-route-planning-13';
+import { sharedAssignment } from './shared-settings.js?v=20261006-measurement-history-14';
+import { random01,streamKey } from './random.js?v=20261006-measurement-history-14';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={

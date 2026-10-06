@@ -1,13 +1,14 @@
-import {Terrain} from './terrain.js?v=20261006-route-planning-13';
-export {Terrain} from './terrain.js?v=20261006-route-planning-13';
-import {navigationProfileErrors} from './route-planner.js?v=20261006-route-planning-13';
-import {materializeRoutes} from './route-planner.js?v=20261006-route-planning-13';
-import {stateGoalErrors} from './state-measurement.js?v=20261006-route-planning-13';
-import { readParameter } from './parameters.js?v=20261006-route-planning-13';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261006-route-planning-13';
-import { actionErrors } from './action-settings.js?v=20261006-route-planning-13';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261006-route-planning-13';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261006-route-planning-13';
+import {measurementErrors} from './measurement-points.js?v=20261006-measurement-history-14';
+import {Terrain} from './terrain.js?v=20261006-measurement-history-14';
+export {Terrain} from './terrain.js?v=20261006-measurement-history-14';
+import {navigationProfileErrors} from './route-planner.js?v=20261006-measurement-history-14';
+import {materializeRoutes} from './route-planner.js?v=20261006-measurement-history-14';
+import {stateGoalErrors} from './state-measurement.js?v=20261006-measurement-history-14';
+import { readParameter } from './parameters.js?v=20261006-measurement-history-14';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261006-measurement-history-14';
+import { actionErrors } from './action-settings.js?v=20261006-measurement-history-14';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261006-measurement-history-14';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261006-measurement-history-14';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -91,7 +92,7 @@ export function validateScenario(value) {
       if(new Set(expanded.map(u=>u.id)).size!==total)errors.push('生成ユニットのidが単体ユニットと重複しています。');
     }
   }
-  errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration),...sharedErrors(value),...stateGoalErrors(value));
+  errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration),...sharedErrors(value),...stateGoalErrors(value),...measurementErrors(value));
   if(value.mission?.type==='arrive'&&value.mission.responderIds?.some(id=>!value.units?.some(u=>u.id===id)))errors.push('到着評価の対象となる単体ユニットが見つかりません。');
   if(value.version===3&&!errors.length)for(const b of [...(value.analysis?.factors??[]),...(value.analysis?.uncertainties??[])]){
     try{

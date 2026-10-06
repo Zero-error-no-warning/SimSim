@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Terrain} from '../src/engine.js?v=20261006-route-planning-13';
-import {importScenario} from '../src/scenario-import.js?v=20261006-route-planning-13';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-route-planning-13';
-import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261006-route-planning-13';
-import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261006-route-planning-13';
+import {Terrain} from '../src/engine.js?v=20261006-measurement-history-14';
+import {importScenario} from '../src/scenario-import.js?v=20261006-measurement-history-14';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-measurement-history-14';
+import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261006-measurement-history-14';
+import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261006-measurement-history-14';
 const text=fs.readFileSync(new URL('../docs/llm-scenario-generation.txt',import.meta.url),'utf8');
 assert(!/__MINIMAL__|__RECEIVED__|__GROUP__|__PARAMETERS__/.test(text));
-const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,12);
+const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,13);
 const scenarios=blocks.filter(b=>b.version===3);assert.equal(scenarios.length,5);
 const evidence=[];
 for(const raw of scenarios){

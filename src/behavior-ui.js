@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261006-route-planning-13';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-route-planning-13';
-import {isParameterRef} from './behavior-parameters.js?v=20261006-route-planning-13';
-import {NavigationUI} from './navigation-ui.js?v=20261006-route-planning-13';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-route-planning-13';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-route-planning-13';
-import { clone,validateScenario } from './engine.js?v=20261006-route-planning-13';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-route-planning-13';
-import { requireElement } from './ui-dom.js?v=20261006-route-planning-13';
+import {ContextMenu} from './context-menu.js?v=20261006-measurement-history-14';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-measurement-history-14';
+import {isParameterRef} from './behavior-parameters.js?v=20261006-measurement-history-14';
+import {NavigationUI} from './navigation-ui.js?v=20261006-measurement-history-14';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-measurement-history-14';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-measurement-history-14';
+import { clone,validateScenario } from './engine.js?v=20261006-measurement-history-14';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-measurement-history-14';
+import { requireElement } from './ui-dom.js?v=20261006-measurement-history-14';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -157,7 +157,8 @@ export class BehaviorUI{
       g.triggers=g.triggers.filter(t=>t.to!==this.selected);
       if(g.initial===this.selected)delete g.initial;
       const m=this.draft.mission,a=this.draft.behaviorAssignments.find(a=>a.id===m?.assignmentId);
-      if(m?.type==='state'&&a?.behaviorId===g.id&&m.nodeId===this.selected){delete this.draft.mission;pruneReferences(this.draft);}
+      if(m?.type==='state'&&a?.behaviorId===g.id&&m.nodeId===this.selected)delete this.draft.mission;
+      pruneReferences(this.draft);
       this.selected=null;
       this.selectedTrigger=null;
       this.selectedEdge=null;
@@ -469,7 +470,7 @@ export class BehaviorUI{
     if(id==='node-sensor'&&n)n.sensor=$('node-sensor').checked;
     if(a){
       if(id==='assignment-name')a.name=$('assignment-name').value;
-      if(id==='assignment-behavior'){if(this.draft.mission?.type==='state'&&this.draft.mission.assignmentId===a.id){delete this.draft.mission;pruneReferences(this.draft);}a.behaviorId=$('assignment-behavior').value;delete a.parameters;this.graphId=a.behaviorId;}
+      if(id==='assignment-behavior'){if(this.draft.mission?.type==='state'&&this.draft.mission.assignmentId===a.id){delete this.draft.mission;pruneReferences(this.draft);}a.behaviorId=$('assignment-behavior').value;pruneReferences(this.draft);delete a.parameters;this.graphId=a.behaviorId;}
       if(id==='assignment-targets')a.targets=[...$('assignment-targets').selectedOptions].map(o=>o.value);
       if(id==='assignment-spacing')a.spacing=$('assignment-spacing').value;
       if(id==='assignment-distance')a.spacingDistance=Number($('assignment-distance').value);
@@ -857,9 +858,12 @@ export class BehaviorUI{
         add('text',{x:x+131,y:y+3,class:'initial-label'},'初期状態',group);
       }
       const goal=this.draft.mission,task=this.draft.behaviorAssignments.find(a=>a.id===goal?.assignmentId);
-      if(!n.trigger&&goal?.type==='state'&&task?.behaviorId===g.id&&goal.nodeId===n.id){
+      const points=(this.draft.measurements??[]).filter(m=>m.nodeId===n.id&&this.draft.behaviorAssignments.find(a=>a.id===m.assignmentId)?.behaviorId===g.id);
+      const mainGoal=goal?.type==='state'&&task?.behaviorId===g.id&&goal.nodeId===n.id;
+      if(!n.trigger&&(mainGoal||points.length)){
         add('rect',{x:x+8,y:y-13,width:88,height:23,rx:8,class:'measurement-badge'},undefined,group);
-        add('text',{x:x+19,y:y+3,class:'measurement-label'},'計測対象',group);
+        const badge=add('text',{x:x+19,y:y+3,class:'measurement-label'},mainGoal?'計測対象':'計測点 '+points.length,group);
+        add('title',{},points.map(m=>m.name).join(' / ')||(mainGoal?'ミッションの計測対象':''),badge);
       }
       group.setAttribute('tabindex','0');group.setAttribute('role','button');
       group.setAttribute('aria-label',(n.trigger?'イベント：':'状態：')+(n.trigger?TRIGGER_EVENTS[n.event]:NODE_KINDS[n.kind]));

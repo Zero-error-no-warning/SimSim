@@ -1,4 +1,4 @@
-export const UI_BUILD='20261006-route-planning-13';
+export const UI_BUILD='20261006-measurement-history-14';
 
 export function requireElement(id){
   const element=document.getElementById(id);

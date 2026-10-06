@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261006-route-planning-13';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-route-planning-13';
-import {trialScenario,availableBindings,readParameter,writeParameter} from '../src/parameters.js?v=20261006-route-planning-13';
-import {newScenario,editableDefinition,moveDefinition,editWaypoint,addWaypoint,removeWaypoint,removeBehavior,setPosition} from '../src/editor.js?v=20261006-route-planning-13';
-import {importScenario} from '../src/scenario-import.js?v=20261006-route-planning-13';
+import {clone,validateScenario} from '../src/engine.js?v=20261006-measurement-history-14';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-measurement-history-14';
+import {trialScenario,availableBindings,readParameter,writeParameter} from '../src/parameters.js?v=20261006-measurement-history-14';
+import {newScenario,editableDefinition,moveDefinition,editWaypoint,addWaypoint,removeWaypoint,removeBehavior,setPosition} from '../src/editor.js?v=20261006-measurement-history-14';
+import {importScenario} from '../src/scenario-import.js?v=20261006-measurement-history-14';
 const sample=JSON.parse(fs.readFileSync(new URL('../data/shared-demo.txt',import.meta.url)));
 const empty=clone(sample);newScenario(empty);assert.equal(validateScenario(empty).units.length,0);assert.equal(empty.behaviors.length,0);
 const route=clone(sample),id='patrol__1',a=route.behaviorAssignments[0];
@@ -28,6 +28,6 @@ const trail=base.trailPoints(id,20);base.evaluate(29);base.evaluate(5);assert.de
 const payload=recordingPayload(base);assert.deepEqual(restoreRecording(payload).trailPoints(id,20),trail);
 const corrupt=clone(payload);corrupt.result.actionEvents.push({type:'received',time:29,unitId:id,senderId:'control',sourcePosition:{x:0,y:0,z:0}});assert.throws(()=>restoreRecording(corrupt),/受信情報/);
 const nodes=clone(payload),index=nodes.unitIds.indexOf('control'),bytes=Buffer.from(nodes.frames[0].nodes,'base64');bytes.writeUInt16LE(1,index*2);nodes.frames[0].nodes=bytes.toString('base64');assert.throws(()=>restoreRecording(nodes),/ノード/);
-for(const file of fs.readdirSync(new URL('../data/',import.meta.url)).filter(f=>f.endsWith('.txt'))){const s=JSON.parse(fs.readFileSync(new URL('../data/'+file,import.meta.url)));s.duration=10;if(s.mission)s.mission.deadline=10;assert.equal(run(s).frames.at(-1).time,10);}
+for(const file of fs.readdirSync(new URL('../data/',import.meta.url)).filter(f=>f.endsWith('.txt'))){const s=JSON.parse(fs.readFileSync(new URL('../data/'+file,import.meta.url)));s.duration=10;if(s.mission)s.mission.deadline=10;for(const m of s.measurements??[])m.deadline=10;assert.equal(run(s).frames.at(-1).time,10);}
 const legacy=clone(short);legacy.version=1;legacy.behaviorAssignments=[];legacy.behaviors=[];legacy.groups[0].template.behavior={hold:false,preparation:0,rules:[{id:'report',when:'detected',action:'send',receiverId:'control',state:'any',once:true}]};const migrated=importScenario(legacy);assert.equal(migrated.version,3);assert.equal(migrated.behaviors[0].nodes.find(n=>n.kind==='report').receiverId,'control');assert(!migrated.groups[0].template.behavior);
 console.log('PASS: audit issues A01–A07 covered across integration/actions, one engine at count zero, canonical route commands, parameter applicability, graph validation and reference cleanup, departure jitter, deterministic trails, archive validation');

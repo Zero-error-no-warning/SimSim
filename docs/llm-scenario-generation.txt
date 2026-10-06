@@ -1,7 +1,7 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 1.2 / 更新日: 2026-10-06
-対象: SimSim、feat/shared-behavior-replay、UIビルド 20261006-route-planning-13
+文書版: 1.3 / 更新日: 2026-10-06
+対象: SimSim、feat/shared-behavior-replay、UIビルド 20261006-measurement-history-14
 生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
 仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 
@@ -2033,7 +2033,7 @@ https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 ## 18. このマニュアルの検証範囲
 
 2026-10-06、対象ビルドの実装で確認:
-- JSONコードブロック12個を全てJSON.parseで解析。
+- JSONコードブロック13個を全てJSON.parseで解析。
 - 完成例5個をimportScenarioで読み込み、終了時刻まで計算。
 - 各例の配置不正・移動停止エラーなし。再生記録の保存・復元で終了位置が一致。
 - 完成例Bでは観測時刻10sを中継して保持し、UAVが観測座標x=2100mへ高度1000mで到着。敵の実位置はその後も移動。
@@ -2046,3 +2046,23 @@ https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 - 例Dの沖合航路の補間水深を確認し、潜水艦が1400sで終点へ到着することを確認。
 
 これは収録した例と記載した仕様の確認。これを使ってAIが今後生成する全シナリオの動作を保証するものではない。
+
+## 19. 追加計測点（複数の状態到達と段階間の所要時間）
+
+version 3シナリオのトップレベルに、任意のmeasurements配列を指定できる。missionはミッション全体の成功判定で、measurementsは独立した観測指標。最大12点。typeはstateのみ。
+
+```json
+{
+  "measurements": [
+    {"id":"relay-entry","name":"中継の報告開始","type":"state","assignmentId":"relay-task","nodeId":"report","join":"any","deadline":1800},
+    {"id":"response-start","name":"対応開始","type":"state","assignmentId":"response-task","nodeId":"move","join":"all","deadline":1800,"previousId":"relay-entry"}
+  ]
+}
+```
+
+これは追加フィールドの部品例。assignmentId・nodeIdは生成する完成シナリオ内に実在するものへ置換する。idは重複しない英数字・_・-、1～64文字。nameは1～120文字。joinはany（担当のうち一つ）、all（計算対象の担当全員）、count（requiredCount:1～2000を追加）。deadlineは0より大きくduration以下、単位は秒。
+previousIdは任意。その点より前に登録した計測点のID。省略するとシーン開始（時刻0）が所要時間の起点になる。前方参照と循環は禁止。
+初回の状態入場のみを測り、再入場で上書きしない。初期状態は0秒。無効な担当は除外し、担当0人は未達とする。報告状態のような瞬時の入場も記録される。
+追加点がある分析はdurationまで実行する。主ミッションのdeadlineは変更しない。各点の到達率は全試行が分母。起点成立後の到達率は、起点が成立した試行を分母とし、終点が起点以降に成立した試行を分子にする。所要時間は両方が成立し順序が正しい試行の時刻差。順序逆転は別途表示する。
+人数条件の成立時刻どうしの差であり、同じ個体の移動時間とは限らない。追尾継続時間や地理的な計測線はこのフィールドでは定義できない。
+実行例はdata/measurement-history-demo.txt。参照実装はsrc/measurement-points.jsとsrc/measurement-ui.js。計算履歴のタイムラインは記録済みの状態・探知・通信イベントを表示し、追加計測点とは別機能。

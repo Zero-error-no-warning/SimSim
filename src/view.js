@@ -1,8 +1,9 @@
-import { editableDefinition } from './editor.js?v=20261006-route-planning-13';
-import { sharedAssignment } from './shared-settings.js?v=20261006-route-planning-13';
+import {layoutLabels} from './label-layout.js?v=20261006-measurement-history-14';
+import { editableDefinition } from './editor.js?v=20261006-measurement-history-14';
+import { sharedAssignment } from './shared-settings.js?v=20261006-measurement-history-14';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-route-planning-13';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-measurement-history-14';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -496,6 +497,8 @@ export class MapView {
   buildLabels() {
     this.labelLayer.replaceChildren();
     this.labels.clear();
+    this.leaders=new Map();
+    this.labelLines=document.createElementNS('http://www.w3.org/2000/svg','svg');this.labelLines.classList.add('label-leaders');this.labelLines.setAttribute('aria-hidden','true');this.labelLayer.append(this.labelLines);
     this.groupLabels=new Map();
     if(this.scenario.units.length>80)for(const group of this.scenario.groups??[]) {
       const label=document.createElement('div');
@@ -843,7 +846,7 @@ export class MapView {
   }
   render() {
     if(!this.drag&&this.terrainStroke===undefined)this.controls.update();
-    const width=this.element.clientWidth,height=this.element.clientHeight,occupied=[];
+    const width=this.element.clientWidth,height=this.element.clientHeight,labelItems=[];
     this.camera.updateMatrixWorld();
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
     for(const [id,marker] of sorted) {
@@ -857,19 +860,7 @@ export class MapView {
       marker.mesh.setMatrixAt(marker.index,this.matrix);
       if(id===this.selected)this.selectedMarker.scale.copy(this.markerScale);
       if(visible&&label&&!this.labelLayer.hidden){
-        let x=(projected.x*.5+.5)*width+18,y=(-projected.y*.5+.5)*height-16;
-        const w=label.offsetWidth,h=label.offsetHeight;
-        x=Math.max(4,Math.min(width-w-4,x));
-        y=Math.max(52,Math.min(height-h-35,y));
-        for(let attempt=0;attempt<8;attempt++){
-          if(!occupied.some(rect=>x<rect.x+rect.w&&x+w>rect.x&&y<rect.y+rect.h&&y+h>rect.y))break;
-          y+=h+3;
-          if(y>height-h-36)y=Math.max(52,y-(attempt+2)*(h+3));
-        }
-        label.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)';
-        occupied.push({
-          x,y,w,h
-        });
+        labelItems.push({id,label,x:(projected.x*.5+.5)*width,y:(-projected.y*.5+.5)*height,w:label.offsetWidth,h:label.offsetHeight,priority:id===this.selected?3:1,color:id===this.selected?'#ffd18b':marker.unit?.faction==='hostile'?'#ee9791':'#99cce7'});
       }
     }
     for(const [id,info] of this.groupAnchors??[]) {
@@ -882,7 +873,18 @@ export class MapView {
       const group=this.scenario.groups.find(g=>g.id===id);
       label.textContent=group.name+' · '+info.count+'個'+(info.blocked?' · 停止 '+info.blocked:'');
       label.className='map-label group-label '+group.template.faction;
-      label.style.transform='translate('+Math.round((p.x*.5+.5)*width+20)+'px,'+Math.round((-p.y*.5+.5)*height+22)+'px)';
+      if(!label.hidden&&!this.labelLayer.hidden)labelItems.push({id:'group:'+id,label,x:(p.x*.5+.5)*width,y:(-p.y*.5+.5)*height,w:label.offsetWidth,h:label.offsetHeight,priority:2,color:group.template.faction==='hostile'?'#ee9791':'#99cce7'});
+    }
+    if(this.labelLines){
+      for(const line of this.leaders.values())line.style.display='none';
+      const positions=layoutLabels(labelItems,width,height);let hidden=0;
+      for(const item of labelItems){
+        const r=positions.get(item.id);item.label.hidden=!r;if(!r){hidden++;continue;}
+        item.label.style.transform='translate('+Math.round(r.x)+'px,'+Math.round(r.y)+'px)';
+        let line=this.leaders.get(item.id);if(!line){line=document.createElementNS('http://www.w3.org/2000/svg','line');this.labelLines.append(line);this.leaders.set(item.id,line);}
+        line.style.display='';line.setAttribute('x1',item.x);line.setAttribute('y1',item.y);line.setAttribute('x2',Math.max(r.x,Math.min(r.x+r.w,item.x)));line.setAttribute('y2',Math.max(r.y,Math.min(r.y+r.h,item.y)));line.setAttribute('stroke',item.color);line.setAttribute('stroke-width',item.priority===3?2:1);
+      }
+      const info=document.getElementById('label-summary');info.hidden=!hidden;info.textContent=hidden+'個のラベルを省略（拡大・選択で表示）';
     }
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;

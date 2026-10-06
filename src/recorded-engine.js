@@ -1,12 +1,13 @@
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-route-planning-13';
-import {resolveGraph} from './behavior-parameters.js?v=20261006-route-planning-13';
-import { Simulation } from './engine.js?v=20261006-route-planning-13';
-import { importScenario } from './scenario-import.js?v=20261006-route-planning-13';
-import { random01, streamKey } from './random.js?v=20261006-route-planning-13';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-route-planning-13';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-route-planning-13';
-import { graphTriggers } from './shared-settings.js?v=20261006-route-planning-13';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-route-planning-13';
+import {measurePoints} from './measurement-points.js?v=20261006-measurement-history-14';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-measurement-history-14';
+import {resolveGraph} from './behavior-parameters.js?v=20261006-measurement-history-14';
+import { Simulation } from './engine.js?v=20261006-measurement-history-14';
+import { importScenario } from './scenario-import.js?v=20261006-measurement-history-14';
+import { random01, streamKey } from './random.js?v=20261006-measurement-history-14';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-measurement-history-14';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-measurement-history-14';
+import { graphTriggers } from './shared-settings.js?v=20261006-measurement-history-14';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-measurement-history-14';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -327,7 +328,7 @@ function moveTo(model,s,destination,speed,dt) {
 export function* sharedSteps(input, mission=input.source?.mission??input.scenario.mission, _step, options={
 }) {
   const model=input instanceof RecordedSimulation?input:new RecordedSimulation(input.source);
-  const horizon=options.horizon??mission?.deadline??model.source.duration,record=options.record??false;
+  const horizon=options.horizon??(model.source.measurements?.length?model.source.duration:mission?.deadline??model.source.duration),record=options.record??false;
   const dt=model.source.recording.step,interval=model.source.recording.interval;
   if(!Number.isFinite(horizon)||horizon<0||horizon>model.source.duration)throw Error('計算終了時刻が不正です。');
   if(model.computeCount)throw Error('計算済みです。新しい試行を作成してください。');
@@ -635,8 +636,9 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     yield {
       time:end,result
     };
-    if(!record&&!states.some(s=>s.graph)&&mission?.type==='detect'&&result.detectedCount===goalTargets.length)break;
+    if(!model.source.measurements?.length&&!record&&!states.some(s=>s.graph)&&mission?.type==='detect'&&result.detectedCount===goalTargets.length)break;
   }
+  if(model.source.measurements?.length)result.measurements=measurePoints(model.source,events,horizon);
   result.constrainedPaths=states.filter(s=>s.status==='blocked').length;
   if(record){
     model.frames=frames;

@@ -1,11 +1,13 @@
-import {stateMembers} from './state-measurement.js?v=20261006-route-planning-13';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-route-planning-13';
-import { RECORD_MODEL } from './recording.js?v=20261006-route-planning-13';
-import { numericScale } from './chart-scale.js?v=20261006-route-planning-13';
-import { clone,validateScenario } from './engine.js?v=20261006-route-planning-13';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-route-planning-13';
-import { ParameterEditor } from './parameter-ui.js?v=20261006-route-planning-13';
-import { requireElement } from './ui-dom.js?v=20261006-route-planning-13';
+import {HistoryUI} from './history-ui.js?v=20261006-measurement-history-14';
+import {MeasurementUI} from './measurement-ui.js?v=20261006-measurement-history-14';
+import {stateMembers} from './state-measurement.js?v=20261006-measurement-history-14';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-measurement-history-14';
+import { RECORD_MODEL } from './recording.js?v=20261006-measurement-history-14';
+import { numericScale } from './chart-scale.js?v=20261006-measurement-history-14';
+import { clone,validateScenario } from './engine.js?v=20261006-measurement-history-14';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-measurement-history-14';
+import { ParameterEditor } from './parameter-ui.js?v=20261006-measurement-history-14';
+import { requireElement } from './ui-dom.js?v=20261006-measurement-history-14';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -16,7 +18,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-route-planning-13',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-measurement-history-14',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -28,6 +30,8 @@ export class AnalysisUI {
       }
       this.renderConfig();
     });
+    this.history=new HistoryUI({getScenario,getSnapshot,seek});
+    this.measurements=new MeasurementUI(this);
     this.runId=0;
     this.running=false;
     this.rows=[];
@@ -95,7 +99,7 @@ export class AnalysisUI {
     $('analysis-export').onclick=()=>this.export();
     $('events-open').onclick=()=>{
       this.renderEvents();
-      $('events-dialog').showModal();
+      $('events-dialog').showModal();this.history.render();
     };
     $('events-close').onclick=()=>$('events-dialog').close();
   }
@@ -112,6 +116,7 @@ export class AnalysisUI {
   }
   ={
   }) {
+    this.history.reset();
     if(!keepResults){
       this.stop();
       this.rows=[];
@@ -144,6 +149,7 @@ export class AnalysisUI {
     $('analysis-dialog').showModal();
   }
   renderConfig() {
+    this.measurements.renderConfig();
     const s=this.getScenario(),m=s.mission??{
       observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:s.duration
     },a=normalizedAnalysis(s.analysis??{
@@ -283,24 +289,23 @@ export class AnalysisUI {
           this.showError('完了済みの試行番号を指定してください。');
           return;
         }
-        const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{
-          scenario:next,sampled
-        }
-        =trialScenario(this.base,condition,trial.trial);
-        this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
-        this.seek(trial.successTime??next.mission?.deadline??next.duration);
-        $('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');
-        this.highlightCount=condition.id;
-        this.renderResults();
-        $('analysis-dialog').close();
+        this.replayTrial(row,trial);
       };
       td.append(input,button);
       tr.append(td);
       $('analysis-rows').append(tr);
     }
-    this.renderChart();this.renderStateDistribution();
+    this.renderChart();this.renderStateDistribution();this.measurements.renderResults();
     const requirement=this.base?.analysis.requiredRate??.95;
     $('analysis-summary').textContent=this.rows.length?'要求 '+percent(requirement)+' · 点推定で達成した条件: '+this.rows.filter(r=>r.rate>=requirement).length+' / '+this.rows.length+' · 区間下限でも達成: '+this.rows.filter(r=>r.low>=requirement).length+'。中央値は成功試行だけを集計。'+(this.running?'途中結果です。':''):'成功率と95%信頼区間を表示します。';
+  }
+  replayTrial(row,trial,seekTime,label='') {
+    if(!trial)return;
+    const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.base,condition,trial.trial);
+    this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
+    this.seek(seekTime??trial.successTime??next.mission?.deadline??next.duration);
+    $('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(label?' · '+label+'未達':'')+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');
+    this.highlightCount=condition.id;this.renderResults();$('analysis-dialog').close();
   }
   renderStateDistribution(){
     const panel=$('state-time-distribution'),state=(this.base??this.getScenario())?.mission?.type==='state';panel.hidden=!state||!this.rows.length;
@@ -405,6 +410,7 @@ export class AnalysisUI {
     }
   }
   onSnapshot() {
+    this.history.onSnapshot();
     const mission=this.getSnapshot()?.mission,el=$('mission-status');
     if(!mission){
       el.className='';
@@ -414,7 +420,7 @@ export class AnalysisUI {
       el.className=mission.status;
       if(this.getScenario()?.mission?.type==='state'){
         const m=this.getScenario().mission,a=this.getScenario().behaviorAssignments.find(a=>a.id===m.assignmentId),g=this.getScenario().behaviors.find(g=>g.id===a?.behaviorId),n=g?.nodes.find(n=>n.id===m.nodeId);
-        el.textContent=({'pending':'計測中','success':'到達条件成立','failure':'期限までに未到達'})[mission.status]+' · '+(a?.name??'タスク')+' → '+(NODE_KINDS[n?.kind]??m.nodeId)+' ['+m.nodeId+'] · 到達 '+mission.stateReachedCount+' / '+mission.stateTargetCount+' · 期限 '+minutes(mission.deadline);return;
+        el.textContent=({'pending':'計測中','success':'到達条件成立','failure':'期限までに未到達'})[mission.status]+' · '+(a?.name??'タスク')+' → '+(NODE_KINDS[n?.kind]??m.nodeId)+' ['+m.nodeId+'] · 到達 '+mission.stateReachedCount+' / '+mission.stateTargetCount+' · 期限 '+minutes(mission.deadline);if($('events-dialog').open)this.renderEvents();return;
       }
       el.textContent=({
         pending:'評価中',success:'成功条件成立',failure:'期限までに未成立'

@@ -1,18 +1,18 @@
-import {NavigationUI} from './navigation-ui.js?v=20261006-route-planning-13';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261006-route-planning-13';
-import {ContextMenu} from './context-menu.js?v=20261006-route-planning-13';
-import {TerrainUI} from './terrain-ui.js?v=20261006-route-planning-13';
-import { BehaviorUI } from './behavior-ui.js?v=20261006-route-planning-13';
-import { createSimulation } from './recorded-engine.js?v=20261006-route-planning-13';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-route-planning-13';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-route-planning-13';
-import { importScenario } from './scenario-import.js?v=20261006-route-planning-13';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-route-planning-13';
-import { restoreAnalysisResult } from './detection.js?v=20261006-route-planning-13';
-import { AnalysisUI } from './analysis-ui.js?v=20261006-route-planning-13';
-import { MapView } from './view.js?v=20261006-route-planning-13';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-route-planning-13';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-route-planning-13';
+import {NavigationUI} from './navigation-ui.js?v=20261006-measurement-history-14';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261006-measurement-history-14';
+import {ContextMenu} from './context-menu.js?v=20261006-measurement-history-14';
+import {TerrainUI} from './terrain-ui.js?v=20261006-measurement-history-14';
+import { BehaviorUI } from './behavior-ui.js?v=20261006-measurement-history-14';
+import { createSimulation } from './recorded-engine.js?v=20261006-measurement-history-14';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-measurement-history-14';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-measurement-history-14';
+import { importScenario } from './scenario-import.js?v=20261006-measurement-history-14';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-measurement-history-14';
+import { restoreAnalysisResult } from './detection.js?v=20261006-measurement-history-14';
+import { AnalysisUI } from './analysis-ui.js?v=20261006-measurement-history-14';
+import { MapView } from './view.js?v=20261006-measurement-history-14';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-measurement-history-14';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-measurement-history-14';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -29,7 +29,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261006-route-planning-13',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261006-measurement-history-14',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -59,6 +59,7 @@ worker.onmessage=({
   if(workerWaitMessage&&$('error-text').textContent===workerWaitMessage&&$('error-dialog').open)$('error-dialog').close();
   workerWaitMessage=null;
   if(data.revision!==revision)return;
+  if(data.type==='recordingHistory'){analysisUI.history.load(data.history);return;}
   if(data.type==='recordingProgress'){
     $('recording-info').textContent='計算中 '+Math.round(data.time/data.duration*100)+'%';
     return;
@@ -77,6 +78,7 @@ worker.onmessage=({
   workerReady=true;
   clearWorkerWait();
   snapshot=data.snapshot;
+  if(snapshot.actionsPending&&analysisUI.history.history)analysisUI.history.reset();
   $('play').disabled=!!snapshot.actionsPending;
   $('step').disabled=!!snapshot.actionsPending;
   $('timeline').disabled=!!snapshot.actionsPending;
@@ -667,7 +669,7 @@ $('duration').addEventListener('change',()=>{
     $('duration').value=scenario.duration/60;return;
   }
   commit(next=>{
-    next.duration=Number($('duration').value)*60;if(next.mission)next.mission.deadline=Math.min(next.mission.deadline,next.duration);
+    next.duration=Number($('duration').value)*60;if(next.mission)next.mission.deadline=Math.min(next.mission.deadline,next.duration);for(const m of next.measurements??[])m.deadline=Math.min(m.deadline,next.duration);
   },'終了時刻を変更しました。');
 });
 $('place').addEventListener('click',()=>{

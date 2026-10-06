@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261006-route-planning-13">
+<html lang="ja" data-simsim-build="20261006-measurement-history-14">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261006-route-planning-13-42078f3e3e76">
-<script src="main.js?v=20261006-route-planning-13-42078f3e3e76" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261006-measurement-history-14-d6a7a3cb03d3">
+<script src="main.js?v=20261006-measurement-history-14-d6a7a3cb03d3" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
@@ -17,6 +17,7 @@
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
+<option value="measurement-history-demo.txt">段階別計測・通信履歴</option>
 <option value="route-planning-demo.txt">島を避ける経路の自動生成</option>
 <option value="island-patrol-demo.txt">島間通過・周回UUV</option>
 <option value="shared-demo.txt">協調監視・報告・帰投</option>
@@ -78,7 +79,7 @@
 <div id="labels" class="labels"></div>
 <div id="placement-hint" class="placement-hint" hidden></div>
 <div class="map-topline">
-<span class="map-title">島嶼・周辺海域</span><span id="view-caption">3D / 高さ表示 ×4</span>
+<span class="map-title">島嶼・周辺海域</span><span id="label-summary" hidden></span><span id="view-caption">3D / 高さ表示 ×4</span>
 </div>
 <div class="map-legend">
 <span><i class="friendly"></i>味方</span><span><i class="hostile"></i>相手側</span><span><i class="neutral"></i>中立</span><span>格子 5 km</span><span>白破線: 計画経路</span><span>球: 最大探知範囲</span>
@@ -90,7 +91,7 @@
 </div>
 <p id="replay-parameters" class="replay-parameters" role="status"></p>
 <div class="mission-strip">
-<span id="mission-status">成功条件は未設定</span><button id="events-open">探知・行動履歴</button>
+<span id="mission-status">成功条件は未設定</span><button id="events-open">計算履歴</button>
 </div>
 <details class="experiment"><summary>計算設定・乱数シード</summary><div class="experiment-fields">
 <label>終了時刻 <input id="duration" type="number" min="1" max="1440" value="60"> 分</label><label>シード <input id="seed" maxlength="100" value="SimSim"></label><label>試行番号 <input id="trial" type="number" min="0" max="1000000000" value="0"></label><button id="next-trial">次の試行</button>
@@ -290,6 +291,15 @@
 <label class="field">計測する結果<select id="mission-type"><option value="state">挙動の状態への初回到達</option><option value="detect">対象の探知</option>
 <option value="arrive">対応ユニットの経路終点への到着</option></select></label><section id="state-measure-fields" hidden><label class="field">対象タスク<select id="mission-assignment"></select></label><label class="field">到達を計測する状態<select id="mission-state"></select></label><p class="route-help">状態に入った時刻を記録します。初期状態は時刻0。退出・再入場しても初回の到達を保持します。</p></section><label id="responder-field" class="field" hidden>到着を評価する単体ユニット<select id="mission-responders" multiple size="4" aria-label="到着を評価するユニット"></select><span class="route-help">複数選択はCtrl/Cmd。探知する相手は上の対象側です。</span></label><label class="field">成立条件<select id="mission-join"><option value="any">対象のうち一つを探知</option>
 <option value="all">対象すべてを探知</option><option value="count">指定数の担当が到達</option></select></label><label id="mission-count-field" class="field" hidden>到達を必要とする担当数<input id="mission-count" type="number" min="1" max="2000" step="1" value="1"></label><label class="field">期限（開始から分）<input id="mission-deadline" type="number" min="0.000001" max="1440" step="any"></label><p id="mission-target-note" class="route-help"></p>
+<details id="measurement-editor"><summary>追加の計測点・段階別分析</summary>
+<p class="route-help">状態への初回到達を最大12点まで登録できます。上のミッションの成立条件と独立して計測します。</p>
+<div class="compact-actions"><select id="measurement-select" aria-label="計測点"></select><button id="measurement-add">＋ 計測点</button><button id="measurement-remove">削除</button></div>
+<section id="measurement-fields" hidden>
+<label class="field">計測点名<input id="measurement-name" maxlength="120"></label>
+<label class="field">タスク<select id="measurement-assignment"></select></label><label class="field">状態<select id="measurement-state"></select></label>
+<label class="field">到達条件<select id="measurement-join"><option value="any">担当のうち一つ</option><option value="all">担当すべて</option><option value="count">指定人数</option></select></label><label class="field" id="measurement-count-field" hidden>必要人数<input id="measurement-count" type="number" min="1" max="2000" step="1"></label>
+<label class="field">期限（開始から秒）<input id="measurement-deadline" type="number" min="0.000001" step="any"></label><label class="field">所要時間の起点<select id="measurement-previous"></select></label>
+</section></details>
 <h3>モンテカルロ</h3>
 <h3>比較変数</h3>
 <div id="factors-editor"></div>
@@ -326,6 +336,9 @@
 </tr></thead>
 <tbody id="analysis-rows"></tbody>
 </table></div>
+<section id="measurement-results" hidden><h3>段階別の到達率・所要時間</h3><label class="field">比較条件<select id="measurement-condition"></select></label>
+<div class="results-scroll"><table class="results-table"><thead><tr><th>計測点</th><th>到達／全試行</th><th>到達率</th><th>成立時刻の中央値</th><th>所要時間の起点</th><th>起点成立後の到達／起点成立試行</th><th>所要時間の中央値</th><th>未達試行</th></tr></thead><tbody id="measurement-rows"></tbody></table></div>
+<p class="route-help">到達率は全試行が分母。所要時間は起点と終点が成立し、終点が起点以降の試行で集計します。人数条件の成立時刻どうしの差であり、個体ごとの移動時間ではありません。</p></section>
 <section id="state-time-distribution" hidden><h3>状態到達の成立時刻の分布</h3><label class="field">表示する比較条件<select id="state-time-condition"></select></label><div id="state-time-chart"></div><p id="state-time-note" class="route-help"></p></section><div class="analysis-actions">
 <button id="analysis-restore" disabled>分析元のシナリオに戻す</button><button id="analysis-export" disabled>結果を.txtで保存</button>
 </div>
@@ -334,8 +347,11 @@
 <h2>現在の試行の探知・行動履歴</h2>
 <button id="events-close">閉じる</button>
 </div>
-<p id="events-summary"></p>
-<div id="event-list"></div></dialog><div id="map-menu" class="map-menu" role="menu" aria-label="地図の操作" hidden></div>
+<label class="field">タイムラインのユニット<select id="history-unit"></select></label>
+<p class="history-legend">● 探知 <span>● 送信</span> <em>● 受信</em> <strong>● 送信失敗</strong> · 帯は状態、白線は再生時刻</p>
+<div id="history-chart" class="history-chart"></div><p id="history-note" class="route-help"></p>
+<details><summary>現在時刻までのイベント一覧</summary><p id="events-summary"></p>
+<div id="event-list"></div></details></dialog><div id="map-menu" class="map-menu" role="menu" aria-label="地図の操作" hidden></div>
 <dialog id="behavior-dialog" class="behavior-dialog"><div class="analysis-heading">
 <h2>タスクと挙動</h2>
 <button id="behavior-close">閉じる</button>

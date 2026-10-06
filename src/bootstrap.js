@@ -1,4 +1,4 @@
-import('./app.js?v=20261006-route-planning-13').catch(error => {
+import('./app.js?v=20261006-measurement-history-14').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

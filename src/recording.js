@@ -1,7 +1,8 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-route-planning-13';
-export { RECORD_MODEL } from './recorded-engine.js?v=20261006-route-planning-13';
-import { clone } from './engine.js?v=20261006-route-planning-13';
-import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261006-route-planning-13';
+import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261006-measurement-history-14';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-measurement-history-14';
+export { RECORD_MODEL } from './recorded-engine.js?v=20261006-measurement-history-14';
+import { clone } from './engine.js?v=20261006-measurement-history-14';
+import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261006-measurement-history-14';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);
@@ -72,6 +73,10 @@ export function restoreRecording(payload) {
   if(model.source.mission?.type==='state'){
     validateStateResult(model.source,r);const expected=new StateTracker(model.source.mission,stateMembers(model.source)).update(r.actionEvents);
     if(JSON.stringify(expected.stateEntries)!==JSON.stringify(r.stateEntries)||expected.successTime!==r.successTime)throw Error('状態の初回到達記録がイベント履歴と一致しません。');
+  }
+  if(model.source.measurements?.length){
+    validateMeasurements(model.source,r.measurements);
+    if(JSON.stringify(measurePoints(model.source,r.actionEvents))!==JSON.stringify(r.measurements))throw Error('計測点の到達記録がイベント履歴と一致しません。');
   }
   model.result=clone(r);
   // A replay keeps its original frames; normalize legacy initial-event names for resaving.

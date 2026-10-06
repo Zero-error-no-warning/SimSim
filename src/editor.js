@@ -1,5 +1,5 @@
-import {resolveValue} from './behavior-parameters.js?v=20261006-route-planning-13';
-import { sharedAssignment } from './shared-settings.js?v=20261006-route-planning-13';
+import {resolveValue} from './behavior-parameters.js?v=20261006-measurement-history-14';
+import { sharedAssignment } from './shared-settings.js?v=20261006-measurement-history-14';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -72,6 +72,10 @@ export function setPosition(s,id,key,value) {
   for(const p of points)p[key]+=delta;
 }
 export function pruneReferences(s) {
+  if(s.measurements){
+    s.measurements=s.measurements.filter(m=>{const a=s.behaviorAssignments?.find(a=>a.id===m.assignmentId),g=s.behaviors?.find(g=>g.id===a?.behaviorId);return g?.nodes.some(n=>n.id===m.nodeId);});
+    for(const m of s.measurements)if(m.previousId&&!s.measurements.some(p=>p.id===m.previousId))delete m.previousId;
+  }
   if(s.mission?.type==='state'){
     const a=s.behaviorAssignments?.find(a=>a.id===s.mission.assignmentId),g=s.behaviors?.find(g=>g.id===a?.behaviorId);
     if(!g?.nodes.some(n=>n.id===s.mission.nodeId))delete s.mission;
@@ -95,6 +99,7 @@ export function newScenario(s) {
   s.behaviors=[];
   s.behaviorAssignments=[];
   delete s.mission;
+  delete s.measurements;
   s.analysis={
     factors:[],uncertainties:[],trials:100,step:s.recording.step,requiredRate:.9
   };

@@ -1,10 +1,11 @@
-import {stateSummary,validateStateResult} from './state-measurement.js?v=20261006-route-planning-13';
-import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261006-route-planning-13';
-import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261006-route-planning-13';
-import { clone,validateScenario } from './engine.js?v=20261006-route-planning-13';
-import { missionErrors,analysisErrors } from './detection-settings.js?v=20261006-route-planning-13';
-export { terrainVisible,contactProbability } from './contact.js?v=20261006-route-planning-13';
-import { importScenario } from './scenario-import.js?v=20261006-route-planning-13';
+import {validateMeasurements} from './measurement-points.js?v=20261006-measurement-history-14';
+import {stateSummary,validateStateResult} from './state-measurement.js?v=20261006-measurement-history-14';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261006-measurement-history-14';
+import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261006-measurement-history-14';
+import { clone,validateScenario } from './engine.js?v=20261006-measurement-history-14';
+import { missionErrors,analysisErrors } from './detection-settings.js?v=20261006-measurement-history-14';
+export { terrainVisible,contactProbability } from './contact.js?v=20261006-measurement-history-14';
+import { importScenario } from './scenario-import.js?v=20261006-measurement-history-14';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
   if(!(model instanceof RecordedSimulation)&&model.source.version!==3&&step!==undefined){
@@ -94,9 +95,10 @@ export function restoreAnalysisResult(payload) {
       }))).size!==t.sampled.length||generated.sampled.some(b=>!t.sampled.some(v=>v&&bindingKey(v)===bindingKey(b)&&v.value===b.value))))throw new Error('分析結果の抽出値がシード・分布と一致しません。');
       if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>=0&&t.successTime<=generated.scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
       if(scenario.mission.type==='state')validateStateResult(generated.scenario,t);
+      validateMeasurements(generated.scenario,t.measurements);
       if(scenario.mission.type==='arrive'&&(!Number.isInteger(t.reachedCount)||t.reachedCount<0||t.reachedCount>generated.scenario.mission.responderIds.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length||t.success!==(scenario.mission.join==='any'?t.reachedCount>0:t.reachedCount>0&&t.reachedCount===generated.scenario.mission.responderIds.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length)))throw new Error('到着数と成否が一致していません。');
       trials.push({
-        ...(scenario.mission.type==='state'?{stateEntries:t.stateEntries,stateTargetCount:t.stateTargetCount,stateReachedCount:t.stateReachedCount}:{}),reachedCount:t.reachedCount??0,responderCount:generated.scenario.mission.responderIds?.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length??0,trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled
+        ...(generated.scenario.measurements?.length?{measurements:t.measurements}:{}),        ...(scenario.mission.type==='state'?{stateEntries:t.stateEntries,stateTargetCount:t.stateTargetCount,stateReachedCount:t.stateReachedCount}:{}),reachedCount:t.reachedCount??0,responderCount:generated.scenario.mission.responderIds?.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length??0,trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled
       });
     }
     trials.sort((a,b)=>a.trial-b.trial);

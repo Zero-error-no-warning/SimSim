@@ -1,5 +1,8 @@
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261006-route-planning-13';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261006-measurement-history-14';
 let simulation, latest, generation=0, state='idle', failure=null;
+function sendHistory(){
+  if(simulation.frames)self.postMessage({type:'recordingHistory',revision:latest.revision,history:{duration:simulation.source.duration,unitIds:simulation.states.map(s=>s.unit.id),events:simulation.result.actionEvents}});
+}
 function send() {
   if(!simulation||!latest)return;
   const snapshot=simulation.evaluate(simulation.frames?latest.time:0);
@@ -31,7 +34,7 @@ self.onmessage=({
       failure=null;
       simulation=data.recording?restoreRecording(data.recording):createSimulation(data.scenario);
       state=simulation.frames?'ready':'idle';
-      send();
+      sendHistory();send();
       if(data.autoRecord&&!simulation.frames)calculate(token);
     } else if(data.revision===latest?.revision) {
       latest={
@@ -88,6 +91,7 @@ async function calculate(token) {
     }
     if(token!==generation)return;
     state='ready';
+    sendHistory();
   }catch(error){
     if(token!==generation)return;
     state='failed';
