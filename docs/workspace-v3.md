@@ -141,7 +141,13 @@ JSONでは、挙動に `parameters: [{"id":"patrol-route","name":"巡回経路",
 
 状態は `{"id":"follow-b","kind":"follow","routeId":"b"}` または `{"id":"approach","kind":"move","destinationId":"enemy"}`。接近線は `{"from":"approach","to":"stop","when":"near","destinationId":"enemy","distance":300,"distanceMode":"horizontal"}`。共通イベントは `{"id":"near-enemy","event":"near","to":"stop","destinationId":"enemy","distance":300,"distanceMode":"absolute","once":false}`。
 
-経路は最大128件、目的地は最大256件。IDは各種別内で一意の英数字・`_`・`-`、1～80文字、名前は1～120文字。経路は2～500点、`mode` は `once|loop|pingpong`（省略時once）。目的地の `kind` は `point|unit`、`point` はx/y/z、`unitId` は単体ユニットIDです。接近距離は0～1000000m、`distanceMode` は `horizontal|absolute`（JSON省略時absolute、UI新規作成時horizontal）。
+経路は最大128件、目的地は最大256件。IDは各種別内で一意の英数字・`_`・`-`、1～80文字、名前は1～120文字。経路は2～500点、`mode` は `once|loop|pingpong`（省略時once）。目的地の `kind` は `point|unit|received`、`point` はx/y/z、`unitId` は単体ユニットIDです。接近距離は0～1000000m、`distanceMode` は `horizontal|absolute`（JSON省略時absolute、UI新規作成時horizontal）。
+
+`{"id":"received","name":"受信した目標位置","kind":"received"}` は受信した観測位置を参照します。移動状態では `{"id":"move","kind":"move","destinationId":"received","heightMode":"keep"}` と指定し、状態へ入った時点で目的地を固定します。未受信の場合は待機します。情報受信イベントを `once:false` にしてこの状態へ接続すると、受信ごとに移動先を更新します。位置情報のない通信は保存済みの位置を変更しません。同じ目標の古い観測情報で新しい位置を上書きしません。
+
+`heightMode` は `keep|target`。省略時は地点が `target`、ユニット・受信位置が `keep` です。`keep` は移動開始時の高度・深度を維持します。地上・水上では従来どおり地形・海面へ補正します。接近条件の絶対距離は観測位置の高さを含み、水平距離は高さを無視します。
+
+通信は目標ID・観測位置・観測時刻・元の観測者を送信時の情報として保持し、中継でも保持します。受信者は相手の現在座標を自動取得しません。定期報告は直近の成功したセンサー観測を送信します。移動に失敗して停止したユニットも通信を受信でき、有効な現在位置から別の状態へ遷移できます。無効ユニットは送受信・計算の対象外です。
 
 ## 計算と再生
 

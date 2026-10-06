@@ -1,11 +1,11 @@
-import {stateMembers} from './state-measurement.js?v=20261006-empty-task-11';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-empty-task-11';
-import { RECORD_MODEL } from './recording.js?v=20261006-empty-task-11';
-import { numericScale } from './chart-scale.js?v=20261006-empty-task-11';
-import { clone,validateScenario } from './engine.js?v=20261006-empty-task-11';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-empty-task-11';
-import { ParameterEditor } from './parameter-ui.js?v=20261006-empty-task-11';
-import { requireElement } from './ui-dom.js?v=20261006-empty-task-11';
+import {stateMembers} from './state-measurement.js?v=20261006-received-position-12';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-received-position-12';
+import { RECORD_MODEL } from './recording.js?v=20261006-received-position-12';
+import { numericScale } from './chart-scale.js?v=20261006-received-position-12';
+import { clone,validateScenario } from './engine.js?v=20261006-received-position-12';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-received-position-12';
+import { ParameterEditor } from './parameter-ui.js?v=20261006-received-position-12';
+import { requireElement } from './ui-dom.js?v=20261006-received-position-12';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -16,7 +16,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-empty-task-11',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-received-position-12',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -442,7 +442,8 @@ export class AnalysisUI {
       const details={
         near:name(event.unitId)+' · '+(this.getScenario().destinations?.find(d=>d.id===event.destinationId)?.name??'目的地')+'に '+Math.round(event.distance)+'mまで接近',initialized:name(event.unitId)+' · 初期状態に入る',triggered:name(event.unitId)+' · '+(TRIGGER_EVENTS[event.event]??'イベント')+'で状態遷移',detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 目的地・経路終点に到着'
       };
-      text.textContent=minutes(event.time)+' · '+(details[event.type]??(event.type==='nodeChanged'?'挙動切替 '+name(event.unitId)+' → '+event.nodeId:event.type==='elapsed'?'待機終了 '+name(event.unitId):event.type));
+      const positionInfo=['sent','received'].includes(event.type)&&event.targetPosition?' · '+name(event.targetId)+'の観測位置（東西 '+(event.targetPosition.x/1000).toFixed(2)+'km、南北 '+(event.targetPosition.y/1000).toFixed(2)+'km、高さ '+Math.round(event.targetPosition.z)+'m） · 観測時刻 '+minutes(event.observationTime??event.time):'';
+      text.textContent=minutes(event.time)+' · '+(details[event.type]??(event.type==='nodeChanged'?'挙動切替 '+name(event.unitId)+' → '+event.nodeId:event.type==='elapsed'?'待機終了 '+name(event.unitId):event.type))+positionInfo;
       button.textContent='この時刻';
       button.onclick=()=>{
         this.seek(event.time,event.type==='detected'?event.targetId:event.unitId);

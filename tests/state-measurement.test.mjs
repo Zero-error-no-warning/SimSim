@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261006-empty-task-11';
-import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-empty-task-11';
-import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261006-empty-task-11';
-import {trialScenario} from '../src/parameters.js?v=20261006-empty-task-11';
-import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261006-empty-task-11';
-import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261006-empty-task-11';
+import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261006-received-position-12';
+import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-received-position-12';
+import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261006-received-position-12';
+import {trialScenario} from '../src/parameters.js?v=20261006-received-position-12';
+import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261006-received-position-12';
+import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261006-received-position-12';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 const run=(s,record=true)=>{const model=new RecordedSimulation(s),g=sharedSteps(model,s.mission,undefined,{horizon:s.duration,record});let v=g.next();while(!v.done)v=g.next();return {model,result:v.value};};
 validateScenario(source);assert.deepEqual(stateMembers(source),['group__1','group__2']);
@@ -24,7 +24,7 @@ const sensor=clone(source);delete sensor.analysis;delete sensor.mission;sensor.b
 sensor.mission={type:'detect',observerFaction:'friendly',targetFaction:'hostile',join:'all',deadline:30};sensor.units[1].enabled=false;assert.equal(run(sensor).result.success,false);
 // Arrival transitions are measured by entering the next state, not by finishing its action.
 const arrival=clone(source);arrival.behaviors[0].triggers=[];arrival.behaviors[0].nodes=[{id:'a',kind:'follow',x:100,y:100},{id:'b',kind:'signal',x:400,y:100}];arrival.behaviors[0].edges=[{from:'a',to:'b',when:'arrived'}];arrival.behaviorAssignments[0].targets.push('unit:template');assert.equal(run(arrival).result.successTime,10);assert.equal(run(arrival).result.stateTargetCount,2);
-const receiver=clone(source);receiver.groups[0].template.communication={enabled:true,range:10000,delay:0,probability:1,terrainLOS:false};receiver.behaviors[0].nodes=[{id:'a',kind:'report',receiverId:'template',x:100,y:100},{id:'b',kind:'signal',x:400,y:100}];receiver.behaviors[0].edges=[{from:'a',to:'b',when:'sendFailed'}];receiver.behaviors[0].triggers=[];const missingReceiver=run(receiver);assert(missingReceiver.result.actionEvents.some(e=>e.type==='sendFailed'&&e.reason==='受信先不在・配置不正'));assert(!missingReceiver.result.actionEvents.some(e=>e.type==='received'));restoreRecording(recordingPayload(missingReceiver.model));
+const receiver=clone(source);receiver.groups[0].template.communication={enabled:true,range:10000,delay:0,probability:1,terrainLOS:false};receiver.behaviors[0].nodes=[{id:'a',kind:'report',receiverId:'template',x:100,y:100},{id:'b',kind:'signal',x:400,y:100}];receiver.behaviors[0].edges=[{from:'a',to:'b',when:'sendFailed'}];receiver.behaviors[0].triggers=[];const missingReceiver=run(receiver);assert(missingReceiver.result.actionEvents.some(e=>e.type==='sendFailed'&&e.reason==='受信先不在（無効・計算対象外）'));assert(!missingReceiver.result.actionEvents.some(e=>e.type==='received'));restoreRecording(recordingPayload(missingReceiver.model));
 const destination=clone(arrival);destination.destinations=[{id:'disabled-target',name:'Disabled destination',kind:'unit',unitId:'template'}];destination.behaviors[0].nodes[0]={id:'a',kind:'move',destinationId:'disabled-target',x:100,y:100};const missingDestination=run(destination);assert.equal(missingDestination.result.success,false);assert(missingDestination.model.states.every(s=>s.status==='blocked'));
 // Archive and analysis restore reject mismatches; a zero-population condition is legitimate failure.
 const bad=clone(archive);bad.result.stateEntries[0].time=4;assert.throws(()=>restoreRecording(bad),/一致/);

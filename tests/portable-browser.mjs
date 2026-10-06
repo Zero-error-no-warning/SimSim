@@ -4,7 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {importScenario} from '../src/scenario-import.js?v=20261006-empty-task-11';
+import {importScenario} from '../src/scenario-import.js?v=20261006-received-position-12';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=fileURLToPath(new URL('..',import.meta.url)),copy=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-portable-')),requests=[];
 const names=['index.html','styles.css','main.js','worker.js','analysis-worker.js'];
@@ -71,5 +71,5 @@ try{
   assert.deepEqual(errors,[]);
   await page.locator('#analysis-close').click();await page.waitForTimeout(400);
   if(process.env.SIMSIM_PORTABLE_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_PORTABLE_SCREENSHOT});
-  console.log('PASS: copy-page text and TXT bytes; clipboard fallback; isolated five-file deployment; strict self-only CSP; classic Workers only; all nine embedded samples preserved; version-3 save/reopen; calculation and analysis; no src/vendor/data requests');
+  console.log('PASS: copy-page text and TXT bytes; clipboard fallback; isolated five-file deployment; strict self-only CSP; classic Workers only; all embedded samples preserved; version-3 save/reopen; calculation and analysis; no src/vendor/data requests');
 }finally{await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(copy,{recursive:true,force:true});}

@@ -1,0 +1,321 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "受信した観測位置へ移動",
+  "duration": 180,
+  "seed": "received-position",
+  "terrain": {
+    "columns": 5,
+    "rows": 5,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "observer",
+      "name": "observer",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 100000,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "subsurface"
+        ],
+        "terrainLOS": false
+      },
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 7,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "relay",
+      "name": "relay",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once",
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 3,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "uav",
+      "name": "uav",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 100,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "uuv",
+      "name": "uuv",
+      "domain": "subsurface",
+      "faction": "hostile",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 1000,
+        "y": 0,
+        "z": -100
+      },
+      "route": [
+        {
+          "x": 10000,
+          "y": 0,
+          "z": -100
+        }
+      ],
+      "routeMode": "once"
+    }
+  ],
+  "destinations": [
+    {
+      "id": "received",
+      "name": "受信した目標位置",
+      "kind": "received"
+    }
+  ],
+  "routes": [
+    {
+      "id": "patrol",
+      "name": "UAVの周回",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 1000
+        },
+        {
+          "x": 0,
+          "y": 1000,
+          "z": 1000
+        },
+        {
+          "x": -1000,
+          "y": 0,
+          "z": 1000
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "observe",
+      "name": "位置を探知して報告",
+      "initial": "listen",
+      "triggers": [
+        {
+          "id": "detect",
+          "event": "detected",
+          "to": "report"
+        },
+        {
+          "id": "refresh",
+          "event": "time",
+          "seconds": 30,
+          "once": false,
+          "to": "report"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "listen",
+          "kind": "signal",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "relay",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "to": "listen",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "listen",
+          "when": "sendFailed",
+          "from": "report"
+        }
+      ]
+    },
+    {
+      "id": "relay",
+      "name": "観測位置を中継",
+      "initial": "listen",
+      "triggers": [
+        {
+          "id": "receive",
+          "event": "received",
+          "to": "report",
+          "once": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "listen",
+          "kind": "signal",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "uav",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "to": "listen",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "listen",
+          "when": "sendFailed",
+          "from": "report"
+        }
+      ]
+    },
+    {
+      "id": "respond",
+      "name": "受信位置へ高度を保って移動",
+      "initial": "patrol",
+      "triggers": [
+        {
+          "id": "receive",
+          "event": "received",
+          "to": "move",
+          "once": false,
+          "x": 140,
+          "y": 310
+        }
+      ],
+      "nodes": [
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "patrol",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "received",
+          "heightMode": "keep",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": []
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "observe",
+      "name": "位置を探知して報告",
+      "behaviorId": "observe",
+      "targets": [
+        "unit:observer"
+      ],
+      "spacing": "none"
+    },
+    {
+      "id": "relay",
+      "name": "観測位置を中継",
+      "behaviorId": "relay",
+      "targets": [
+        "unit:relay"
+      ],
+      "spacing": "none"
+    },
+    {
+      "id": "respond",
+      "name": "受信位置へ高度を保って移動",
+      "behaviorId": "respond",
+      "targets": [
+        "unit:uav"
+      ],
+      "spacing": "none"
+    }
+  ],
+  "recording": {
+    "step": 10,
+    "interval": 10
+  }
+}

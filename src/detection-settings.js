@@ -1,4 +1,4 @@
-import { variableErrors } from './parameters.js?v=20261006-empty-task-11';
+import { variableErrors } from './parameters.js?v=20261006-received-position-12';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);

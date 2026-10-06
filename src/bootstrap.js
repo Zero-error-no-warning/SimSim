@@ -1,4 +1,4 @@
-import('./app.js?v=20261006-empty-task-11').catch(error => {
+import('./app.js?v=20261006-received-position-12').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

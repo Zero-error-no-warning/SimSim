@@ -1,5 +1,5 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261006-empty-task-11';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261006-empty-task-11';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261006-received-position-12';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261006-received-position-12';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
@@ -72,6 +72,7 @@ export function sharedErrors(s, resolved=false) {
       if (n.kind === 'report' && !n.receiverId && !n.receiverRole) errors.push('報告先または報告先の役割を指定してください。');
       if (n.receiverId && concrete(n.receiverId) && !s.units?.some(u => u.id === n.receiverId)) errors.push('報告先の単体ユニットがありません: ' + n.receiverId);
       if(n.joinMode!==undefined&&(!['follow','patrol'].includes(n.kind)||!['start','nearest'].includes(n.joinMode)))errors.push('経路への入り方は最初から／最短地点からを選択してください。');
+      if(n.heightMode!==undefined&&(n.kind!=='move'||!['keep','target'].includes(n.heightMode)))errors.push('移動の高度・深度は維持する／目的地に合わせるを選択してください。');
       if (n.sensor !== undefined && typeof n.sensor !== 'boolean') errors.push('ノードのsensorはbooleanです。');
       if (n.x !== undefined && !number(n.x, 0, 4000) || n.y !== undefined && !number(n.y, 0, 4000)) errors.push('ノード位置が不正です。');
     }

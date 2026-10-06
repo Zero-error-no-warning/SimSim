@@ -1,4 +1,4 @@
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261006-empty-task-11';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261006-received-position-12';
 let simulation, latest, generation=0, state='idle', failure=null;
 function send() {
   if(!simulation||!latest)return;

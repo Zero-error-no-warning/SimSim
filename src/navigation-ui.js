@@ -1,5 +1,5 @@
-import {navigationErrors} from './navigation.js?v=20261006-empty-task-11';
-import {requireElement} from './ui-dom.js?v=20261006-empty-task-11';
+import {navigationErrors} from './navigation.js?v=20261006-received-position-12';
+import {requireElement} from './ui-dom.js?v=20261006-received-position-12';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint}){
@@ -50,10 +50,11 @@ export class NavigationUI{
     }else{
       this.item.kind=$('navigation-kind').value;
       if(this.item.kind==='unit'){this.item.unitId=$('navigation-unit').value;delete this.item.point;}
-      else{this.item.point=Object.fromEntries(['x','y','z'].map(axis=>{
+      else if(this.item.kind==='point'){this.item.point=Object.fromEntries(['x','y','z'].map(axis=>{
         const raw=$('navigation-'+axis).value;if(!raw.trim()||!Number.isFinite(Number(raw)))throw Error('地点の東西・南北・高さを数値で指定してください。');
         return [axis,Number(raw)*(axis==='z'?1:1000)];
       }));delete this.item.unitId;}
+      else{delete this.item.point;delete this.item.unitId;}
     }
   }
   error(message){$('navigation-error').hidden=false;$('navigation-error').textContent=message;}

@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261006-empty-task-11';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-empty-task-11';
-import {isParameterRef} from './behavior-parameters.js?v=20261006-empty-task-11';
-import {NavigationUI} from './navigation-ui.js?v=20261006-empty-task-11';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-empty-task-11';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-empty-task-11';
-import { clone,validateScenario } from './engine.js?v=20261006-empty-task-11';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-empty-task-11';
-import { requireElement } from './ui-dom.js?v=20261006-empty-task-11';
+import {ContextMenu} from './context-menu.js?v=20261006-received-position-12';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-received-position-12';
+import {isParameterRef} from './behavior-parameters.js?v=20261006-received-position-12';
+import {NavigationUI} from './navigation-ui.js?v=20261006-received-position-12';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-received-position-12';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-received-position-12';
+import { clone,validateScenario } from './engine.js?v=20261006-received-position-12';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-received-position-12';
+import { requireElement } from './ui-dom.js?v=20261006-received-position-12';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -192,7 +192,7 @@ export class BehaviorUI{
     };
     $('edge-condition').onchange=()=>this.readFields('edge-condition');
     for(const id of ['trigger-event','trigger-target','trigger-seconds','trigger-once','trigger-near-destination','trigger-near-distance','trigger-near-mode'])$(id).onchange=()=>this.readFields(id);
-    for(const id of ['behavior-name','node-join-mode','node-kind','node-route','node-destination','edge-near-destination','edge-near-distance','edge-near-mode','node-initial','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
+    for(const id of ['behavior-name','node-height-mode','node-join-mode','node-kind','node-route','node-destination','edge-near-destination','edge-near-distance','edge-near-mode','node-initial','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
     $('assignment-new').onclick=()=>{
       const targets=[...this.draft.units.map(u=>['unit:'+u.id,u]),...(this.draft.groups??[]).map(g=>['group:'+g.id,g.template])].filter(([id])=>!this.draft.behaviorAssignments.some(a=>a.targets.includes(id)));
       const selected=this.getSelected(),preferred=selected?.groupId?'group:'+selected.groupId:'unit:'+selected?.id;
@@ -436,6 +436,7 @@ export class BehaviorUI{
     }
     if(id==='node-join-mode'&&n){if($('node-join-mode').value)n.joinMode=$('node-join-mode').value;else delete n.joinMode;}
     if(id==='node-route'&&n){const value=$('node-route').value;if(value)n.routeId=value;else delete n.routeId;}
+    if(id==='node-height-mode'&&n)n.heightMode=$('node-height-mode').value;
     if(id==='node-destination'&&n){const value=$('node-destination').value;if(value)n.destinationId=value;else delete n.destinationId;}
     if(id==='behavior-name'&&g)g.name=$('behavior-name').value;
     if(id==='node-initial'&&n){
@@ -445,7 +446,7 @@ export class BehaviorUI{
       const kind=$('node-kind').value;
       if(kind)n.kind=kind;else delete n.kind;
       if(!['follow','patrol'].includes(kind)){delete n.routeId;delete n.joinMode;}else n.joinMode??=kind==='patrol'?'nearest':'start';
-      if(kind!=='move')delete n.destinationId;
+      if(kind!=='move'){delete n.destinationId;delete n.heightMode;}
       if(kind==='wait')n.seconds??=300;else {delete n.seconds;delete n.parameter;}
       if(kind==='patrol')n.speedFraction??=.7;else delete n.speedFraction;
       if(kind==='report'){if(!n.receiverId&&!n.receiverRole)n.receiverRole='report';}
@@ -735,8 +736,9 @@ export class BehaviorUI{
     $('node-route').disabled=routeBound;$('node-route-new').disabled=routeBound;$('node-route-edit').disabled=routeBound||!n?.routeId&&!u;
     $('node-join-mode').value=n?.joinMode??'';
     $('node-destination-fields').hidden=n?.kind!=='move';
-    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニット）':'（地点）')])],n?.destinationId??'');
+    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニットの現在位置）':d.kind==='received'?'（受信した目標位置）':'（地点）')])],n?.destinationId??'');
     const destinationBound=this.parameters.bind('node-destination-binding',n,'destinationId','destination',null,'移動する目的');
+    $('node-height-mode').value=n?.heightMode??(destinationFor(this.draft,a,n)?.kind==='point'?'target':'keep');
     $('node-destination').disabled=destinationBound;$('node-destination-new').disabled=destinationBound;$('node-destination-edit').disabled=destinationBound||!n?.destinationId&&!a?.base;
     for(const [prefix,c] of [['edge',edge],['trigger',t]]){
       $(prefix+'-near-fields').hidden=(c?.when??c?.event)!=='near';
