@@ -1,4 +1,4 @@
-export const UI_BUILD='20261006-label-rail-15';
+export const UI_BUILD='20261006-four-panes-16';
 
 export function requireElement(id){
   const element=document.getElementById(id);

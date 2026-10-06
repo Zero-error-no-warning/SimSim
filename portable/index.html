@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261006-label-rail-15">
+<html lang="ja" data-simsim-build="20261006-four-panes-16">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261006-label-rail-15-ee4608839944">
-<script src="main.js?v=20261006-label-rail-15-ee4608839944" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261006-four-panes-16-d82915f67112">
+<script src="main.js?v=20261006-four-panes-16-d82915f67112" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
@@ -31,26 +31,29 @@
 </div>
 <input type="file" id="file" accept=".txt,.jsn,.json,application/json,text/plain" hidden></header>
 <div class="workspace">
+<aside class="task-panel" aria-label="タスク一覧"><div class="panel-heading"><h2>タスク一覧</h2><button id="tasks-toggle" aria-controls="task-panel-content" aria-expanded="true" title="タスク一覧を折りたたむ">‹</button></div>
+<div id="task-panel-content"><div class="scenario-name">
+<input id="title" aria-label="シナリオ名" maxlength="160"><span id="terrain-info">地形を読み込み中</span>
+</div><section class="task-browser"><div class="section-heading">
+<h3>担当と挙動</h3>
+<button id="behaviors-open">＋ タスク</button>
+</div>
+<div id="task-list"></div></section><p class="pane-help">タスクを選ぶと担当ユニットを強調表示します。編集ボタンで担当と挙動を変更できます。</p></div></aside>
+<div class="pane-resizer" data-pane="task" role="separator" aria-label="タスク一覧の幅" aria-orientation="vertical" tabindex="0"></div>
 <aside class="unit-panel"><div class="panel-heading">
 <div>
-<span class="eyebrow">SCENARIO</span><h2>ユニット</h2>
+<span class="eyebrow">SCENARIO</span><h2>ユニット一覧</h2>
 </div>
 <span id="unit-count" class="count">0</span>
 </div>
-<div class="scenario-name">
-<input id="title" aria-label="シナリオ名" maxlength="160"><span id="terrain-info">地形を読み込み中</span>
-</div>
+
 <div class="add-row">
 <select id="template" aria-label="追加する領域"><option value="ground">■ 地上</option>
 <option value="surface">◆ 水上</option>
 <option value="subsurface">● 水中</option>
 <option value="air">▲ 空中</option></select><button id="add" class="primary" title="ユニットを追加">＋ 追加</button>
 </div>
-<section class="task-browser"><div class="section-heading">
-<h3>タスク</h3>
-<button id="behaviors-open">＋ タスク</button>
-</div>
-<div id="task-list"></div></section><div class="group-tools">
+<div class="group-tools">
 <button id="group-add" class="full">＋ 選択ユニットから群を作る</button><div id="group-list"></div>
 <input id="unit-search" placeholder="ユニット名・IDで検索" aria-label="ユニットを検索"><small id="list-summary"></small>
 </div>
@@ -62,12 +65,13 @@
 <p>ユニット・経由点を地図上でドラッグ。右クリックで追加・複製。Fで選択へ、Ctrl/Cmd+Dで複製、Deleteで削除。</p>
 <span class="phase-badge">編集 → 計算 → 再生・分析</span>
 </div></aside>
+<div class="pane-resizer" data-pane="unit" role="separator" aria-label="ユニット一覧の幅" aria-orientation="vertical" tabindex="0"></div>
 <main class="main-panel"><div class="map-toolbar">
 <div class="view-buttons">
 <button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="view3d" class="active">3D</button><button id="viewtop">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
 </div>
 <details class="menu-popover"><summary>表示</summary><div><div class="map-options">
-<label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>ラベル</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
+<label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>一覧との対応線</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
 <option value="4" selected>×4</option>
 <option value="8">×8</option>
 <option value="16">×16</option></select></label>
@@ -96,7 +100,7 @@
 <details class="experiment"><summary>計算設定・乱数シード</summary><div class="experiment-fields">
 <label>終了時刻 <input id="duration" type="number" min="1" max="1440" value="60"> 分</label><label>シード <input id="seed" maxlength="100" value="SimSim"></label><label>試行番号 <input id="trial" type="number" min="0" max="1000000000" value="0"></label><button id="next-trial">次の試行</button>
 </div>
-<p>同じ定義・シード・試行番号なら、同じ配置と航跡を再現します。80個を超えると経路・航跡・ラベルは選択中だけ表示します。</p>
+<p>同じ定義・シード・試行番号なら、同じ配置と航跡を再現します。80個を超えると経路・航跡は選択中だけ表示します。</p>
 <div class="fields-two">
 <label class="field">計算刻み（秒）<input id="record-step" type="number" min="0.1" max="300" step="any"></label><label class="field">通常の記録間隔（計算刻みの整数倍・秒）<input id="record-interval" type="number" min="0.1" max="300" step="any"></label>
 </div></details><div class="playback">
@@ -113,7 +117,8 @@
 </div>
 <div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
 <div id="notice" class="notice" role="status">読み込み中</div></main>
-<aside class="inspector"><div class="panel-heading">
+<div class="pane-resizer" data-pane="inspector" role="separator" aria-label="ユニット編集の幅" aria-orientation="vertical" tabindex="0"></div>
+<aside class="inspector" aria-label="ユニット編集"><div class="panel-heading">
 <div>
 <span class="eyebrow">SELECTED UNIT</span><h2>選択したユニット</h2>
 </div>

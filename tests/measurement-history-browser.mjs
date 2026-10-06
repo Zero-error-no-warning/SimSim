@@ -44,18 +44,43 @@ try{
   await page.locator('#history-unit').selectOption('group__1');assert.equal(await page.locator('#history-chart [data-node="b"]').count(),5);
   await page.locator('#events-close').click();await page.locator('#reset').click();await page.waitForFunction(()=>document.getElementById('timeline').value==='0');await page.locator('#events-open').click();assert.notEqual(await page.locator('#history-chart [data-cursor]').getAttribute('x1'),cursor20);assert.equal(await future.count(),1);await page.locator('#events-close').click();
   const [recordDownload]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);const record=path.join(folder,'record.txt');await recordDownload.saveAs(record);await page.locator('#file').setInputFiles(record);await page.waitForFunction(()=>!document.getElementById('play').disabled);await page.locator('#events-open').click();assert.equal(await page.locator('#history-chart circle[data-time="20"]').count()>0,true);await page.locator('#events-close').click();
-  // Coincident 3D units have separate screen labels and visible leader lines.
-  await page.waitForTimeout(150);const rects=await page.locator('#labels .map-label:visible').evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};}));assert.equal(rects.length,3);
-  for(const [i,a] of rects.entries())for(const b of rects.slice(i+1))assert(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y));assert.equal(await page.locator('#labels .label-leaders line').evaluateAll(els=>els.filter(e=>e.style.display!=='none').length),1);
-  const rail=await page.locator('#labels .label-rail').boundingBox(),canvas=await page.locator('#map>canvas').boundingBox();assert(rail&&canvas);assert(Math.abs(rail.x-canvas.x-canvas.width)<2);
-  for(const r of rects)assert(r.x>=canvas.x+canvas.width&&r.x+r.w<=rail.x+rail.width);
-  assert.equal(await page.locator('#labels .inactive-unit').evaluate(e=>getComputedStyle(e).opacity),'1');
-  await page.locator('#labels .map-label').filter({hasText:'群 2'}).hover();await page.waitForTimeout(100);assert.equal(await page.locator('#labels .label-leaders line').evaluateAll(els=>els.filter(e=>e.style.display!=='none').length),2);
-  await page.locator('#labels .map-label').filter({hasText:'群 2'}).click();assert(await page.locator('.unit-item[data-id="group__2"]').evaluate(e=>e.classList.contains('selected')));
-  await page.locator('#viewtop').click();await page.waitForTimeout(100);assert(await page.locator('#labels .label-rail').isHidden());assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));
-  await page.locator('#view3d').click();await page.waitForTimeout(100);assert(await page.locator('#labels .label-rail').isVisible());
-  await page.locator('.map-options').evaluate(e=>e.closest('details').open=true);await page.locator('#show-labels').uncheck();assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));await page.locator('#show-labels').check();await page.locator('.map-options').evaluate(e=>e.closest('details').open=false);
+  // Four panes and linked selections replace overlapping 3D labels.
+  assert.equal(await page.locator('#labels .map-label').count(),0);
+  assert.equal(await page.locator('#labels .label-rail').count(),0);
+  assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));
+  const panels=await page.locator('.task-panel,.unit-panel,.main-panel,.inspector').evaluateAll(els=>els.map(e=>e.getBoundingClientRect().x));
+  assert(panels.every((x,i)=>i===0||x>panels[i-1]));
+  await page.locator('.task-item[data-task="t"]').click();assert.equal(await page.locator('.unit-item.related').count(),2);
+  assert.equal(await page.locator('.unit-item').count(),3); // Unassigned units stay available.
+  assert.equal(await page.locator('#behavior-dialog').evaluate(e=>e.open),false);
+  await page.locator('.task-edit').click();assert(await page.locator('#behavior-dialog').isVisible());await page.locator('#behavior-cancel').click();
+  await page.locator('.unit-item[data-id="group__2"]').hover();await page.waitForTimeout(100);
+  assert(await page.locator('#labels line[data-unit="group__2"]').isVisible());
+  await page.locator('.unit-item[data-id="group__2"]').click();assert(await page.locator('.unit-item[data-id="group__2"]').evaluate(e=>e.classList.contains('selected')));
+  assert(await page.locator('.task-item[data-task="t"]').evaluate(e=>e.classList.contains('related')&&e.classList.contains('selected')));
+  await page.locator('.unit-item[data-id="template"]').click();assert.equal(await page.locator('.task-item.selected').count(),0);assert.equal(await page.locator('.unit-item.related').count(),0);
+  assert((await page.locator('.unit-item[data-id="template"] .unit-status').textContent()).includes('無効'));
+  await page.locator('#unit-search').fill('存在しない名前');assert.equal(await page.locator('.unit-item').count(),1);assert(await page.locator('.unit-item[data-id="template"]').isVisible());await page.locator('#unit-search').fill('');
+  // Picking a unit beyond the list limit reveals and scrolls to that row.
+  const many=structuredClone(source);many.groups[0].count=100;many.groups[0].width=2000;many.groups[0].height=2000;
+  many.units[0].initial={x:3500,y:3500,z:0};fs.writeFileSync(input,JSON.stringify(many));await page.locator('#file').setInputFiles(input);
+  await page.locator('#unit-search').fill('group__100');await page.locator('.unit-item[data-id="group__100"]').click();await page.waitForTimeout(150);
+  const targetPoint=await page.locator('#labels line[data-unit="group__100"]').evaluate(e=>({x:Number(e.getAttribute('x2')),y:Number(e.getAttribute('y2'))}));
+  await page.locator('#unit-search').fill('template');await page.locator('.unit-item[data-id="template"]').click();await page.locator('#unit-search').fill('');assert.equal(await page.locator('.unit-item[data-id="group__100"]').count(),0);
+  const mapBox=await page.locator('#map>canvas').boundingBox();await page.mouse.click(mapBox.x+targetPoint.x,mapBox.y+targetPoint.y);
+  await page.waitForFunction(()=>document.querySelector('.unit-item[data-id="group__100"]')?.classList.contains('selected'));
+  assert.equal(await page.locator('#unit-name').inputValue(),'群 100');
+  assert(await page.locator('.unit-item[data-id="group__100"]').evaluate(e=>{const r=e.getBoundingClientRect(),p=e.parentElement.getBoundingClientRect();return r.top>=p.top&&r.bottom<=p.bottom+1;}));
+  const before=await page.locator('.unit-panel').boundingBox(),handle=page.locator('.pane-resizer[data-pane="unit"]'),box=await handle.boundingBox();
+  await page.mouse.move(box.x+3,box.y+50);await page.mouse.down();await page.mouse.move(box.x+43,box.y+50);await page.mouse.up();
+  assert((await page.locator('.unit-panel').boundingBox()).width>before.width+30);
+  await handle.focus();await page.keyboard.press('ArrowLeft');
+  const mapBefore=await page.locator('#map').boundingBox();await page.locator('#tasks-toggle').click();assert(await page.locator('#task-panel-content').isHidden());assert((await page.locator('#map').boundingBox()).width>mapBefore.width+100);
+  await page.reload();await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));assert(await page.locator('#task-panel-content').isHidden());await page.locator('#tasks-toggle').click();
+  await page.setViewportSize({width:1200,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.locator('#viewtop').click();assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));await page.locator('#view3d').click();
+  await page.locator('.map-options').evaluate(e=>e.closest('details').open=true);await page.locator('#show-labels').uncheck();assert(await page.locator('#labels').isHidden());await page.locator('#show-labels').check();await page.locator('.map-options').evaluate(e=>e.closest('details').open=false);
   if(process.env.SIMSIM_LABEL_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_LABEL_SCREENSHOT});
   if(process.env.SIMSIM_HISTORY_SCREENSHOT){await page.locator('#events-open').click();await page.screenshot({path:process.env.SIMSIM_HISTORY_SCREENSHOT});}
-  assert.deepEqual(errors,[]);console.log('PASS: point editing, stage results, failed-trial replay, export/restore, all-period timeline, filtered lanes, backward seek, archived history and disjoint 3D labels');
+  assert.deepEqual(errors,[]);console.log('PASS: point editing, stage results, failed-trial replay, export/restore, all-period timeline, filtered lanes, backward seek, archived history, four panes, linked task/unit selection, hover lines, pane resizing/collapse and persistence');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));fs.rmSync(folder,{recursive:true,force:true});}

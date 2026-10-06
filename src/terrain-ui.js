@@ -1,5 +1,5 @@
-import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261006-label-rail-15';
-import {requireElement} from './ui-dom.js?v=20261006-label-rail-15';
+import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261006-four-panes-16';
+import {requireElement} from './ui-dom.js?v=20261006-four-panes-16';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){

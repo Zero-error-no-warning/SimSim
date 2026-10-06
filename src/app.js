@@ -1,21 +1,24 @@
-import {NavigationUI} from './navigation-ui.js?v=20261006-label-rail-15';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261006-label-rail-15';
-import {ContextMenu} from './context-menu.js?v=20261006-label-rail-15';
-import {TerrainUI} from './terrain-ui.js?v=20261006-label-rail-15';
-import { BehaviorUI } from './behavior-ui.js?v=20261006-label-rail-15';
-import { createSimulation } from './recorded-engine.js?v=20261006-label-rail-15';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-label-rail-15';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-label-rail-15';
-import { importScenario } from './scenario-import.js?v=20261006-label-rail-15';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-label-rail-15';
-import { restoreAnalysisResult } from './detection.js?v=20261006-label-rail-15';
-import { AnalysisUI } from './analysis-ui.js?v=20261006-label-rail-15';
-import { MapView } from './view.js?v=20261006-label-rail-15';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-label-rail-15';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-label-rail-15';
+import {WorkspaceUI} from './workspace-ui.js?v=20261006-four-panes-16';
+import {NavigationUI} from './navigation-ui.js?v=20261006-four-panes-16';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261006-four-panes-16';
+import {ContextMenu} from './context-menu.js?v=20261006-four-panes-16';
+import {TerrainUI} from './terrain-ui.js?v=20261006-four-panes-16';
+import { BehaviorUI } from './behavior-ui.js?v=20261006-four-panes-16';
+import { createSimulation } from './recorded-engine.js?v=20261006-four-panes-16';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-four-panes-16';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-four-panes-16';
+import { importScenario } from './scenario-import.js?v=20261006-four-panes-16';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-four-panes-16';
+import { restoreAnalysisResult } from './detection.js?v=20261006-four-panes-16';
+import { AnalysisUI } from './analysis-ui.js?v=20261006-four-panes-16';
+import { MapView } from './view.js?v=20261006-four-panes-16';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-four-panes-16';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-four-panes-16';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
+new WorkspaceUI();
+let selectedTask=null;
 const mapMenu=new ContextMenu($('map-menu'));
 const FACTION_NAMES={
   friendly:'味方',hostile:'相手側',neutral:'中立'
@@ -29,7 +32,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261006-label-rail-15',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261006-four-panes-16',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -356,13 +359,43 @@ function select(id){
   selectedWaypoint=null;
   selected=id;
   setEditMode(null);
+  selectedTask=sharedAssignment(scenario,id)?.id??null;
   view.setSelected(id);
   post();
   renderUnits({
     selectionOnly:true
   });
+  scrollSelectedUnit();
   renderInspector();
   updateTelemetry();
+}
+function scrollSelectedUnit(){
+  const button=[...$('unit-list').children].find(b=>b.dataset.id===selected);
+  if(button)button.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+function selectTask(id){
+  selectedTask=id;
+  updateLinks();
+}
+function renderTasks(){
+  const list=$('task-list');list.replaceChildren();
+  if(!scenario.behaviorAssignments.length){const note=document.createElement('p');note.className='pane-help';note.textContent='タスクは未設定です。';list.append(note);}
+  for(const a of scenario.behaviorAssignments){
+    const row=document.createElement('div');row.className='task-row';
+    const button=document.createElement('button');button.className='task-item';button.dataset.task=a.id;
+    const name=document.createElement('strong'),detail=document.createElement('small');name.textContent=a.name;button.title=a.name;
+    detail.textContent=model.scenario.units.filter(u=>sharedAssignment(scenario,u.id)?.id===a.id).length+'ユニット担当';
+    button.append(name,detail);button.onclick=()=>selectTask(a.id);
+    const edit=document.createElement('button');edit.className='task-edit';edit.textContent='編集';edit.setAttribute('aria-label',a.name+'を編集');edit.onclick=()=>{selectTask(a.id);behaviorUI.open(a.id);};
+    row.append(button,edit);list.append(row);
+  }
+}
+function updateLinks(){
+  const ids=model.scenario.units.filter(u=>sharedAssignment(scenario,u.id)?.id===selectedTask).map(u=>u.id);
+  const related=new Set(ids),owner=sharedAssignment(scenario,selected)?.id;
+  for(const button of $('unit-list').children){button.classList.toggle('selected',button.dataset.id===selected);button.classList.toggle('related',related.has(button.dataset.id));button.setAttribute('aria-pressed',String(button.dataset.id===selected));}
+  for(const button of $('task-list').querySelectorAll('.task-item')){button.classList.toggle('selected',button.dataset.task===selectedTask);button.classList.toggle('related',button.dataset.task===owner);button.setAttribute('aria-pressed',String(button.dataset.task===selectedTask));}
+  view.setRelatedUnits(ids);
 }
 function renderUnits({
   selectionOnly=false
@@ -373,7 +406,7 @@ function renderUnits({
   const list=$('unit-list'),scrollTop=list.scrollTop,scrollLeft=list.scrollLeft;
   // Keep existing buttons and their focus when selecting an already listed unit.
   if(selectionOnly && [...list.children].some(button=>button.dataset.id===selected)) {
-    for(const button of list.children)button.classList.toggle('selected',button.dataset.id===selected);
+    updateLinks();
     return;
   }
   $('unit-count').textContent=model.scenario.units.length;
@@ -381,18 +414,13 @@ function renderUnits({
   const query=$('unit-search').value.toLowerCase();
   const matches=model.scenario.units.filter(u=>(u.name+' '+u.id).toLowerCase().includes(query));
   const visible=matches.slice(0,80);
-  const chosen=matches.find(u=>u.id===selected);
+  const chosen=model.scenario.units.find(u=>u.id===selected);
   if(chosen&&!visible.includes(chosen))visible.push(chosen);
   $('list-summary').textContent=matches.length>80?'一致 '+matches.length+'個 · 先頭80個と選択中を表示':'一致 '+matches.length+'個';
   $('group-list').replaceChildren();
-  $('task-list').replaceChildren();
-  for(const a of scenario.behaviorAssignments){
-    const b=document.createElement('button');
-    b.className='group-item';
-    b.textContent=a.name+' · '+a.targets.length+'担当';
-    b.onclick=()=>behaviorUI.open(a.id);
-    $('task-list').append(b);
-  }
+  if(!scenario.behaviorAssignments.some(a=>a.id===selectedTask))selectedTask=sharedAssignment(scenario,selected)?.id??null;
+  renderTasks();
+  view.setHovered(null);
   for(const group of scenario.groups??[]) {
     const b=document.createElement('button');
     b.className='group-item';
@@ -409,15 +437,21 @@ function renderUnits({
     symbol.className='unit-symbol '+unit.faction;
     symbol.textContent=SYMBOLS[unit.domain];
     const description=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');
-    name.textContent=unit.name;
+    name.textContent=unit.name;button.title=unit.name+' · '+unit.id;
     detail.textContent=(unit.enabled===false?'無効 · ':'')+DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人')+' · '+Math.round(unit.speed*3.6)+' km/h';
-    description.append(name,detail);
+    const status=document.createElement('span');status.className='unit-status';
+    description.append(name,detail,status);
     button.append(symbol,description);
     button.addEventListener('click',()=>select(unit.id));
+    for(const event of ['mouseenter','focus'])button.addEventListener(event,()=>view.setHovered(unit.id));
+    button.addEventListener('mouseleave',()=>view.setHovered(document.activeElement===button?unit.id:null));
+    button.addEventListener('blur',()=>view.setHovered(button.matches(':hover')?unit.id:null));
     button.addEventListener('contextmenu',event=>{event.preventDefault();openMapMenu({x:event.clientX,y:event.clientY,id:unit.id});});
     button.addEventListener('keydown',event=>{if(event.key==='ContextMenu'||event.shiftKey&&event.key==='F10'){event.preventDefault();const r=button.getBoundingClientRect();openMapMenu({x:r.right,y:r.top,id:unit.id});}});
     $('unit-list').appendChild(button);
   }
+  updateLinks();
+  updateListTelemetry();
   // Map selection can add a member beyond the first 80. Retain the user's viewport.
   if(selectionOnly){
     list.scrollTop=scrollTop;
@@ -443,7 +477,7 @@ function renderInspector() {
   renderSensor('unit',unit);
   $('unit-enabled').checked=(d?.group??unit).enabled!==false;
   $('unit-enabled-note').textContent=unit.groupId?'この群全体の有効／無効を切り替えます。':unit.enabled===false?'編集用に表示しています。移動・センサー・通信・計測・記録の計算対象から外れます。':'無効にしても設定を保持します。作成済みの群は独立して動作します。';
-  $('unit-name').value=unit.name;
+  $('unit-name').value=original.groupId?original.name:unit.name;
   $('unit-domain').value=unit.domain;
   $('unit-faction').value=unit.faction;
   $('unit-manned').value=String(unit.manned);
@@ -500,7 +534,16 @@ function renderInspector() {
   renderCommunication('unit',unit);
   $('clear-route').disabled=!!d?.navigationRoute||!!a?.route?.length||!unit.route.length;
 }
+function updateListTelemetry() {
+  const states=new Map(snapshot?.units.map(u=>[u.id,u])??[]);
+  for(const button of $('unit-list').children){
+    const state=states.get(button.dataset.id),node=scenario.behaviors?.find(g=>g.id===state?.behaviorId)?.nodes.find(n=>n.id===state?.nodeId);
+    const status=button.querySelector('.unit-status');
+    if(status)status.textContent=(STATUS_NAMES[state?.status]??'—')+(node?' · '+(node.name??NODE_KINDS[node.kind]??node.id):'');
+  }
+}
 function updateTelemetry() {
+  updateListTelemetry();
   const state=snapshot?.units.find(u=>u.id===selected);
   if(!state)return;
   const detection=snapshot?.mission?.events.find(e=>e.targetId===selected);

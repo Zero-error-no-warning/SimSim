@@ -1,13 +1,13 @@
-import {HistoryUI} from './history-ui.js?v=20261006-label-rail-15';
-import {MeasurementUI} from './measurement-ui.js?v=20261006-label-rail-15';
-import {stateMembers} from './state-measurement.js?v=20261006-label-rail-15';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-label-rail-15';
-import { RECORD_MODEL } from './recording.js?v=20261006-label-rail-15';
-import { numericScale } from './chart-scale.js?v=20261006-label-rail-15';
-import { clone,validateScenario } from './engine.js?v=20261006-label-rail-15';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-label-rail-15';
-import { ParameterEditor } from './parameter-ui.js?v=20261006-label-rail-15';
-import { requireElement } from './ui-dom.js?v=20261006-label-rail-15';
+import {HistoryUI} from './history-ui.js?v=20261006-four-panes-16';
+import {MeasurementUI} from './measurement-ui.js?v=20261006-four-panes-16';
+import {stateMembers} from './state-measurement.js?v=20261006-four-panes-16';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-four-panes-16';
+import { RECORD_MODEL } from './recording.js?v=20261006-four-panes-16';
+import { numericScale } from './chart-scale.js?v=20261006-four-panes-16';
+import { clone,validateScenario } from './engine.js?v=20261006-four-panes-16';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-four-panes-16';
+import { ParameterEditor } from './parameter-ui.js?v=20261006-four-panes-16';
+import { requireElement } from './ui-dom.js?v=20261006-four-panes-16';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -18,7 +18,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-label-rail-15',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-four-panes-16',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

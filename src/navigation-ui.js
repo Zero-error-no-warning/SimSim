@@ -1,6 +1,6 @@
-import {navigationErrors} from './navigation.js?v=20261006-label-rail-15';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261006-label-rail-15';
-import {requireElement} from './ui-dom.js?v=20261006-label-rail-15';
+import {navigationErrors} from './navigation.js?v=20261006-four-panes-16';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261006-four-panes-16';
+import {requireElement} from './ui-dom.js?v=20261006-four-panes-16';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

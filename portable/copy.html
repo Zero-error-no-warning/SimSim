@@ -7,14 +7,14 @@ body{font-family:system-ui,sans-serif;margin:24px auto;padding:0 20px;max-width:
 <h1>SimSim 持ち込み用ファイル</h1>
 <p>下の<strong>5ファイル</strong>をコピーし、社内サーバの同じフォルダに、表示された名前でUTF-8のテキストとして保存してください。<code>index.html</code> をHTTP／HTTPSで開くと起動します。サンプルとThree.jsは組み込み済みです。</p>
 <p>「表示」で全文を開き、「全文をコピー」を押してください。コピーが使えない場合は「全文を選択」→ Ctrl+Cでもコピーできます。「TXTを保存」は内容が同じ <code>ファイル名.txt</code> をダウンロードします。保存先では末尾の <code>.txt</code> を外してください。</p>
-<p class="build">版: 20261006-label-rail-15-ee4608839944</p>
+<p class="build">版: 20261006-four-panes-16-d82915f67112</p>
 <table><thead><tr><th>保存する名前</th><th>サイズ</th><th>内容</th></tr></thead><tbody id="files"></tbody></table>
 <p id="status" role="status" aria-live="polite"></p>
 <section id="editor" hidden><h2 id="filename"></h2><button id="copy">全文をコピー</button><button id="select">全文を選択</button><button id="download">TXTを保存</button><textarea id="content" readonly spellcheck="false" aria-label="ファイルの全文"></textarea><p id="checksum"></p></section>
 <p><a href="index.html" target="_blank" rel="noopener">持ち込み版を試す</a> · <a href="../index.html">通常版へ戻る</a></p>
 <script>
 'use strict';
-const files=[{"name":"index.html","bytes":48528,"sha256":"c48ac3126461fe4fabce321474f7e9a7168758244ab9af16be6cfda12fa8f98e"},{"name":"styles.css","bytes":28309,"sha256":"c6866fe05c5c42fa7445e8625561d899d6404f0887534bf44b67e577ab4c8dbb"},{"name":"main.js","bytes":1059829,"sha256":"716d6d94ca112e9bfacfe4c35ab129bfbbefabfaf730ff366291b3034abf3cd7"},{"name":"worker.js","bytes":86955,"sha256":"c7836e07bf2400c0d3144e2e2f03cb8d41577d0702e77ae58abec86a9eec01c1"},{"name":"analysis-worker.js","bytes":83780,"sha256":"ce58958c61c087ff2a76bafc035773258c6d11487369e223a20d1f1388b57737"}],build='20261006-label-rail-15-ee4608839944',status=document.getElementById('status'),content=document.getElementById('content');
+const files=[{"name":"index.html","bytes":49453,"sha256":"a6135ba70583504355654b4a21d8851c71873a901a6180a629226a081c923b3e"},{"name":"styles.css","bytes":28944,"sha256":"bc58b7659523af0665adce9ec75d9cca9f399acbfce3eacbb61cef1a7f97bd2b"},{"name":"main.js","bytes":1060556,"sha256":"eccf2cd5eefc3f634f285c4aeb531f142f17f2e2cc8736e0d4163bbff4269f01"},{"name":"worker.js","bytes":86955,"sha256":"2757932d2867dde82f171e555504d3be2d4d4911697004e7209d622559e788b3"},{"name":"analysis-worker.js","bytes":83780,"sha256":"2f2c97a7ada4296ce4074a8c49f1b89fce9b7fbc5cbf97c7b95a1f9c9f11bc74"}],build='20261006-four-panes-16-d82915f67112',status=document.getElementById('status'),content=document.getElementById('content');
 let selected=null;
 for(const file of files){
   const row=document.createElement('tr'),name=document.createElement('td'),size=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');

@@ -1,9 +1,8 @@
-import {layoutLabels,layoutDockedLabels} from './label-layout.js?v=20261006-label-rail-15';
-import { editableDefinition } from './editor.js?v=20261006-label-rail-15';
-import { sharedAssignment } from './shared-settings.js?v=20261006-label-rail-15';
+import { editableDefinition } from './editor.js?v=20261006-four-panes-16';
+import { sharedAssignment } from './shared-settings.js?v=20261006-four-panes-16';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-label-rail-15';
+import { Terrain, Simulation } from './engine.js?v=20261006-four-panes-16';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -59,12 +58,12 @@ export class MapView {
     this.raycaster=new THREE.Raycaster();
     this.pointer=new THREE.Vector2();
     this.markers=new Map();
-    this.labels=new Map();
     this.trailPoints=new Map();
     this.latestTime=0;
     this.labelLayer=document.getElementById('labels');
     this.labelsVisible=true;
-    this.highlightedLabel=null;
+    this.hovered=null;
+    this.relatedIds=new Set();
     this.selected=null;
     this.editMode=null;
     this.showRoutes=true;
@@ -421,11 +420,7 @@ export class MapView {
   }
   resize() {
     const fullWidth=this.element.clientWidth,height=this.element.clientHeight;
-    this.dockedLabels=this.mode==='3d'&&this.labelsVisible;
-    this.railWidth=this.dockedLabels?Math.round(Math.max(150,Math.min(210,fullWidth*.24))):0;
-    const width=Math.max(1,fullWidth-this.railWidth);this.sceneWidth=width;
-    this.element.classList.toggle('labels-docked',this.dockedLabels);
-    this.element.style.setProperty('--label-rail-width',this.railWidth+'px');
+    const width=Math.max(1,fullWidth);this.sceneWidth=width;
     this.renderer.domElement.style.width=width+'px';
     this.renderer.setSize(width,height,false);
     this.camera3d.aspect=width/Math.max(height,1);
@@ -505,42 +500,37 @@ export class MapView {
   }
   buildLabels() {
     this.labelLayer.replaceChildren();
-    this.highlightedLabel=null;
-    const rail=document.createElement('div');rail.className='label-rail';rail.setAttribute('aria-hidden','true');
-    const heading=document.createElement('strong');heading.textContent='ユニット';rail.append(heading);this.labelLayer.append(rail);
-    this.labels.clear();
+    this.labelLines=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    this.labelLines.classList.add('label-leaders');this.labelLines.setAttribute('aria-hidden','true');this.labelLayer.append(this.labelLines);
     this.leaders=new Map();
-    this.labelLines=document.createElementNS('http://www.w3.org/2000/svg','svg');this.labelLines.classList.add('label-leaders');this.labelLines.setAttribute('aria-hidden','true');this.labelLayer.append(this.labelLines);
-    this.groupLabels=new Map();
-    if(this.scenario.units.length>80)for(const group of this.scenario.groups??[]) {
-      const label=document.createElement('div');
-      label.className='map-label friendly group-label';
-      label.textContent=group.name+' · '+group.count+'個';
-      this.labelLayer.append(label);
-      this.groupLabels.set(group.id,label);this.wireLabel(label,'group:'+group.id,()=>this.onSelect(this.scenario.units.find(u=>u.groupId===group.id)?.id));
-    }
-    const candidates=this.scenario.units.length>80?this.scenario.units.filter(u=>u.id===this.selected):this.scenario.units;
-    for(const unit of candidates) {
-      const label=document.createElement('div');
-      label.className='map-label '+unit.faction+(unit.id===this.selected?' selected':'')+(unit.enabled===false?' inactive-unit':'');
-      const name=document.createElement('span');
-      name.textContent=unit.name;
-      const detail=document.createElement('small');
-      detail.textContent=DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人');
-      label.append(name,detail);
-      label.classList.toggle('detected',!!this.snapshot?.mission?.events.some(e=>e.targetId===unit.id));
-      this.labelLayer.appendChild(label);
-      this.labels.set(unit.id,label);this.wireLabel(label,unit.id,()=>this.onSelect(unit.id));
-    }
   }
-  wireLabel(label,id,select){
-    label.tabIndex=0;label.setAttribute('role','button');
-    label.addEventListener('mouseenter',()=>{this.highlightedLabel=id;});
-    label.addEventListener('mouseleave',()=>{if(this.highlightedLabel===id)this.highlightedLabel=null;});
-    label.addEventListener('focus',()=>{this.highlightedLabel=id;});
-    label.addEventListener('blur',()=>{if(this.highlightedLabel===id)this.highlightedLabel=null;});
-    label.addEventListener('click',select);
-    label.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();select();}});
+  setHovered(id){this.hovered=id;}
+  setRelatedUnits(ids){this.relatedIds=new Set(ids);}
+  ringTexture(){
+    const canvas=document.createElement('canvas');canvas.width=96;canvas.height=96;
+    const c=canvas.getContext('2d');c.strokeStyle='#75dce7';c.lineWidth=5;c.beginPath();c.arc(48,48,42,0,Math.PI*2);c.stroke();
+    return new THREE.CanvasTexture(canvas);
+  }
+  updateListLinks(width,height){
+    for(const line of this.leaders.values())line.style.display='none';
+    const mapRect=this.element.getBoundingClientRect(),list=document.getElementById('unit-list'),listRect=list.getBoundingClientRect();
+    for(const id of new Set([this.selected,this.hovered])){
+      if(!id||!this.labelsVisible)continue;
+      const marker=this.markers.get(id),button=[...list.children].find(b=>b.dataset.id===id);
+      if(!marker||!button)continue;
+      const point=this.screenPoint(marker.position),row=button.getBoundingClientRect(),center=(row.top+row.bottom)/2;
+      if(!point.visible||point.x<0||point.x>width||point.y<0||point.y>height||center<listRect.top||center>listRect.bottom||center<mapRect.top||center>mapRect.bottom)continue;
+      let line=this.leaders.get(id);if(!line){line=document.createElementNS('http://www.w3.org/2000/svg','line');line.dataset.unit=id;this.labelLines.append(line);this.leaders.set(id,line);}
+      line.style.display='';line.setAttribute('x1',0);line.setAttribute('y1',center-mapRect.top);line.setAttribute('x2',point.x);line.setAttribute('y2',point.y);line.setAttribute('stroke',id===this.selected?'#ffd18b':'#75dce7');
+    }
+    const info=document.getElementById('label-summary');info.hidden=true;
+    let index=0;
+    for(const id of new Set([...this.relatedIds,this.hovered])){
+      const marker=this.markers.get(id);if(!marker||id===this.selected)continue;
+      const pixels=id===this.hovered?44:38,scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*marker.position.distanceTo(this.camera.position)/height*pixels;
+      this.markerScale.setScalar(Math.max(10,scale));this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);this.relatedMarkers.setMatrixAt(index++,this.matrix);
+    }
+    this.relatedMarkers.count=index;this.relatedMarkers.instanceMatrix.needsUpdate=true;
   }
   setExaggeration(value) {
     const preview=this.editMode==='terrain'?this.terrainPreviewData:null;
@@ -593,6 +583,8 @@ export class MapView {
     this.selectedMarker.renderOrder=11;
     this.selectedMarker.userData.id=selected;
     this.units.add(this.selectedMarker);
+    this.relatedMarkers=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:this.ringTexture(),transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide}),Math.max(1,scenario.units.length));
+    this.relatedMarkers.count=0;this.relatedMarkers.frustumCulled=false;this.relatedMarkers.renderOrder=12;this.units.add(this.relatedMarkers);
     this.matrix=new THREE.Matrix4();
     this.markerScale=new THREE.Vector3();
     this.setSelected(selected);
@@ -780,21 +772,6 @@ export class MapView {
   updateSnapshot(snapshot) {
     if(!snapshot||this.drag)return;
     this.snapshot=snapshot;
-    this.groupAnchors=new Map();
-    for(const state of snapshot.units){
-      const unit=this.markers.get(state.id)?.unit;
-      if(unit?.groupId){
-        const info=this.groupAnchors.get(unit.groupId)??{
-          x:0,y:0,z:0,count:0,blocked:0
-        };
-        info.x+=state.position.x;
-        info.y+=state.position.y;
-        info.z+=state.position.z;
-        info.count++;
-        if(state.status==='blocked')info.blocked++;
-        this.groupAnchors.set(unit.groupId,info);
-      }
-    }
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {
       const marker=this.markers.get(state.id);
@@ -809,11 +786,6 @@ export class MapView {
         ...state.position,z:state.position.z+(unit.sensor.mountHeight??(unit.domain==='ground'?2:0))
       }));
     }
-    const detected=new Set(snapshot.mission?.events.map(e=>e.targetId)??[]);
-    for(const [id,label] of this.labels){
-      label.classList.toggle('detected',detected.has(id));
-      const unit=this.scenario.units.find(u=>u.id===id);label.title=(unit?.name??id)+(detected.has(id)?' · 探知済み':'')+' · クリックで選択';
-    }
     disposal(this.detectionGroup);
     for(const event of snapshot.mission?.events.slice(-3)??[]) {
       const geometry=new THREE.BufferGeometry().setFromPoints([this.world(event.observerPosition,15),this.world(event.targetPosition,15)]);
@@ -826,15 +798,6 @@ export class MapView {
       this.detectionGroup.add(new THREE.Line(geometry,new THREE.LineBasicMaterial({
         color:'#ffc580',transparent:true,opacity:.85,depthTest:false
       })));
-    }
-    for(const state of snapshot.units){
-      const label=this.labels.get(state.id);
-      if(label){
-        const unit=this.markers.get(state.id)?.unit;
-        label.querySelector('small').textContent=DOMAIN_NAMES[unit.domain]+' · '+({
-          disabled:'無効（計算対象外）',standby:'イベント待ち',preparing:'出発準備',moving:'移動中',arrived:'到着',blocked:'停止',waiting:'時間待ち',idle:'待機'
-        })[state.status];
-      }
     }
     this.latestTime=snapshot.time;
     disposal(this.trails);
@@ -869,46 +832,18 @@ export class MapView {
   }
   render() {
     if(!this.drag&&this.terrainStroke===undefined)this.controls.update();
-    const width=this.sceneWidth,height=this.element.clientHeight,labelItems=[];
+    const width=this.sceneWidth,height=this.element.clientHeight;
     this.camera.updateMatrixWorld();
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
     for(const [id,marker] of sorted) {
-      const projected=marker.position.clone().project(this.camera),label=this.labels.get(id);
-      const visible=projected.z>=-1&&projected.z<=1&&Math.abs(projected.x)<1.1&&Math.abs(projected.y)<1.1;
-      if(label)label.hidden=!visible;
       const pixels=id===this.selected?36:this.scenario.units.length>80?15:30;
       const scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*marker.position.distanceTo(this.camera.position)/height*pixels;
       this.markerScale.setScalar(Math.max(10,scale));
       this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);
       marker.mesh.setMatrixAt(marker.index,this.matrix);
       if(id===this.selected)this.selectedMarker.scale.copy(this.markerScale);
-      if(visible&&label&&!this.labelLayer.hidden){
-        labelItems.push({id,label,x:(projected.x*.5+.5)*width,y:(-projected.y*.5+.5)*height,w:label.offsetWidth,h:label.offsetHeight,priority:id===this.selected?3:1,color:id===this.selected?'#ffd18b':marker.unit?.faction==='hostile'?'#ee9791':'#99cce7'});
-      }
     }
-    for(const [id,info] of this.groupAnchors??[]) {
-      const label=this.groupLabels.get(id);
-      if(!label)continue;
-      const p=this.world({
-        x:info.x/info.count,y:info.y/info.count,z:info.z/info.count
-      }).project(this.camera);
-      label.hidden=p.z < -1||p.z>1||Math.abs(p.x)>1.1||Math.abs(p.y)>1.1;
-      const group=this.scenario.groups.find(g=>g.id===id);
-      label.textContent=group.name+' · '+info.count+'個'+(info.blocked?' · 停止 '+info.blocked:'');
-      label.className='map-label group-label '+group.template.faction;
-      if(!label.hidden&&!this.labelLayer.hidden)labelItems.push({id:'group:'+id,label,x:(p.x*.5+.5)*width,y:(-p.y*.5+.5)*height,w:label.offsetWidth,h:label.offsetHeight,priority:2,color:group.template.faction==='hostile'?'#ee9791':'#99cce7'});
-    }
-    if(this.labelLines){
-      for(const line of this.leaders.values())line.style.display='none';
-      const positions=this.dockedLabels?layoutDockedLabels(labelItems,width,height,this.railWidth):layoutLabels(labelItems,width,height);let hidden=0;
-      for(const item of labelItems){
-        const r=positions.get(item.id);item.label.hidden=!r;if(!r){hidden++;continue;}
-        item.label.style.transform='translate('+Math.round(r.x)+'px,'+Math.round(r.y)+'px)';
-        let line=this.leaders.get(item.id);if(!line){line=document.createElementNS('http://www.w3.org/2000/svg','line');this.labelLines.append(line);this.leaders.set(item.id,line);}
-        line.style.display=this.dockedLabels&&item.priority!==3&&item.id!==this.highlightedLabel?'none':'';line.setAttribute('x1',item.x);line.setAttribute('y1',item.y);line.setAttribute('x2',Math.max(r.x,Math.min(r.x+r.w,item.x)));line.setAttribute('y2',Math.max(r.y,Math.min(r.y+r.h,item.y)));line.setAttribute('stroke',item.color);line.setAttribute('stroke-width',item.priority===3?2:1);
-      }
-      const info=document.getElementById('label-summary');info.hidden=!hidden;info.textContent=hidden+'個のラベルを省略（選択で表示）';
-    }
+    this.updateListLinks(width,height);
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;
       h.mesh.visible=h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24;
