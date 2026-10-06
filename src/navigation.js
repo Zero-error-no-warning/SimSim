@@ -1,4 +1,5 @@
-import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261006-received-position-12';
+import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261006-route-planning-13';
+import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261006-route-planning-13';
 // Named navigation resources, shared by state nodes and proximity conditions.
 export function routeFor(s,a,n,u){
   const graph=s.behaviors?.find(g=>g.id===a?.behaviorId),id=resolveValue(n?.routeId,graph,a);
@@ -24,7 +25,11 @@ export function navigationErrors(s){
       if(!item||!/^[a-zA-Z0-9_-]{1,80}$/.test(item.id??'')||ids.has(item.id)||typeof item.name!=='string'||!item.name.trim()||item.name.length>120){errors.push('経路・目的地のIDまたは名前が不正・重複しています。');continue;}
       ids.add(item.id);
       if(key==='routes'){
-        if(!Array.isArray(item.points)||item.points.length<2||item.points.length>500||item.points.some(p=>!point(p)))errors.push('経路は2～500点の座標で指定してください。');
+        if(item.generate!==undefined){
+          if(item.points!==undefined)errors.push('経路にはpointsかgenerateのどちらか一方を指定してください。');
+          errors.push(...generationErrors(item.generate,item.mode??'once'));
+        }else if(!Array.isArray(item.points)||item.points.length<2||item.points.length>500||item.points.some(p=>!point(p)))errors.push('経路は2～500点の座標で指定してください。');
+        if(item.navigation!==undefined)errors.push(...navigationProfileErrors(item.navigation));
         if(!['once','loop','pingpong'].includes(item.mode??'once'))errors.push('経路の繰り返し方式が不正です。');
       }else if(item.kind==='point'){
         if(!point(item.point))errors.push('目的地の地点座標が不正です。');

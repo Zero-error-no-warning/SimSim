@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261006-received-position-12';
-import { sharedAssignment } from './shared-settings.js?v=20261006-received-position-12';
+import { editableDefinition } from './editor.js?v=20261006-route-planning-13';
+import { sharedAssignment } from './shared-settings.js?v=20261006-route-planning-13';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-received-position-12';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-route-planning-13';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -690,6 +690,7 @@ export class MapView {
     texture.colorSpace=THREE.SRGBColorSpace;
     return texture;
   }
+  setRouteWarnings(issues){this.routeWarnings=issues;this.buildRoutes();}
   buildRoutes() {
     disposal(this.routes);
     this.handles=[];
@@ -745,6 +746,10 @@ export class MapView {
           });
         }
       }
+    }
+    if(this.authoring)for(const issue of this.routeWarnings??[]){
+      const points=[issue.from,issue.to].map(p=>this.world({...p,z:Math.max(p.z,this.terrain.height(p.x,p.y)??p.z,this.scenario.terrain.seaLevel)+15}));
+      const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#ff504b',depthTest:false,depthWrite:false}));line.renderOrder=20;line.userData.routeWarning=true;this.routes.add(line);
     }
     this.routes.visible=this.showRoutes;
   }

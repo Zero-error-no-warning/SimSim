@@ -1,11 +1,11 @@
-import {stateMembers} from './state-measurement.js?v=20261006-received-position-12';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-received-position-12';
-import { RECORD_MODEL } from './recording.js?v=20261006-received-position-12';
-import { numericScale } from './chart-scale.js?v=20261006-received-position-12';
-import { clone,validateScenario } from './engine.js?v=20261006-received-position-12';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-received-position-12';
-import { ParameterEditor } from './parameter-ui.js?v=20261006-received-position-12';
-import { requireElement } from './ui-dom.js?v=20261006-received-position-12';
+import {stateMembers} from './state-measurement.js?v=20261006-route-planning-13';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261006-route-planning-13';
+import { RECORD_MODEL } from './recording.js?v=20261006-route-planning-13';
+import { numericScale } from './chart-scale.js?v=20261006-route-planning-13';
+import { clone,validateScenario } from './engine.js?v=20261006-route-planning-13';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261006-route-planning-13';
+import { ParameterEditor } from './parameter-ui.js?v=20261006-route-planning-13';
+import { requireElement } from './ui-dom.js?v=20261006-route-planning-13';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -16,7 +16,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-received-position-12',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261006-route-planning-13',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

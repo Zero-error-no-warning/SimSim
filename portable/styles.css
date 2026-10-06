@@ -1434,3 +1434,7 @@ body { min-width:1100px; }
 #state-time-distribution { margin-top:20px; }
 #state-time-distribution[hidden] { display:none; }
 #node-measure-note { display:block; margin-top:8px; }
+
+#navigation-inspection {display:block;white-space:pre-line;margin:8px 0;}
+#route-check-list button {text-align:left;width:100%;}
+#route-check-status[data-issues]:not([data-issues="0"]) {color:#ff8d81;}

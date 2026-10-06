@@ -1,20 +1,21 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Terrain} from '../src/engine.js?v=20261006-received-position-12';
-import {importScenario} from '../src/scenario-import.js?v=20261006-received-position-12';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-received-position-12';
-import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261006-received-position-12';
-import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261006-received-position-12';
+import {Terrain} from '../src/engine.js?v=20261006-route-planning-13';
+import {importScenario} from '../src/scenario-import.js?v=20261006-route-planning-13';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-route-planning-13';
+import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261006-route-planning-13';
+import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261006-route-planning-13';
 const text=fs.readFileSync(new URL('../docs/llm-scenario-generation.txt',import.meta.url),'utf8');
 assert(!/__MINIMAL__|__RECEIVED__|__GROUP__|__PARAMETERS__/.test(text));
-const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,11);
-const scenarios=blocks.filter(b=>b.version===3);assert.equal(scenarios.length,4);
+const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,12);
+const scenarios=blocks.filter(b=>b.version===3);assert.equal(scenarios.length,5);
 const evidence=[];
 for(const raw of scenarios){
  const source=importScenario(raw),model=createSimulation(source);for(const update of sharedSteps(model,undefined,undefined,{record:true,horizon:source.duration})){}
  assert.equal(model.result.invalidUnits,0);assert(!model.states.some(s=>s.error),JSON.stringify(model.states.filter(s=>s.error).map(s=>({id:s.unit.id,error:s.error}))));
  const archive=restoreRecording(recordingPayload(model));assert.deepEqual(archive.evaluate(source.duration).units,model.evaluate(source.duration).units);
  const report={title:source.title,success:model.result.success,time:model.result.successTime};
+ if(source.units[0].id==='planned-uuv'){assert(model.result.success);assert.equal(model.evaluate(source.duration).units[0].nodeId,'done');assert(!source.routes[0].generate);assert(source.routes[0].points.length>2);}
  if(source.units[0].id==='boat')assert.equal(model.evaluate(100).units[0].position.x,1500);
  if(source.behaviorAssignments.some(a=>a.id==='respond')){
   assert(model.result.success);assert.equal(model.result.actionEvents.find(e=>e.type==='received'&&e.unitId==='uav').observationTime,10);

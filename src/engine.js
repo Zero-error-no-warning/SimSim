@@ -1,9 +1,13 @@
-import {stateGoalErrors} from './state-measurement.js?v=20261006-received-position-12';
-import { readParameter } from './parameters.js?v=20261006-received-position-12';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261006-received-position-12';
-import { actionErrors } from './action-settings.js?v=20261006-received-position-12';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261006-received-position-12';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261006-received-position-12';
+import {Terrain} from './terrain.js?v=20261006-route-planning-13';
+export {Terrain} from './terrain.js?v=20261006-route-planning-13';
+import {navigationProfileErrors} from './route-planner.js?v=20261006-route-planning-13';
+import {materializeRoutes} from './route-planner.js?v=20261006-route-planning-13';
+import {stateGoalErrors} from './state-measurement.js?v=20261006-route-planning-13';
+import { readParameter } from './parameters.js?v=20261006-route-planning-13';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261006-route-planning-13';
+import { actionErrors } from './action-settings.js?v=20261006-route-planning-13';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261006-route-planning-13';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261006-route-planning-13';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -61,6 +65,7 @@ export function validateScenario(value) {
       if (typeof u.name !== 'string' || !u.name.trim() || u.name.length > 120) errors.push(prefix+': nameは1～120文字にしてください。');
       errors.push(...sensorErrors(u,prefix),...actionErrors(u,prefix,recipientIds));
       if(value.version===3&&u.behavior)errors.push(prefix+': 旧行動ルールは読み込み時にノードへ変換してください。');
+      if(u.navigation!==undefined)errors.push(...navigationProfileErrors(u.navigation));
       if (!DOMAINS.includes(u.domain)) errors.push(prefix+': domainが不正です。');
       if (!['friendly','hostile','neutral'].includes(u.faction)) errors.push(prefix+': factionが不正です。');
       if(u.enabled!==undefined&&typeof u.enabled!=='boolean')errors.push(prefix+': enabledはbooleanにしてください。');
@@ -96,56 +101,7 @@ export function validateScenario(value) {
     }
   }
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));
-  return migrateTriggers(clone(value));
-}
-export class Terrain {
-  constructor(data) {
-    this.data = data;
-    this.minX = data.origin.x;
-    this.minY = data.origin.y;
-    this.maxX = this.minX+(data.columns-1)*data.spacing;
-    this.maxY = this.minY+(data.rows-1)*(data.spacingY??data.spacing);
-    this.cellSize=Math.min(data.spacing,data.spacingY??data.spacing);
-  }
-  contains(x,y) {
-    return finite(x) && finite(y) && x >= this.minX && x <= this.maxX && y >= this.minY && y <= this.maxY;
-  }
-  height(x,y) {
-    if (!this.contains(x,y)) return null;
-    const d=this.data, gx=(x-this.minX)/d.spacing, gy=(y-this.minY)/(d.spacingY??d.spacing);
-    const ix=Math.min(d.columns-2,Math.floor(gx)), iy=Math.min(d.rows-2,Math.floor(gy));
-    const fx=gx-ix, fy=gy-iy, at=(dx,dy)=>d.elevations[(iy+dy)*d.columns+ix+dx];
-    return (at(0,0)*(1-fx)+at(1,0)*fx)*(1-fy)+(at(0,1)*(1-fx)+at(1,1)*fx)*fy;
-  }
-  project(point,domain) {
-    const p={
-      ...point
-    }, h=this.height(p.x,p.y), sea=this.data.seaLevel;
-    if (h===null) return {
-      point:p, error:'地形データの範囲外です'
-    };
-    if (domain==='ground') {
-      p.z=h;
-      if(h<=sea) return {
-        point:p,error:'地上ユニットは陸上に配置してください'
-      };
-    }
-    if (domain==='surface') {
-      p.z=sea;
-      if(h>sea-5) return {
-        point:p,error:'水上ユニットには5m以上の水深が必要です'
-      };
-    }
-    if (domain==='subsurface' && (p.z>sea-1 || p.z<h+5 || h>=sea)) return {
-      point:p,error:'水中ユニットは海面下かつ海底から5m以上離してください'
-    };
-    if (domain==='air' && p.z<=Math.max(h,sea)+10) return {
-      point:p,error:'空中ユニットは地表・海面から10mより高くしてください'
-    };
-    return {
-      point:p,error:null
-    };
-  }
+  return materializeRoutes(migrateTriggers(clone(value)));
 }
 const distance = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const lerpPoint = (a,b,f)=>({

@@ -1,4 +1,4 @@
-export const UI_BUILD='20261006-received-position-12';
+export const UI_BUILD='20261006-route-planning-13';
 
 export function requireElement(id){
   const element=document.getElementById(id);

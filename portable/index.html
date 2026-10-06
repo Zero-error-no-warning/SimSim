@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261006-received-position-12">
+<html lang="ja" data-simsim-build="20261006-route-planning-13">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261006-received-position-12-1e757075c717">
-<script src="main.js?v=20261006-received-position-12-1e757075c717" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261006-route-planning-13-42078f3e3e76">
+<script src="main.js?v=20261006-route-planning-13-42078f3e3e76" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
@@ -17,6 +17,7 @@
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
+<option value="route-planning-demo.txt">島を避ける経路の自動生成</option>
 <option value="island-patrol-demo.txt">島間通過・周回UUV</option>
 <option value="shared-demo.txt">協調監視・報告・帰投</option>
 <option value="response-demo.txt">探知・中継・出発</option><option value="assignment-demo.txt">担当値を変えて挙動を再利用</option><option value="navigation-demo.txt">航路切替・目標への接近</option><option value="received-position-demo.txt">受信した観測位置へ移動</option>
@@ -109,6 +110,7 @@
 <span>0分</span><input id="timeline" disabled type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span>
 </div>
 </div>
+<div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
 <div id="notice" class="notice" role="status">読み込み中</div></main>
 <aside class="inspector"><div class="panel-heading">
 <div>
@@ -148,6 +150,7 @@
 <label class="field">経路の繰り返し<select id="route-mode"><option value="once">一度だけ</option>
 <option value="pingpong">往復</option>
 <option value="loop">周回（閉じた経路）</option></select></label><label class="field">周回の出発点（%）<input id="loop-start" type="number" min="0" max="100" step="any"></label><p class="route-help">1周の経路長に対する割合。0%は経路の基準点、100%は0%と同じ。周回で使用します。</p>
+<button id="route-plan-open" class="full">経路の検査・自動生成</button>
 <button id="route-edit" class="full">＋ 地図で経由点を追加</button><p class="route-help">表の座標はkm。入力または地図クリックで編集できます。</p>
 <div id="route-table"></div>
 <button id="clear-route" class="full quiet">経由点をすべて削除</button>
@@ -216,7 +219,17 @@
 </div>
 <dialog id="behavior-parameter-dialog"><h2>担当時に指定する値</h2><p class="route-help">挙動では名前を参照し、具体的な値は「担当・共有設定」で指定します。秒・m・速度比は表示単位で入力してください。</p><p id="behavior-parameter-error" class="validation-message" role="alert" hidden></p><label class="field">編集する値<select id="behavior-parameter-list"></select></label><label class="field">名前<input id="behavior-parameter-name" maxlength="120"></label><label class="field">種類<select id="behavior-parameter-type"><option value="number">数値</option><option value="route">経路</option><option value="destination">目的地</option><option value="unit">単体ユニット</option></select></label><label class="field">単位<select id="behavior-parameter-unit"><option value="s">秒</option><option value="m">m</option><option value="ratio">速度比（%）</option></select></label><label class="check-field"><input id="behavior-parameter-default-enabled" type="checkbox">挙動に既定値を設定する</label><label class="field">既定値<input id="behavior-parameter-number" type="number" step="any"></label><label class="field">既定値<select id="behavior-parameter-reference"></select></label><button id="behavior-parameter-delete">削除</button><div class="dialog-actions"><button id="behavior-parameter-close">閉じる</button><button id="behavior-parameter-cancel">取消</button><button id="behavior-parameter-save" class="primary">保存</button></div></dialog>
 <dialog id="navigation-dialog"><h2 id="navigation-title">経路・目的地</h2><p id="navigation-error" class="validation-message" role="alert" hidden></p><label class="field">編集する経路・目的地<select id="navigation-resource"></select></label><label class="field">名前<input id="navigation-name" maxlength="120"></label><section id="navigation-route-fields"><button id="navigation-draw">地図で経路を描く</button><label class="field">経路の繰り返し<select id="navigation-mode"><option value="once">一度だけ</option><option value="loop">周回</option><option value="pingpong">往復</option></select></label><label class="field">経路の座標（m）：一行に 東西, 南北, 高度・深度<textarea id="navigation-points" rows="7" placeholder="0, 0, 0
-1000, 0, 0"></textarea></label><p class="route-help">高さはz座標です。海面が0mの場合、水中は負の値です。地図では順にクリックし、Escで戻ります。2点以上必要です。協調して周回する経路は3点以上にしてください。</p></section><section id="navigation-destination-fields"><label class="field">目的の種類<select id="navigation-kind"><option value="point">地点</option><option value="unit">ユニットの現在位置</option><option value="received">受信した目標位置</option></select></label><section id="navigation-point-fields"><button id="navigation-pick">地図で地点を指定</button><div class="actions-columns"><label class="field">東西（km）<input id="navigation-x" type="number" step="any"></label><label class="field">南北（km）<input id="navigation-y" type="number" step="any"></label><label class="field">高度・深度の座標（m）<input id="navigation-z" type="number" step="any"></label></div><p class="route-help">高さはz座標です。海面が0mの場合、深度120mは −120m と指定します。</p></section><label id="navigation-unit-field" class="field" hidden>目標のユニット（単体）<select id="navigation-unit"></select></label><p class="route-help">「受信した目標位置」は通信に含まれる観測位置です。移動状態に入った時点で目的地を固定します。新しい報告で目的地を更新するには「情報受信」イベントを繰り返しにして、この移動状態へ接続してください。位置情報が届くまでは待機します。「ユニットの現在位置」は相手の移動を追い続けます。</p></section><div class="dialog-actions"><button id="navigation-delete">削除</button><button id="navigation-cancel">取消</button><button id="navigation-save" class="primary">保存して選択</button><button id="navigation-close" hidden>閉じる</button></div></dialog>
+1000, 0, 0"></textarea></label><p class="route-help">高さはz座標です。海面が0mの場合、水中は負の値です。地図では順にクリックし、Escで戻ります。2点以上必要です。協調して周回する経路は3点以上にしてください。</p><details id="navigation-planning"><summary>地形の検査・自動生成</summary>
+<label class="field">使用する領域<select id="navigation-domain"><option value="subsurface">水中</option><option value="surface">水上</option><option value="air">空中</option><option value="ground">地上</option></select></label>
+<label class="field">生成する高度・深度のz座標（m）<input id="navigation-height" type="number" step="any"></label>
+<label class="field">追加の余裕（m）<input id="navigation-clearance" type="number" min="0" max="10000" step="any" value="0"></label>
+<p class="route-help">海面0mで深度100mなら −100。水上・地上の高さは海面・地表に合わせます。余裕は水中では海底5m・海面下1m、水上は水深5m、空中は地表・海面から10mに追加します。地上は海面からの標高に追加します。</p>
+<button id="navigation-inspect">現在の経路を検査</button><output id="navigation-inspection" class="route-help" role="status"></output>
+<label class="field">生成の必須地点（m）：一行に 東西, 南北<textarea id="navigation-via" rows="4"></textarea></label>
+<button id="navigation-via-current">現在の経路の点を必須地点にする</button><button id="navigation-generate" class="primary">地形を避けて生成</button>
+<p class="route-help">最初が出発点、最後が目的地。途中の点も必ず通ります。周回は最後から最初への区間も生成します。生成結果は上の座標欄で編集し、保存後は地図上でドラッグできます。通れない必須地点は変更してください。検査で問題がある区間は保存後に地図上で赤く表示します。</p>
+</details></section><section id="navigation-destination-fields"><label class="field">目的の種類<select id="navigation-kind"><option value="point">地点</option><option value="unit">ユニットの現在位置</option><option value="received">受信した目標位置</option></select></label><section id="navigation-point-fields"><button id="navigation-pick">地図で地点を指定</button><div class="actions-columns"><label class="field">東西（km）<input id="navigation-x" type="number" step="any"></label><label class="field">南北（km）<input id="navigation-y" type="number" step="any"></label><label class="field">高度・深度の座標（m）<input id="navigation-z" type="number" step="any"></label></div><p class="route-help">高さはz座標です。海面が0mの場合、深度120mは −120m と指定します。</p></section><label id="navigation-unit-field" class="field" hidden>目標のユニット（単体）<select id="navigation-unit"></select></label><p class="route-help">「受信した目標位置」は通信に含まれる観測位置です。移動状態に入った時点で目的地を固定します。新しい報告で目的地を更新するには「情報受信」イベントを繰り返しにして、この移動状態へ接続してください。位置情報が届くまでは待機します。「ユニットの現在位置」は相手の移動を追い続けます。</p></section><div class="dialog-actions"><button id="navigation-delete">削除</button><button id="navigation-cancel">取消</button><button id="navigation-save" class="primary">保存して選択</button><button id="navigation-close" hidden>閉じる</button></div></dialog>
+<dialog id="route-check-dialog"><h2>経路の検査</h2><p class="route-help">問題がある区間は地図上で赤く表示します。固定経路と周回の閉じる区間を検査します。イベント時点の接続、追跡先への移動、揺らぎを含む経路は実行時にも確認してください。</p><div id="route-check-list"></div><button id="route-check-close">閉じる</button></dialog>
 <dialog id="error-dialog"><h2>読み込み・操作エラー</h2>
 <pre id="error-text"></pre>
 <button id="close-error">閉じる</button></dialog>

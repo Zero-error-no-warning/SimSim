@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261006-received-position-12';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-received-position-12';
-import {isParameterRef} from './behavior-parameters.js?v=20261006-received-position-12';
-import {NavigationUI} from './navigation-ui.js?v=20261006-received-position-12';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-received-position-12';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-received-position-12';
-import { clone,validateScenario } from './engine.js?v=20261006-received-position-12';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-received-position-12';
-import { requireElement } from './ui-dom.js?v=20261006-received-position-12';
+import {ContextMenu} from './context-menu.js?v=20261006-route-planning-13';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-route-planning-13';
+import {isParameterRef} from './behavior-parameters.js?v=20261006-route-planning-13';
+import {NavigationUI} from './navigation-ui.js?v=20261006-route-planning-13';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-route-planning-13';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-route-planning-13';
+import { clone,validateScenario } from './engine.js?v=20261006-route-planning-13';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-route-planning-13';
+import { requireElement } from './ui-dom.js?v=20261006-route-planning-13';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

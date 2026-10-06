@@ -1,16 +1,18 @@
-import {ContextMenu} from './context-menu.js?v=20261006-received-position-12';
-import {TerrainUI} from './terrain-ui.js?v=20261006-received-position-12';
-import { BehaviorUI } from './behavior-ui.js?v=20261006-received-position-12';
-import { createSimulation } from './recorded-engine.js?v=20261006-received-position-12';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-received-position-12';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-received-position-12';
-import { importScenario } from './scenario-import.js?v=20261006-received-position-12';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-received-position-12';
-import { restoreAnalysisResult } from './detection.js?v=20261006-received-position-12';
-import { AnalysisUI } from './analysis-ui.js?v=20261006-received-position-12';
-import { MapView } from './view.js?v=20261006-received-position-12';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-received-position-12';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-received-position-12';
+import {NavigationUI} from './navigation-ui.js?v=20261006-route-planning-13';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261006-route-planning-13';
+import {ContextMenu} from './context-menu.js?v=20261006-route-planning-13';
+import {TerrainUI} from './terrain-ui.js?v=20261006-route-planning-13';
+import { BehaviorUI } from './behavior-ui.js?v=20261006-route-planning-13';
+import { createSimulation } from './recorded-engine.js?v=20261006-route-planning-13';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-route-planning-13';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-route-planning-13';
+import { importScenario } from './scenario-import.js?v=20261006-route-planning-13';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-route-planning-13';
+import { restoreAnalysisResult } from './detection.js?v=20261006-route-planning-13';
+import { AnalysisUI } from './analysis-ui.js?v=20261006-route-planning-13';
+import { MapView } from './view.js?v=20261006-route-planning-13';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-route-planning-13';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-route-planning-13';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -27,7 +29,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261006-received-position-12',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261006-route-planning-13',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -137,6 +139,16 @@ const behaviorUI=new BehaviorUI({
     setEditMode('shared-base');view.placementUnit=behaviorUI.mapUnit();notify('目的地を地図でクリックしてください。');
   }
 });
+const routeUI=new NavigationUI({getDraft:()=>scenario,getUnit:()=>editableDefinition(scenario,selected)?.unit,commitRoute:item=>commit(next=>{
+  const d=editableDefinition(next,selected);if(d.navigationRoute){const r=next.routes.find(r=>r.id===d.navigationRoute.id);Object.assign(r,{points:item.points,mode:item.mode,navigation:item.navigation});}
+  else{replaceRoute(next,selected,{initial:item.points[0],route:item.points.slice(1),routeMode:item.mode});definition(next,selected).unit.navigation=item.navigation;}
+},'経路を保存しました。地図上の点をドラッグして編集できます。')});
+function openRoutePlanner(){if(!selected)return;pause();setEditMode(null);setAuthoring(true);const d=editableDefinition(scenario,selected),r=d.navigationRoute;routeUI.open('route',r?.id,{name:r?.name??d.unit.name+'の経路',points:[d.unit.initial,...d.unit.route],mode:d.unit.routeMode,navigation:r?.navigation??d.unit.navigation});$('navigation-domain').value=d.unit.domain;$('navigation-domain').disabled=true;routeUI.heightField();$('navigation-mode').value=d.unit.routeMode;$('navigation-planning').open=true;}
+$('route-plan-open').onclick=openRoutePlanner;
+let routeIssues=[];
+function refreshRouteChecks(){routeIssues=scenarioRouteIssues(scenario);view.setRouteWarnings(routeIssues);$('route-check-status').textContent=routeIssues.length?'要確認 '+routeIssues.length+'区間（赤線）':'地形の問題なし';$('route-check-status').dataset.issues=routeIssues.length;}
+$('route-check-open').onclick=()=>{refreshRouteChecks();const list=$('route-check-list');list.replaceChildren();if(!routeIssues.length)list.textContent='固定経路は地形の条件を満たしています。';for(const i of routeIssues){const row=document.createElement('p'),button=document.createElement('button');button.textContent=i.label+' ／ 区間 '+(i.segment+1)+'：'+i.reason;button.onclick=()=>{$('route-check-dialog').close();setAuthoring(true);if(i.unitId)select(i.unitId);view.fit();};row.append(button);list.append(row);}$('route-check-dialog').showModal();};
+$('route-check-close').onclick=()=>$('route-check-dialog').close();
 const terrainUI=new TerrainUI({getScenario:()=>scenario,view,setMode:setEditMode,commit,notify});
 $('unit-task-open').onclick=()=>behaviorUI.open();
 $('record-run').onclick=()=>{
@@ -271,6 +283,7 @@ function applyScenario(next,{
   if(!model.scenario.units.some(u=>u.id===selected))selected=model.scenario.units[0]?.id||null;
   snapshot=model.evaluate(0);
   view.setScenario(model.scenario,selected,model);
+  refreshRouteChecks();
   view.updateSnapshot(snapshot);
   if(fit){
     view.fit();
@@ -821,12 +834,14 @@ function openMapMenu(context){
   }else if(context.handle?.index>=0){
     selectedWaypoint={id:context.handle.id,index:context.handle.index};
     add('経由点 '+(context.handle.index+1)+' を削除　Delete',deleteSelected);
+    add('経路の検査・自動生成',openRoutePlanner);
     add('経由点を追加',()=>setEditMode('route'));
   }else if(d){
     selectedWaypoint=null;
     add(d.group?'この群の設定':'ユニットの設定',()=>{if(d.group)openGroup(d.group.id);else{$('properties').scrollIntoView({block:'start'});$('unit-name').focus();}});
     add('担当タスクを編集',()=>behaviorUI.open());
     add((d.group??d.unit).enabled===false?'計算に使用する（有効化）':'計算から外す（無効化）',()=>setUnitEnabled(selected,(d.group??d.unit).enabled===false));separator();
+    add('経路の検査・自動生成',openRoutePlanner);
     add('経由点を追加',()=>setEditMode('route'));
     add('周回経路を作成（中心 → 半径）',()=>setEditMode('circle-center'));
     add('初期位置を指定',()=>setEditMode('place'));

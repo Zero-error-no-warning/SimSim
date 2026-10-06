@@ -1,5 +1,5 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261006-received-position-12';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261006-received-position-12';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261006-route-planning-13';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261006-route-planning-13';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
@@ -67,6 +67,7 @@ export function sharedErrors(s, resolved=false) {
       if(n.routeId!==undefined&&(!['follow','patrol'].includes(n.kind)||concrete(n.routeId)&&!routeCatalog.some(r=>r?.id===n.routeId)))errors.push('状態ノードの経路参照が不正です。');
       if(n.destinationId!==undefined&&(!['move','return'].includes(n.kind)||concrete(n.destinationId)&&!destinationCatalog.some(d=>d?.id===n.destinationId)))errors.push('状態ノードの目的地参照が不正です。');
       if(n.kind==='patrol'&&n.routeId&&concrete(n.routeId)&&routeCatalog.find(r=>r?.id===n.routeId)?.points?.length<3)errors.push('周回経路は3点以上必要です。');
+      if(n.kind==='patrol'&&n.routeId&&concrete(n.routeId)){const r=routeCatalog.find(r=>r?.id===n.routeId);if(r?.generate&&r.mode!=='loop')errors.push('協調して周回する自動生成経路はmodeをloopにしてください。');}
       if (n.kind === 'wait' && !scalar(n.seconds, 0, 86400)) errors.push('待機時間は0～86400秒です。');
       if (n.kind === 'patrol' && !scalar(n.speedFraction ?? .7, .05, 1)) errors.push('巡回速度比は0.05～1です。');
       if (n.kind === 'report' && !n.receiverId && !n.receiverRole) errors.push('報告先または報告先の役割を指定してください。');

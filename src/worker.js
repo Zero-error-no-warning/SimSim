@@ -1,4 +1,4 @@
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261006-received-position-12';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261006-route-planning-13';
 let simulation, latest, generation=0, state='idle', failure=null;
 function send() {
   if(!simulation||!latest)return;
