@@ -14,3 +14,22 @@ export function layoutLabels(items,width,height){
   }
   return result;
 }
+
+// In 3D the text belongs to an opaque rail outside the rendered viewport.
+export function layoutDockedLabels(items,sceneWidth,height,railWidth){
+  const result=new Map(items.map(item=>[item.id,null])),top=44,bottom=height-42,gap=6,picked=[];
+  let used=0;
+  for(const item of [...items].sort((a,b)=>(b.priority??0)-(a.priority??0)||a.id.localeCompare(b.id))){
+    const space=item.h+(picked.length?gap:0);
+    if(used+space>bottom-top)continue;
+    picked.push(item);used+=space;
+  }
+  picked.sort((a,b)=>a.y-b.y||a.id.localeCompare(b.id));
+  let floor=top,remaining=used;
+  for(const item of picked){
+    const y=Math.max(floor,Math.min(bottom-remaining,item.y-item.h/2));
+    result.set(item.id,{x:sceneWidth+8,y,w:railWidth-16,h:item.h});
+    floor=y+item.h+gap;remaining-=item.h+gap;
+  }
+  return result;
+}

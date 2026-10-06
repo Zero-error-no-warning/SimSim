@@ -1,8 +1,8 @@
-import {inspectRoute} from './route-planner.js?v=20261006-measurement-history-14';
-import {Terrain} from './terrain.js?v=20261006-measurement-history-14';
-import {expandGroups} from './random.js?v=20261006-measurement-history-14';
-import {resolveGraph} from './behavior-parameters.js?v=20261006-measurement-history-14';
-import {routeFor} from './navigation.js?v=20261006-measurement-history-14';
+import {inspectRoute} from './route-planner.js?v=20261006-label-rail-15';
+import {Terrain} from './terrain.js?v=20261006-label-rail-15';
+import {expandGroups} from './random.js?v=20261006-label-rail-15';
+import {resolveGraph} from './behavior-parameters.js?v=20261006-label-rail-15';
+import {routeFor} from './navigation.js?v=20261006-label-rail-15';
 // Inspect nominal, fixed routes. A moving destination or a future event join has
 // no predetermined segment; the execution engine checks those as they execute.
 export function scenarioRouteIssues(s){

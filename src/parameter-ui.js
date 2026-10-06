@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261006-measurement-history-14';
-import { requireElement } from './ui-dom.js?v=20261006-measurement-history-14';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261006-label-rail-15';
+import { requireElement } from './ui-dom.js?v=20261006-label-rail-15';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

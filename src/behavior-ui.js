@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261006-measurement-history-14';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-measurement-history-14';
-import {isParameterRef} from './behavior-parameters.js?v=20261006-measurement-history-14';
-import {NavigationUI} from './navigation-ui.js?v=20261006-measurement-history-14';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-measurement-history-14';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-measurement-history-14';
-import { clone,validateScenario } from './engine.js?v=20261006-measurement-history-14';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-measurement-history-14';
-import { requireElement } from './ui-dom.js?v=20261006-measurement-history-14';
+import {ContextMenu} from './context-menu.js?v=20261006-label-rail-15';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-label-rail-15';
+import {isParameterRef} from './behavior-parameters.js?v=20261006-label-rail-15';
+import {NavigationUI} from './navigation-ui.js?v=20261006-label-rail-15';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-label-rail-15';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-label-rail-15';
+import { clone,validateScenario } from './engine.js?v=20261006-label-rail-15';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-label-rail-15';
+import { requireElement } from './ui-dom.js?v=20261006-label-rail-15';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

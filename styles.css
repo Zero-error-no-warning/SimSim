@@ -350,7 +350,7 @@ h2 {
   font-size:13px;
   line-height:1.35;
   color:#e3f2ff;
-  background:#102538f5;
+  background:#102538;
   border:1px solid #346384;
   border-radius:5px;
   padding:4px 7px;
@@ -363,7 +363,7 @@ h2 {
 .map-label.selected {
   border-color:#ffd18b;
   color:#ffe2b5;
-  background:#322b22ec;
+  background:#322b22;
   z-index:3
 }
 .map-label small {
@@ -1452,3 +1452,19 @@ body { min-width:1100px; }
 
 .label-leaders {position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
 #label-summary {color:#f7dba5;font-size:11px}
+
+.label-rail {display:none}
+.labels-docked .label-rail {display:block;position:absolute;right:0;top:0;bottom:0;width:var(--label-rail-width);background:#0b1928;border-left:1px solid #47627a}
+.label-rail strong {display:block;margin:15px 12px;color:#b9d0e4;font-size:13px}
+.labels-docked .map-label {width:calc(var(--label-rail-width) - 16px);max-width:calc(var(--label-rail-width) - 16px);box-sizing:border-box;pointer-events:auto;cursor:pointer;padding:7px 9px;background:#152e43;opacity:1}
+.labels-docked .map-label.selected {background:#3d3020}
+.labels-docked .map-label>span {display:block;overflow:hidden;text-overflow:ellipsis}
+.labels-docked .map-label small {overflow:hidden;text-overflow:ellipsis}
+.labels-docked .group-label {overflow:hidden;text-overflow:ellipsis}
+.map-label:focus-visible {outline:2px solid #fff;outline-offset:1px}
+.labels-docked .map-topline {right:calc(var(--label-rail-width) + 16px);flex-wrap:wrap}
+.labels-docked .compass {right:calc(var(--label-rail-width) + 18px)}
+.labels-docked .map-legend {max-width:calc(100% - var(--label-rail-width) - 30px);flex-wrap:wrap;gap:5px 10px}
+.labels-docked .map-instruction {max-width:calc(100% - var(--label-rail-width) - 30px)}
+.labels-docked .label-leaders line {filter:drop-shadow(0 1px 2px #000);stroke-width:2}
+.map-label.inactive-unit {opacity:1;border-style:dashed}

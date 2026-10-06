@@ -1,9 +1,9 @@
-import {layoutLabels} from './label-layout.js?v=20261006-measurement-history-14';
-import { editableDefinition } from './editor.js?v=20261006-measurement-history-14';
-import { sharedAssignment } from './shared-settings.js?v=20261006-measurement-history-14';
+import {layoutLabels,layoutDockedLabels} from './label-layout.js?v=20261006-label-rail-15';
+import { editableDefinition } from './editor.js?v=20261006-label-rail-15';
+import { sharedAssignment } from './shared-settings.js?v=20261006-label-rail-15';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-measurement-history-14';
+import { Terrain, Simulation, DOMAIN_NAMES } from './engine.js?v=20261006-label-rail-15';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -63,6 +63,8 @@ export class MapView {
     this.trailPoints=new Map();
     this.latestTime=0;
     this.labelLayer=document.getElementById('labels');
+    this.labelsVisible=true;
+    this.highlightedLabel=null;
     this.selected=null;
     this.editMode=null;
     this.showRoutes=true;
@@ -116,7 +118,7 @@ export class MapView {
   screenPoint(point){
     const p=point.clone().project(this.camera);
     return {
-      x:(p.x*.5+.5)*this.element.clientWidth,y:(-p.y*.5+.5)*this.element.clientHeight,visible:p.z>=-1&&p.z<=1
+      x:(p.x*.5+.5)*this.sceneWidth,y:(-p.y*.5+.5)*this.element.clientHeight,visible:p.z>=-1&&p.z<=1
     };
   }
   pickUnit(event) {
@@ -418,7 +420,13 @@ export class MapView {
     this.element.classList.toggle('camera-ready',!!this.spaceHeld);
   }
   resize() {
-    const width=this.element.clientWidth,height=this.element.clientHeight;
+    const fullWidth=this.element.clientWidth,height=this.element.clientHeight;
+    this.dockedLabels=this.mode==='3d'&&this.labelsVisible;
+    this.railWidth=this.dockedLabels?Math.round(Math.max(150,Math.min(210,fullWidth*.24))):0;
+    const width=Math.max(1,fullWidth-this.railWidth);this.sceneWidth=width;
+    this.element.classList.toggle('labels-docked',this.dockedLabels);
+    this.element.style.setProperty('--label-rail-width',this.railWidth+'px');
+    this.renderer.domElement.style.width=width+'px';
     this.renderer.setSize(width,height,false);
     this.camera3d.aspect=width/Math.max(height,1);
     this.camera3d.updateProjectionMatrix();
@@ -434,10 +442,10 @@ export class MapView {
     this.cameraLimits();
     const t=this.terrain,cx=(t.minX+t.maxX)/2,cy=(t.minY+t.maxY)/2;
     const width=t.maxX-t.minX,height=t.maxY-t.minY,span=Math.max(width,height);
-    const aspect=Math.max(.35,this.element.clientWidth/this.element.clientHeight),distance=span*Math.max(1,1.25/aspect);
+    const aspect=Math.max(.35,this.sceneWidth/this.element.clientHeight),distance=span*Math.max(1,1.25/aspect);
     this.camera3d.position.set(cx+distance*.75,distance*1.15,-cy+distance*1.05);
     this.camera3d.lookAt(cx,0,-cy);
-    this.topHeight=Math.max(height/2+2000,(width/2+2000)/Math.max(.2,this.element.clientWidth/this.element.clientHeight));
+    this.topHeight=Math.max(height/2+2000,(width/2+2000)/Math.max(.2,this.sceneWidth/this.element.clientHeight));
     this.cameraTop.position.set(cx,span*3,-cy);
     this.cameraTop.zoom=1;
     this.cameraTop.lookAt(cx,0,-cy);
@@ -447,6 +455,7 @@ export class MapView {
   }
   setMode(mode) {
     this.mode=mode;
+    this.resize();
     this.camera=mode==='top'?this.cameraTop:this.camera3d;
     this.setControls();
     this.fit();
@@ -496,6 +505,9 @@ export class MapView {
   }
   buildLabels() {
     this.labelLayer.replaceChildren();
+    this.highlightedLabel=null;
+    const rail=document.createElement('div');rail.className='label-rail';rail.setAttribute('aria-hidden','true');
+    const heading=document.createElement('strong');heading.textContent='ユニット';rail.append(heading);this.labelLayer.append(rail);
     this.labels.clear();
     this.leaders=new Map();
     this.labelLines=document.createElementNS('http://www.w3.org/2000/svg','svg');this.labelLines.classList.add('label-leaders');this.labelLines.setAttribute('aria-hidden','true');this.labelLayer.append(this.labelLines);
@@ -505,7 +517,7 @@ export class MapView {
       label.className='map-label friendly group-label';
       label.textContent=group.name+' · '+group.count+'個';
       this.labelLayer.append(label);
-      this.groupLabels.set(group.id,label);
+      this.groupLabels.set(group.id,label);this.wireLabel(label,'group:'+group.id,()=>this.onSelect(this.scenario.units.find(u=>u.groupId===group.id)?.id));
     }
     const candidates=this.scenario.units.length>80?this.scenario.units.filter(u=>u.id===this.selected):this.scenario.units;
     for(const unit of candidates) {
@@ -518,8 +530,17 @@ export class MapView {
       label.append(name,detail);
       label.classList.toggle('detected',!!this.snapshot?.mission?.events.some(e=>e.targetId===unit.id));
       this.labelLayer.appendChild(label);
-      this.labels.set(unit.id,label);
+      this.labels.set(unit.id,label);this.wireLabel(label,unit.id,()=>this.onSelect(unit.id));
     }
+  }
+  wireLabel(label,id,select){
+    label.tabIndex=0;label.setAttribute('role','button');
+    label.addEventListener('mouseenter',()=>{this.highlightedLabel=id;});
+    label.addEventListener('mouseleave',()=>{if(this.highlightedLabel===id)this.highlightedLabel=null;});
+    label.addEventListener('focus',()=>{this.highlightedLabel=id;});
+    label.addEventListener('blur',()=>{if(this.highlightedLabel===id)this.highlightedLabel=null;});
+    label.addEventListener('click',select);
+    label.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();select();}});
   }
   setExaggeration(value) {
     const preview=this.editMode==='terrain'?this.terrainPreviewData:null;
@@ -791,7 +812,7 @@ export class MapView {
     const detected=new Set(snapshot.mission?.events.map(e=>e.targetId)??[]);
     for(const [id,label] of this.labels){
       label.classList.toggle('detected',detected.has(id));
-      label.title=detected.has(id)?'探知済み':'';
+      const unit=this.scenario.units.find(u=>u.id===id);label.title=(unit?.name??id)+(detected.has(id)?' · 探知済み':'')+' · クリックで選択';
     }
     disposal(this.detectionGroup);
     for(const event of snapshot.mission?.events.slice(-3)??[]) {
@@ -842,11 +863,13 @@ export class MapView {
     return this.pointFor(this.editMode==='create'||this.editMode?.startsWith('shared-')?this.placementUnit:this.editMode?this.editableUnit():null);
   }
   setLabelsVisible(visible){
+    this.labelsVisible=visible;
     this.labelLayer.hidden=!visible;
+    this.resize();
   }
   render() {
     if(!this.drag&&this.terrainStroke===undefined)this.controls.update();
-    const width=this.element.clientWidth,height=this.element.clientHeight,labelItems=[];
+    const width=this.sceneWidth,height=this.element.clientHeight,labelItems=[];
     this.camera.updateMatrixWorld();
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
     for(const [id,marker] of sorted) {
@@ -877,14 +900,14 @@ export class MapView {
     }
     if(this.labelLines){
       for(const line of this.leaders.values())line.style.display='none';
-      const positions=layoutLabels(labelItems,width,height);let hidden=0;
+      const positions=this.dockedLabels?layoutDockedLabels(labelItems,width,height,this.railWidth):layoutLabels(labelItems,width,height);let hidden=0;
       for(const item of labelItems){
         const r=positions.get(item.id);item.label.hidden=!r;if(!r){hidden++;continue;}
         item.label.style.transform='translate('+Math.round(r.x)+'px,'+Math.round(r.y)+'px)';
         let line=this.leaders.get(item.id);if(!line){line=document.createElementNS('http://www.w3.org/2000/svg','line');this.labelLines.append(line);this.leaders.set(item.id,line);}
-        line.style.display='';line.setAttribute('x1',item.x);line.setAttribute('y1',item.y);line.setAttribute('x2',Math.max(r.x,Math.min(r.x+r.w,item.x)));line.setAttribute('y2',Math.max(r.y,Math.min(r.y+r.h,item.y)));line.setAttribute('stroke',item.color);line.setAttribute('stroke-width',item.priority===3?2:1);
+        line.style.display=this.dockedLabels&&item.priority!==3&&item.id!==this.highlightedLabel?'none':'';line.setAttribute('x1',item.x);line.setAttribute('y1',item.y);line.setAttribute('x2',Math.max(r.x,Math.min(r.x+r.w,item.x)));line.setAttribute('y2',Math.max(r.y,Math.min(r.y+r.h,item.y)));line.setAttribute('stroke',item.color);line.setAttribute('stroke-width',item.priority===3?2:1);
       }
-      const info=document.getElementById('label-summary');info.hidden=!hidden;info.textContent=hidden+'個のラベルを省略（拡大・選択で表示）';
+      const info=document.getElementById('label-summary');info.hidden=!hidden;info.textContent=hidden+'個のラベルを省略（選択で表示）';
     }
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;

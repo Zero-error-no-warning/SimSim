@@ -46,7 +46,16 @@ try{
   const [recordDownload]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);const record=path.join(folder,'record.txt');await recordDownload.saveAs(record);await page.locator('#file').setInputFiles(record);await page.waitForFunction(()=>!document.getElementById('play').disabled);await page.locator('#events-open').click();assert.equal(await page.locator('#history-chart circle[data-time="20"]').count()>0,true);await page.locator('#events-close').click();
   // Coincident 3D units have separate screen labels and visible leader lines.
   await page.waitForTimeout(150);const rects=await page.locator('#labels .map-label:visible').evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};}));assert.equal(rects.length,3);
-  for(const [i,a] of rects.entries())for(const b of rects.slice(i+1))assert(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y));assert.equal(await page.locator('#labels .label-leaders line').evaluateAll(els=>els.filter(e=>e.style.display!=='none').length),3);
+  for(const [i,a] of rects.entries())for(const b of rects.slice(i+1))assert(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y));assert.equal(await page.locator('#labels .label-leaders line').evaluateAll(els=>els.filter(e=>e.style.display!=='none').length),1);
+  const rail=await page.locator('#labels .label-rail').boundingBox(),canvas=await page.locator('#map>canvas').boundingBox();assert(rail&&canvas);assert(Math.abs(rail.x-canvas.x-canvas.width)<2);
+  for(const r of rects)assert(r.x>=canvas.x+canvas.width&&r.x+r.w<=rail.x+rail.width);
+  assert.equal(await page.locator('#labels .inactive-unit').evaluate(e=>getComputedStyle(e).opacity),'1');
+  await page.locator('#labels .map-label').filter({hasText:'群 2'}).hover();await page.waitForTimeout(100);assert.equal(await page.locator('#labels .label-leaders line').evaluateAll(els=>els.filter(e=>e.style.display!=='none').length),2);
+  await page.locator('#labels .map-label').filter({hasText:'群 2'}).click();assert(await page.locator('.unit-item[data-id="group__2"]').evaluate(e=>e.classList.contains('selected')));
+  await page.locator('#viewtop').click();await page.waitForTimeout(100);assert(await page.locator('#labels .label-rail').isHidden());assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));
+  await page.locator('#view3d').click();await page.waitForTimeout(100);assert(await page.locator('#labels .label-rail').isVisible());
+  await page.locator('.map-options').evaluate(e=>e.closest('details').open=true);await page.locator('#show-labels').uncheck();assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));await page.locator('#show-labels').check();await page.locator('.map-options').evaluate(e=>e.closest('details').open=false);
+  if(process.env.SIMSIM_LABEL_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_LABEL_SCREENSHOT});
   if(process.env.SIMSIM_HISTORY_SCREENSHOT){await page.locator('#events-open').click();await page.screenshot({path:process.env.SIMSIM_HISTORY_SCREENSHOT});}
   assert.deepEqual(errors,[]);console.log('PASS: point editing, stage results, failed-trial replay, export/restore, all-period timeline, filtered lanes, backward seek, archived history and disjoint 3D labels');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));fs.rmSync(folder,{recursive:true,force:true});}

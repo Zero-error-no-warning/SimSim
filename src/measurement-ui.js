@@ -1,7 +1,7 @@
-import {clone,validateScenario} from './engine.js?v=20261006-measurement-history-14';
-import {NODE_KINDS} from './shared-settings.js?v=20261006-measurement-history-14';
-import {summarizeMeasurements} from './measurement-points.js?v=20261006-measurement-history-14';
-import {requireElement as $} from './ui-dom.js?v=20261006-measurement-history-14';
+import {clone,validateScenario} from './engine.js?v=20261006-label-rail-15';
+import {NODE_KINDS} from './shared-settings.js?v=20261006-label-rail-15';
+import {summarizeMeasurements} from './measurement-points.js?v=20261006-label-rail-15';
+import {requireElement as $} from './ui-dom.js?v=20261006-label-rail-15';
 const pct=n=>n===null?'—':(n*100).toFixed(1)+'%';
 const time=n=>n===null?'—':n.toFixed(1)+'秒';
 export class MeasurementUI{

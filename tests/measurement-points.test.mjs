@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261006-measurement-history-14';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-measurement-history-14';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261006-measurement-history-14';
-import {trialScenario} from '../src/parameters.js?v=20261006-measurement-history-14';
-import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261006-measurement-history-14';
-import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261006-measurement-history-14';
-import {layoutLabels} from '../src/label-layout.js?v=20261006-measurement-history-14';
+import {clone,validateScenario} from '../src/engine.js?v=20261006-label-rail-15';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-label-rail-15';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261006-label-rail-15';
+import {trialScenario} from '../src/parameters.js?v=20261006-label-rail-15';
+import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261006-label-rail-15';
+import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261006-label-rail-15';
+import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261006-label-rail-15';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 source.mission.deadline=2; // Additional points must execute beyond the main goal's deadline.
 source.measurements=[
@@ -39,5 +39,7 @@ const empty=clone(source);newScenario(empty);assert.equal(empty.measurements,und
 const items=Array.from({length:80},(_,i)=>({id:String(i),x:220,y:180,w:150,h:40,priority:i===79?3:1})),layout=layoutLabels(items,600,400),rects=[...layout.values()].filter(Boolean);
 assert(layout.get('79'));assert(rects.length>1&&rects.length<80);
 for(const [i,a] of rects.entries()){assert(a.x>=5&&a.x+a.w<=595&&a.y>=48&&a.y+a.h<=358);for(const b of rects.slice(i+1))assert(!(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y));}
+const dock=layoutDockedLabels(items,600,400,180);assert(dock.get('79'));
+const docked=[...dock.values()].filter(Boolean);for(const [i,a] of docked.entries()){assert(a.x>=600&&a.x+a.w<=780);for(const b of docked.slice(i+1))assert(!(a.y<b.y+b.h&&a.y+a.h>b.y));}
 const sample=JSON.parse(readFileSync(new URL('../data/measurement-history-demo.txt',import.meta.url)));const sampleResult=runDetection(createSimulation(sample));assert(sampleResult.measurements.every(m=>m.success));assert(sampleResult.success);
 console.log('PASS: independent deadlines, first entry, stage durations/order, zero population, recording/analysis integrity, cleanup, dense labels and stage sample');

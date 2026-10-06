@@ -1,4 +1,4 @@
-import {Terrain} from './engine.js?v=20261006-measurement-history-14';
+import {Terrain} from './engine.js?v=20261006-label-rail-15';
 // Edit the existing elevation grid; display exaggeration never changes SI data.
 export function sampleTerrainHeight(data,point){
   if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return null;

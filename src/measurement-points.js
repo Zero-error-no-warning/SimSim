@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-measurement-history-14';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-label-rail-15';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){
