@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SimSim — 持ち込み用ファイル</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:24px auto;padding:0 20px;max-width:1100px;color:#182e3c;background:#f4f7fa}h1{font-size:24px}p{line-height:1.7}a{color:#135a9b}table{width:100%;border-collapse:collapse;background:white}td,th{padding:12px;text-align:left;border-bottom:1px solid #ccd9e3}button{padding:8px 14px;margin:3px;cursor:pointer;border:1px solid #839bae;border-radius:5px;background:white;color:#182e3c}button:disabled{cursor:wait;opacity:.5}textarea{box-sizing:border-box;width:100%;height:45vh;font:13px/1.5 monospace;white-space:pre;resize:vertical}code{overflow-wrap:anywhere}#status{min-height:1.7em}#checksum{font-size:12px}#editor[hidden]{display:none}.build{font-size:13px;color:#526779}
+</style></head><body>
+<h1>SimSim 持ち込み用ファイル</h1>
+<p>下の<strong>5ファイル</strong>をコピーし、社内サーバの同じフォルダに、表示された名前でUTF-8のテキストとして保存してください。<code>index.html</code> をHTTP／HTTPSで開くと起動します。サンプルとThree.jsは組み込み済みです。</p>
+<p>「表示」で全文を開き、「全文をコピー」を押してください。コピーが使えない場合は「全文を選択」→ Ctrl+Cでもコピーできます。「TXTを保存」は内容が同じ <code>ファイル名.txt</code> をダウンロードします。保存先では末尾の <code>.txt</code> を外してください。</p>
+<p class="build">版: 20261005-text-files-10-c089c119936b</p>
+<table><thead><tr><th>保存する名前</th><th>サイズ</th><th>内容</th></tr></thead><tbody id="files"></tbody></table>
+<p id="status" role="status" aria-live="polite"></p>
+<section id="editor" hidden><h2 id="filename"></h2><button id="copy">全文をコピー</button><button id="select">全文を選択</button><button id="download">TXTを保存</button><textarea id="content" readonly spellcheck="false" aria-label="ファイルの全文"></textarea><p id="checksum"></p></section>
+<p><a href="index.html" target="_blank" rel="noopener">持ち込み版を試す</a> · <a href="../index.html">通常版へ戻る</a></p>
+<script>
+'use strict';
+const files=[{"name":"index.html","bytes":42440,"sha256":"f1153e2c023d9b5d15c493f9cb526309cc3615c46d118bdadfdc14400bf6b536"},{"name":"styles.css","bytes":25834,"sha256":"257a14ce3430a84823d723f64a0e58ec6fe14200f62006ee1a0b2e2b1a29ae4c"},{"name":"main.js","bytes":1016724,"sha256":"80d561bd76f164058ad74c38debb6b31e67a7f129a06b0597fde2bcf68721daa"},{"name":"worker.js","bytes":75666,"sha256":"a6f77939728af18a636ce060a63a06a64c501799182340969721d67ac1125fc8"},{"name":"analysis-worker.js","bytes":72802,"sha256":"593eb82c783918afdbe9aa8f21f8d9705a8b92e02b73ebca679310dd193184f3"}],build='20261005-text-files-10-c089c119936b',status=document.getElementById('status'),content=document.getElementById('content');
+let selected=null;
+for(const file of files){
+  const row=document.createElement('tr'),name=document.createElement('td'),size=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');
+  name.textContent=file.name;size.textContent=(file.bytes/1024).toFixed(1)+' KB';button.textContent='表示';button.dataset.file=file.name;
+  button.onclick=async()=>{
+    selected=null;document.getElementById('editor').hidden=true;for(const b of document.querySelectorAll('[data-file]'))b.disabled=true;status.textContent=file.name+' を読み込んでいます…';
+    try{
+      const response=await fetch(file.name+'?v='+build,{cache:'no-store'});
+      if(!response.ok)throw Error('HTTP '+response.status);
+      const bytes=await response.arrayBuffer();
+      if(bytes.byteLength!==file.bytes)throw Error('ファイルの長さが一致しません。ページと配信ファイルを読み直してください。');
+      if(globalThis.crypto?.subtle){
+        const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),x=>x.toString(16).padStart(2,'0')).join('');
+        if(digest!==file.sha256)throw Error('ファイルの版が一致しません。ページと配信ファイルを読み直してください。');
+      }
+      selected=file;content.value=new TextDecoder('utf-8',{fatal:true}).decode(bytes);document.getElementById('filename').textContent=file.name;
+      document.getElementById('checksum').textContent='SHA-256: '+file.sha256;document.getElementById('editor').hidden=false;status.textContent=file.name+' の全文を表示しました。';
+    }catch(error){status.textContent='読み込めませんでした: '+error.message;}
+    finally{for(const b of document.querySelectorAll('[data-file]'))b.disabled=false;}
+  };
+  action.append(button);row.append(name,size,action);document.getElementById('files').append(row);
+}
+function selectAll(){content.focus();content.select();}
+document.getElementById('select').onclick=()=>{selectAll();status.textContent='全文を選択しました。Ctrl+Cでコピーできます。';};
+document.getElementById('copy').onclick=async()=>{
+  try{
+    if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(content.value);
+    else{selectAll();if(!document.execCommand('copy'))throw Error('手動でコピーしてください。');}
+    status.textContent=selected.name+' の全文をコピーしました。';
+  }catch{selectAll();status.textContent='全文を選択しました。Ctrl+Cでコピーしてください。';}
+};
+document.getElementById('download').onclick=()=>{
+  const url=URL.createObjectURL(new Blob([content.value],{type:'text/plain;charset=utf-8'})),link=document.createElement('a');
+  link.href=url;link.download=selected.name+'.txt';link.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+};
+</script></body></html>

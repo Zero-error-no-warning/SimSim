@@ -4,6 +4,8 @@
 
 開発ブランチ: `feat/shared-behavior-replay`。GitHub Pages: https://zero-error-no-warning.github.io/SimSim/ 。社内ポータルでは、このブランチの **Code → Download ZIP** を展開し、ファイル一式を同じ構成で静的HTTPサーバに置いてください。JavaScriptモジュールをJavaScriptのMIMEタイプで配信する必要があります。シナリオ・分析結果・再生記録・サンプル・環境確認データは、JSON内容の `.txt` です。旧 `.jsn`・`.json` も手動で読み込めます。`file:` 起動には対応しません。
 
+テキストのコピペで持ち込む場合は、[持ち込み用ファイル](https://zero-error-no-warning.github.io/SimSim/portable/copy.html)を利用できます。`index.html`・`styles.css`・`main.js`・`worker.js`・`analysis-worker.js` の5ファイルを同じフォルダへ保存してください。Three.jsと全サンプルを組み込み、Workerも単独のclassic形式にした版です。[持ち込み版の手順](docs/portable.md)を参照してください。
+
 PCのマウス・キーボード操作向けです（画面幅1100px以上）。Space＋ドラッグで視点操作、右クリックで対象別の操作を開きます。「地形・領域編集」では地形ブラシと領域サイズ（km × km）を変更できます。グリッド数は固定です。地形編集中は右クリックで標高を取得して「指定標高にそろえる」へ切り替え、強度（%）を指定して少しずつそろえられます。編集メニューはShift＋右クリックです。
 
 ## 最初の操作

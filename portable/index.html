@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261005-text-files-10">
-<script src="src/bootstrap.js?v=20261005-text-files-10" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261005-text-files-10-c089c119936b">
+<script src="main.js?v=20261005-text-files-10-c089c119936b" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
@@ -24,7 +24,7 @@
 <option value="group-demo.txt">1000個の群</option>
 <option value="parameter-demo.txt">多変数の比較</option>
 <option value="detection-demo.txt">個数0を含む比較</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
-<a href="environment-check/check.html" target="_blank" rel="noopener">動作環境の確認</a><a href="docs/workspace-v3.md" target="_blank">操作とモデルの仕様</a><a href="portable/copy.html" target="_blank" rel="noopener">社内持ち込み用ファイル</a>
+<span>保存・読込は上部、分析・配置・地形編集は地図の上部から操作できます。</span>
 </div></details>
 </div>
 <input type="file" id="file" accept=".txt,.jsn,.json,application/json,text/plain" hidden></header>
@@ -73,7 +73,7 @@
 </div>
 <section id="terrain-panel" class="terrain-panel" hidden aria-label="地形編集"><details id="terrain-size-panel"><summary>領域サイズ（幅 × 高さ）</summary><div class="terrain-size-fields"><label>東西幅（km）<input id="terrain-width" type="number" step="any"></label><label>南北幅（km）<input id="terrain-height" type="number" step="any"></label><button id="terrain-resize">サイズをプレビュー</button><span>グリッド数は固定。座標原点は変更しません。</span></div><p id="terrain-size-error" role="status" hidden></p></details><label>ブラシ<select id="terrain-brush-mode"><option value="raise">高くする</option><option value="lower">低くする</option><option value="flatten">指定標高にそろえる</option><option value="smooth">平滑化</option></select></label><label>半径（m）<input id="terrain-brush-radius" type="number" step="any" min="1" max="1000000" value="1000"></label><label><span id="terrain-brush-amount-label">一筆の変化量（m）</span><input id="terrain-brush-amount" type="number" step="any" min="0" max="10000" value="50"></label><label hidden>強度（%）<input id="terrain-brush-strength" type="number" step="any" min="0" max="100" value="50" title="1回の塗りで目標標高または近傍平均へ近づける割合。中心ほど強く、端ほど弱くなります。"></label><label>標高（m）<input id="terrain-brush-target" type="number" step="any" min="-12000" max="10000" value="0"></label><div class="compact-actions"><button id="terrain-undo">↶ 戻す</button><button id="terrain-redo">↷</button><button id="terrain-cancel">取消</button><button id="terrain-apply" class="primary">適用</button></div><small id="terrain-edit-info"></small></section>
 <div id="map" class="map">
-<div id="boot" class="boot">地形・ユニットを読み込んでいます。表示が変わらない場合は、HTTP／HTTPSで開き、src・vendor・dataフォルダの配信を確認してください。</div>
+<div id="boot" class="boot">地形・ユニットを読み込んでいます。表示が変わらない場合は、HTTP／HTTPSで開き、main.js・worker.js・analysis-worker.jsの配信を確認してください。</div>
 <div id="labels" class="labels"></div>
 <div id="placement-hint" class="placement-hint" hidden></div>
 <div class="map-topline">

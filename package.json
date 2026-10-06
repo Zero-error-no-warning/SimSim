@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:portable": "node tools/build-portable.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
