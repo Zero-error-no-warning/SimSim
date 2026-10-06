@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261006-four-panes-16';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-four-panes-16';
-import {isParameterRef} from './behavior-parameters.js?v=20261006-four-panes-16';
-import {NavigationUI} from './navigation-ui.js?v=20261006-four-panes-16';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-four-panes-16';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-four-panes-16';
-import { clone,validateScenario } from './engine.js?v=20261006-four-panes-16';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-four-panes-16';
-import { requireElement } from './ui-dom.js?v=20261006-four-panes-16';
+import {ContextMenu} from './context-menu.js?v=20261006-terrain-grid-17';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261006-terrain-grid-17';
+import {isParameterRef} from './behavior-parameters.js?v=20261006-terrain-grid-17';
+import {NavigationUI} from './navigation-ui.js?v=20261006-terrain-grid-17';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261006-terrain-grid-17';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261006-terrain-grid-17';
+import { clone,validateScenario } from './engine.js?v=20261006-terrain-grid-17';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261006-terrain-grid-17';
+import { requireElement } from './ui-dom.js?v=20261006-terrain-grid-17';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

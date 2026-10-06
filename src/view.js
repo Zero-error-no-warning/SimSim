@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261006-four-panes-16';
-import { sharedAssignment } from './shared-settings.js?v=20261006-four-panes-16';
+import { editableDefinition } from './editor.js?v=20261006-terrain-grid-17';
+import { sharedAssignment } from './shared-settings.js?v=20261006-terrain-grid-17';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261006-four-panes-16';
+import { Terrain, Simulation } from './engine.js?v=20261006-terrain-grid-17';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };

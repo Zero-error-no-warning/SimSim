@@ -1,4 +1,6 @@
-export const UI_BUILD='20261006-four-panes-16';
+export const UI_BUILD='20261006-terrain-grid-17';
+// The visible version follows the dated build revision used for cache updates.
+export const UI_VERSION='v'+UI_BUILD.replace(/^(\d{4})(\d{2})(\d{2})-.*-(\d+)$/,'$1.$2.$3.$4');
 
 export function requireElement(id){
   const element=document.getElementById(id);

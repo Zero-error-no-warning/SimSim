@@ -1,4 +1,4 @@
-# SimSim 0.8.0-dev — タスク・挙動・記録再生
+# SimSim — タスク・挙動・記録再生
 
 静的HTTP／HTTPSサーバで動く、ミッション設計とモンテカルロ比較のための試作アプリです。HTML・CSS・JavaScriptと同梱のThree.jsだけで動作し、動的サーバ、外部CDN、外部APIは不要です。
 
@@ -6,7 +6,7 @@
 
 テキストのコピペで持ち込む場合は、[持ち込み用ファイル](https://zero-error-no-warning.github.io/SimSim/portable/copy.html)を利用できます。`index.html`・`styles.css`・`main.js`・`worker.js`・`analysis-worker.js` の5ファイルを同じフォルダへ保存してください。Three.jsと全サンプルを組み込み、Workerも単独のclassic形式にした版です。[持ち込み版の手順](docs/portable.md)を参照してください。
 
-PCのマウス・キーボード操作向けです（画面幅1100px以上）。Space＋ドラッグで視点操作、右クリックで対象別の操作を開きます。「地形・領域編集」では地形ブラシと領域サイズ（km × km）を変更できます。グリッド数は固定です。地形編集中は右クリックで標高を取得して「指定標高にそろえる」へ切り替え、強度（%）を指定して少しずつそろえられます。編集メニューはShift＋右クリックです。
+PCのマウス・キーボード操作向けです（画面幅1100px以上）。Space＋ドラッグで視点操作、右クリックで対象別の操作を開きます。「地形・領域編集」では地形ブラシ・領域サイズ（km × km）・地形格子数（東西 × 南北）を変更できます。格子間隔を表示し、領域サイズを保ったまま地形を細かく編集できるように補間します。地形編集中は右クリックで標高を取得して「指定標高にそろえる」へ切り替え、強度（%）を指定して少しずつそろえられます。編集メニューはShift＋右クリックです。
 
 ## 最初の操作
 
@@ -64,7 +64,7 @@ node tests/browser-smoke.mjs
 
 Playwrightのモジュール指定は `SIMSIM_PLAYWRIGHT`、Chromiumの実行ファイル指定は `SIMSIM_BROWSER_EXECUTABLE`。通常のアプリ配布にこれらは不要です。検証範囲は [検証](docs/workspace-v3.md#検証) を参照してください。
 
-画面・JavaScriptを更新して公開する前に、`src/ui-dom.js` の `UI_BUILD` を変更し、`node tools/version-assets.mjs` を実行してください。HTML・起動スクリプト・依存モジュール・Workerの読み込みURLを同じ版で更新します。HTMLとJavaScriptの版が混在した場合は起動を止め、画面内に版情報・エラー詳細・最新版の再読込リンクを表示します。画面初期化失敗をWorkerのタイムアウトとして表示しません。
+画面・JavaScriptを更新して公開する前に、`src/ui-dom.js` の `UI_BUILD` を変更し、`node tools/version-assets.mjs` を実行してください。HTML・起動スクリプト・依存モジュール・Workerの読み込みURLと、ロゴ横のバージョン表示を同じ版で更新します。ロゴ横は日付と更新番号（例：v2026.10.06.17）を表示し、固定の0.8.0-dev表示は廃止しました。HTMLとJavaScriptの版が混在した場合は起動を止め、画面内に版情報・エラー詳細・最新版の再読込リンクを表示します。画面初期化失敗をWorkerのタイムアウトとして表示しません。
 
 起動不具合の回帰テストは `node tests/startup-browser.mjs`。旧HTMLとの混在、画面部品の欠落、キャッシュされた旧モジュールの回避、実際のWorker無応答、環境確認の本体Workerを検証します。
 

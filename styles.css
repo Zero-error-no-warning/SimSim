@@ -1422,7 +1422,7 @@ body { min-width:1100px; }
 
 #terrain-size-panel { width:100%; border-bottom:1px solid var(--edge); padding-bottom:6px; }
 #terrain-size-panel > summary { cursor:pointer; font-size:12px; }
-.terrain-size-fields { display:flex; align-items:end; gap:10px; padding-top:8px; }
+.terrain-size-fields { display:flex; align-items:end; flex-wrap:wrap; gap:10px; padding-top:8px; }
 .terrain-size-fields span { color:var(--muted); font-size:12px; }
 #terrain-size-error { color:#ffbb9f; margin:6px 0 0; font-size:12px; }
 
@@ -1484,3 +1484,9 @@ body { min-width:1100px; }
 .panel-foot {flex-shrink:0;padding:10px 6px}
 .panel-foot button {font-size:11px;padding:6px}
 .label-leaders line {filter:drop-shadow(0 1px 2px #000);stroke-width:2}
+
+#terrain-grid-info {color:#b9e4f4;font-size:12px;margin:8px 0}
+.terrain-grid-help {color:var(--muted);font-size:12px;line-height:1.6}
+
+.terrain-grid-help summary {cursor:pointer}
+@media(max-width:1300px){.terrain-size-fields label {width:90px;min-width:0}.terrain-size-fields input {width:100%}}

@@ -1,5 +1,5 @@
-import {requireElement as $} from './ui-dom.js?v=20261006-four-panes-16';
-import {NODE_KINDS} from './shared-settings.js?v=20261006-four-panes-16';
+import {requireElement as $} from './ui-dom.js?v=20261006-terrain-grid-17';
+import {NODE_KINDS} from './shared-settings.js?v=20261006-terrain-grid-17';
 const ns='http://www.w3.org/2000/svg';
 const eventNames={detected:'探知',sent:'送信',received:'受信',sendFailed:'送信失敗',arrived:'到着',triggered:'割込み',departed:'出発',near:'接近'};
 const eventColors={detected:'#f6cc77',sent:'#82c9ff',received:'#96e2b0',sendFailed:'#ff8d93',arrived:'#c7aeff',triggered:'#ffae71',departed:'#b2d8f4',near:'#78dcdf'};

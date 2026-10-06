@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261006-four-panes-16">
+<html lang="ja" data-simsim-build="20261006-terrain-grid-17">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261006-four-panes-16-d82915f67112">
-<script src="main.js?v=20261006-four-panes-16-d82915f67112" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261006-terrain-grid-17-9a15c60f8b6a">
+<script src="main.js?v=20261006-terrain-grid-17-9a15c60f8b6a" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span>0.8.0-dev</span>
+<h1>SimSim <span id="app-version">v2026.10.06.17</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
@@ -77,7 +77,7 @@
 <option value="16">×16</option></select></label>
 </div></div></details>
 </div>
-<section id="terrain-panel" class="terrain-panel" hidden aria-label="地形編集"><details id="terrain-size-panel"><summary>領域サイズ（幅 × 高さ）</summary><div class="terrain-size-fields"><label>東西幅（km）<input id="terrain-width" type="number" step="any"></label><label>南北幅（km）<input id="terrain-height" type="number" step="any"></label><button id="terrain-resize">サイズをプレビュー</button><span>グリッド数は固定。座標原点は変更しません。</span></div><p id="terrain-size-error" role="status" hidden></p></details><label>ブラシ<select id="terrain-brush-mode"><option value="raise">高くする</option><option value="lower">低くする</option><option value="flatten">指定標高にそろえる</option><option value="smooth">平滑化</option></select></label><label>半径（m）<input id="terrain-brush-radius" type="number" step="any" min="1" max="1000000" value="1000"></label><label><span id="terrain-brush-amount-label">一筆の変化量（m）</span><input id="terrain-brush-amount" type="number" step="any" min="0" max="10000" value="50"></label><label hidden>強度（%）<input id="terrain-brush-strength" type="number" step="any" min="0" max="100" value="50" title="1回の塗りで目標標高または近傍平均へ近づける割合。中心ほど強く、端ほど弱くなります。"></label><label>標高（m）<input id="terrain-brush-target" type="number" step="any" min="-12000" max="10000" value="0"></label><div class="compact-actions"><button id="terrain-undo">↶ 戻す</button><button id="terrain-redo">↷</button><button id="terrain-cancel">取消</button><button id="terrain-apply" class="primary">適用</button></div><small id="terrain-edit-info"></small></section>
+<section id="terrain-panel" class="terrain-panel" hidden aria-label="地形編集"><details id="terrain-size-panel"><summary>領域サイズ・地形格子数</summary><div class="terrain-size-fields"><label>東西幅（km）<input id="terrain-width" type="number" step="any"></label><label>南北幅（km）<input id="terrain-height" type="number" step="any"></label><label>地形格子数（東西）<input id="terrain-columns" type="number" min="2" max="513" step="1"></label><label>地形格子数（南北）<input id="terrain-rows" type="number" min="2" max="513" step="1"></label><button id="terrain-resize">設定をプレビュー</button></div><p id="terrain-grid-info" role="status"></p><details class="terrain-grid-help"><summary>地形格子数について</summary>地形格子数は標高点の数です。領域サイズをそのままに数を増やすと、細かく編集できます。既存の標高を補間します。数を減らすと細部が失われる場合があります。座標原点・ユニット・経路は移動しません。</details><p id="terrain-size-error" role="status" hidden></p></details><label>ブラシ<select id="terrain-brush-mode"><option value="raise">高くする</option><option value="lower">低くする</option><option value="flatten">指定標高にそろえる</option><option value="smooth">平滑化</option></select></label><label>半径（m）<input id="terrain-brush-radius" type="number" step="any" min="1" max="1000000" value="1000"></label><label><span id="terrain-brush-amount-label">一筆の変化量（m）</span><input id="terrain-brush-amount" type="number" step="any" min="0" max="10000" value="50"></label><label hidden>強度（%）<input id="terrain-brush-strength" type="number" step="any" min="0" max="100" value="50" title="1回の塗りで目標標高または近傍平均へ近づける割合。中心ほど強く、端ほど弱くなります。"></label><label>標高（m）<input id="terrain-brush-target" type="number" step="any" min="-12000" max="10000" value="0"></label><div class="compact-actions"><button id="terrain-undo">↶ 戻す</button><button id="terrain-redo">↷</button><button id="terrain-cancel">取消</button><button id="terrain-apply" class="primary">適用</button></div><small id="terrain-edit-info"></small></section>
 <div id="map" class="map">
 <div id="boot" class="boot">地形・ユニットを読み込んでいます。表示が変わらない場合は、HTTP／HTTPSで開き、main.js・worker.js・analysis-worker.jsの配信を確認してください。</div>
 <div id="labels" class="labels"></div>

@@ -1,5 +1,5 @@
-import {resolveValue} from './behavior-parameters.js?v=20261006-four-panes-16';
-import { sharedAssignment } from './shared-settings.js?v=20261006-four-panes-16';
+import {resolveValue} from './behavior-parameters.js?v=20261006-terrain-grid-17';
+import { sharedAssignment } from './shared-settings.js?v=20261006-terrain-grid-17';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

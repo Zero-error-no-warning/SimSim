@@ -1,4 +1,4 @@
-import {Terrain} from './engine.js?v=20261006-four-panes-16';
+import {Terrain} from './engine.js?v=20261006-terrain-grid-17';
 // Edit the existing elevation grid; display exaggeration never changes SI data.
 export function sampleTerrainHeight(data,point){
   if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return null;
@@ -25,14 +25,15 @@ export function paintTerrain(data,point,{mode,radius,amount=50,target=0,strength
   return changed;
 }
 
-// Keep grid counts and map coordinates; sample existing heights at the new grid points.
-export function resizeTerrain(data,width,height){
-  const sx=width/(data.columns-1),sy=height/(data.rows-1);
-  if(!Number.isFinite(sx)||!Number.isFinite(sy)||sx<1||sy<1||sx>10000||sy>10000)throw Error('領域サイズは各グリッドの間隔が1～10000mになる範囲で指定してください。');
-  const terrain=new Terrain(data),next={...structuredClone(data),spacing:sx};
+// Size and grid counts are independent inputs. Sample at unchanged world coordinates.
+export function resizeTerrain(data,width,height,{columns=data.columns,rows=data.rows}={}){
+  if(!Number.isInteger(columns)||!Number.isInteger(rows)||columns<2||rows<2||columns>513||rows>513)throw Error('地形格子数は東西・南北それぞれ2～513の整数で指定してください。');
+  const sx=width/(columns-1),sy=height/(rows-1);
+  if(!Number.isFinite(sx)||!Number.isFinite(sy)||sx<1||sy<1||sx>10000||sy>10000)throw Error('領域サイズは各格子の間隔が1～10000mになる範囲で指定してください。');
+  const terrain=new Terrain(data),next={...structuredClone(data),columns,rows,spacing:sx};
   if(Math.abs(sx-sy)<1e-9)delete next.spacingY;else next.spacingY=sy;
-  next.elevations=Array.from({length:data.columns*data.rows},(_,i)=>{
-    const x=data.origin.x+(i%data.columns)*sx,y=data.origin.y+Math.floor(i/data.columns)*sy;
+  next.elevations=Array.from({length:columns*rows},(_,i)=>{
+    const x=data.origin.x+(i%columns)*sx,y=data.origin.y+Math.floor(i/columns)*sy;
     return terrain.height(Math.max(terrain.minX,Math.min(terrain.maxX,x)),Math.max(terrain.minY,Math.min(terrain.maxY,y)));
   });
   return next;

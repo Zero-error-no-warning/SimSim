@@ -1,19 +1,19 @@
-import {WorkspaceUI} from './workspace-ui.js?v=20261006-four-panes-16';
-import {NavigationUI} from './navigation-ui.js?v=20261006-four-panes-16';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261006-four-panes-16';
-import {ContextMenu} from './context-menu.js?v=20261006-four-panes-16';
-import {TerrainUI} from './terrain-ui.js?v=20261006-four-panes-16';
-import { BehaviorUI } from './behavior-ui.js?v=20261006-four-panes-16';
-import { createSimulation } from './recorded-engine.js?v=20261006-four-panes-16';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-four-panes-16';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-four-panes-16';
-import { importScenario } from './scenario-import.js?v=20261006-four-panes-16';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-four-panes-16';
-import { restoreAnalysisResult } from './detection.js?v=20261006-four-panes-16';
-import { AnalysisUI } from './analysis-ui.js?v=20261006-four-panes-16';
-import { MapView } from './view.js?v=20261006-four-panes-16';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-four-panes-16';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-four-panes-16';
+import {WorkspaceUI} from './workspace-ui.js?v=20261006-terrain-grid-17';
+import {NavigationUI} from './navigation-ui.js?v=20261006-terrain-grid-17';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261006-terrain-grid-17';
+import {ContextMenu} from './context-menu.js?v=20261006-terrain-grid-17';
+import {TerrainUI} from './terrain-ui.js?v=20261006-terrain-grid-17';
+import { BehaviorUI } from './behavior-ui.js?v=20261006-terrain-grid-17';
+import { createSimulation } from './recorded-engine.js?v=20261006-terrain-grid-17';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261006-terrain-grid-17';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261006-terrain-grid-17';
+import { importScenario } from './scenario-import.js?v=20261006-terrain-grid-17';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261006-terrain-grid-17';
+import { restoreAnalysisResult } from './detection.js?v=20261006-terrain-grid-17';
+import { AnalysisUI } from './analysis-ui.js?v=20261006-terrain-grid-17';
+import { MapView } from './view.js?v=20261006-terrain-grid-17';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261006-terrain-grid-17';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261006-terrain-grid-17';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -32,7 +32,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261006-four-panes-16',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261006-terrain-grid-17',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -306,7 +306,7 @@ function applyScenario(next,{
   $('timeline').max=scenario.duration;
   $('duration-label').textContent=+(scenario.duration/60).toFixed(1)+'分';
   const t=scenario.terrain;
-  $('terrain-info').textContent=Number(((t.columns-1)*t.spacing/1000).toFixed(6))+' × '+Number(((t.rows-1)*(t.spacingY??t.spacing)/1000).toFixed(6))+' km · '+t.columns+' × '+t.rows+' 格子';
+  $('terrain-info').textContent=Number(((t.columns-1)*t.spacing/1000).toFixed(6))+' × '+Number(((t.rows-1)*(t.spacingY??t.spacing)/1000).toFixed(6))+' km · 地形格子数 '+t.columns+' × '+t.rows+' · 格子間隔 '+Number(t.spacing.toFixed(3))+' × '+Number((t.spacingY??t.spacing).toFixed(3))+' m';
   document.querySelector('.map-title').textContent=scenario.title;
   analysisUI.onScenario({
     keepResults
