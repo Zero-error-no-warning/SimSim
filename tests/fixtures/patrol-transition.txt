@@ -1,0 +1,162 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "移動から協調周回",
+  "duration": 2000,
+  "terrain": {
+    "columns": 3,
+    "rows": 3,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "u0",
+      "name": "U0",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 0,
+        "y": -100,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "u1",
+      "name": "U1",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 0,
+        "y": -100,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "u2",
+      "name": "U2",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 0,
+        "y": -100,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    }
+  ],
+  "routes": [
+    {
+      "id": "r",
+      "name": "四角形",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 1000,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 1000,
+          "y": 1000,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 1000,
+          "z": 0
+        }
+      ]
+    }
+  ],
+  "destinations": [
+    {
+      "id": "d",
+      "name": "合流地点",
+      "kind": "point",
+      "point": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "g",
+      "name": "移動と周回",
+      "initial": "move",
+      "nodes": [
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "d"
+        },
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "r",
+          "speedFraction": 0.7,
+          "joinMode": "nearest"
+        }
+      ],
+      "edges": [
+        {
+          "from": "move",
+          "to": "patrol",
+          "when": "arrived"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "a",
+      "name": "同じタスク",
+      "behaviorId": "g",
+      "targets": [
+        "unit:u0",
+        "unit:u1",
+        "unit:u2"
+      ],
+      "spacing": "even",
+      "spacingDistance": 1000
+    }
+  ],
+  "recording": {
+    "step": 1,
+    "interval": 1
+  }
+}

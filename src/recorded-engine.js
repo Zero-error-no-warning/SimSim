@@ -1,13 +1,13 @@
-import {measurePoints} from './measurement-points.js?v=20261006-terrain-grid-17';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-terrain-grid-17';
-import {resolveGraph} from './behavior-parameters.js?v=20261006-terrain-grid-17';
-import { Simulation } from './engine.js?v=20261006-terrain-grid-17';
-import { importScenario } from './scenario-import.js?v=20261006-terrain-grid-17';
-import { random01, streamKey } from './random.js?v=20261006-terrain-grid-17';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-terrain-grid-17';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-terrain-grid-17';
-import { graphTriggers } from './shared-settings.js?v=20261006-terrain-grid-17';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-terrain-grid-17';
+import {measurePoints} from './measurement-points.js?v=20261006-patrol-transition-18';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-patrol-transition-18';
+import {resolveGraph} from './behavior-parameters.js?v=20261006-patrol-transition-18';
+import { Simulation } from './engine.js?v=20261006-patrol-transition-18';
+import { importScenario } from './scenario-import.js?v=20261006-patrol-transition-18';
+import { random01, streamKey } from './random.js?v=20261006-patrol-transition-18';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-patrol-transition-18';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-patrol-transition-18';
+import { graphTriggers } from './shared-settings.js?v=20261006-patrol-transition-18';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-patrol-transition-18';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -359,9 +359,12 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         const key=s.node.routeId??'default';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(s);
       }
       for(const members of groups.values()){
-        members.sort((x,y)=>x.progress/x.path.length-y.progress/y.path.length);
+        members.sort((x,y)=>x.progress/x.path.length-y.progress/y.path.length||x.unit.id.localeCompare(y.unit.id));
         for(let i=0;i<members.length;i++){
-          const s=members[i],next=members[(i+1)%members.length],gap=members.length===1?s.path.length:mod(next.progress/next.path.length-s.progress/s.path.length,1)*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length,max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
+          // The last member's forward gap wraps around the route once. Even
+          // when all phases coincide, the empty lap belongs to this member;
+          // modulo alone would turn that lap into zero and stop everyone.
+          const s=members[i],next=members[(i+1)%members.length],gap=(next.progress/next.path.length-s.progress/s.path.length+(i===members.length-1?1:0))*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length,max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
           speeds.set(s.unit.id,a.spacing==='none'||members.length===1?nominal:Math.max(0,Math.min(max,nominal+(a.gain??.01)*(gap-desired))));
         }
       }

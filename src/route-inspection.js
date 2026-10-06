@@ -1,8 +1,8 @@
-import {inspectRoute} from './route-planner.js?v=20261006-terrain-grid-17';
-import {Terrain} from './terrain.js?v=20261006-terrain-grid-17';
-import {expandGroups} from './random.js?v=20261006-terrain-grid-17';
-import {resolveGraph} from './behavior-parameters.js?v=20261006-terrain-grid-17';
-import {routeFor} from './navigation.js?v=20261006-terrain-grid-17';
+import {inspectRoute} from './route-planner.js?v=20261006-patrol-transition-18';
+import {Terrain} from './terrain.js?v=20261006-patrol-transition-18';
+import {expandGroups} from './random.js?v=20261006-patrol-transition-18';
+import {resolveGraph} from './behavior-parameters.js?v=20261006-patrol-transition-18';
+import {routeFor} from './navigation.js?v=20261006-patrol-transition-18';
 // Inspect nominal, fixed routes. A moving destination or a future event join has
 // no predetermined segment; the execution engine checks those as they execute.
 export function scenarioRouteIssues(s){

@@ -1,14 +1,14 @@
-import {measurementErrors} from './measurement-points.js?v=20261006-terrain-grid-17';
-import {Terrain} from './terrain.js?v=20261006-terrain-grid-17';
-export {Terrain} from './terrain.js?v=20261006-terrain-grid-17';
-import {navigationProfileErrors} from './route-planner.js?v=20261006-terrain-grid-17';
-import {materializeRoutes} from './route-planner.js?v=20261006-terrain-grid-17';
-import {stateGoalErrors} from './state-measurement.js?v=20261006-terrain-grid-17';
-import { readParameter } from './parameters.js?v=20261006-terrain-grid-17';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261006-terrain-grid-17';
-import { actionErrors } from './action-settings.js?v=20261006-terrain-grid-17';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261006-terrain-grid-17';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261006-terrain-grid-17';
+import {measurementErrors} from './measurement-points.js?v=20261006-patrol-transition-18';
+import {Terrain} from './terrain.js?v=20261006-patrol-transition-18';
+export {Terrain} from './terrain.js?v=20261006-patrol-transition-18';
+import {navigationProfileErrors} from './route-planner.js?v=20261006-patrol-transition-18';
+import {materializeRoutes} from './route-planner.js?v=20261006-patrol-transition-18';
+import {stateGoalErrors} from './state-measurement.js?v=20261006-patrol-transition-18';
+import { readParameter } from './parameters.js?v=20261006-patrol-transition-18';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261006-patrol-transition-18';
+import { actionErrors } from './action-settings.js?v=20261006-patrol-transition-18';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261006-patrol-transition-18';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261006-patrol-transition-18';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];

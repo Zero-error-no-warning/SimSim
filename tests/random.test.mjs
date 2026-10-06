@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261006-terrain-grid-17';
-import {random01,noiseVector} from '../src/random.js?v=20261006-terrain-grid-17';
+import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261006-patrol-transition-18';
+import {random01,noiseVector} from '../src/random.js?v=20261006-patrol-transition-18';
 const terrain={columns:21,rows:5,spacing:500,origin:{x:0,y:0},seaLevel:0,elevations:Array(105).fill(-500)};
 const unit={id:'uuv',name:'UUV',domain:'subsurface',faction:'friendly',manned:false,speed:10,initial:{x:1000,y:1000,z:-100},route:[{x:9000,y:1000,z:-100}],routeMode:'once',motion:{horizontal:120,vertical:20,scale:1000,startDelay:300,speedVariation:.2}};
 const source={version:1,title:'Random test',unitsSystem:'SI',duration:3600,terrain,seed:'test-seed',trial:8,units:[unit]};

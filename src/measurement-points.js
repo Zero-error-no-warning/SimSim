@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-terrain-grid-17';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-patrol-transition-18';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

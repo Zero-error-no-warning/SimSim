@@ -1,6 +1,6 @@
-import {navigationErrors} from './navigation.js?v=20261006-terrain-grid-17';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261006-terrain-grid-17';
-import {requireElement} from './ui-dom.js?v=20261006-terrain-grid-17';
+import {navigationErrors} from './navigation.js?v=20261006-patrol-transition-18';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261006-patrol-transition-18';
+import {requireElement} from './ui-dom.js?v=20261006-patrol-transition-18';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

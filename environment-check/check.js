@@ -56,7 +56,7 @@
       };
       try {
         if (typeof Worker !== 'function') throw new Error('Worker APIがありません。');
-        worker = new Worker(new URL('worker.js?v=20261006-terrain-grid-17', document.baseURI), options);
+        worker = new Worker(new URL('worker.js?v=20261006-patrol-transition-18', document.baseURI), options);
         worker.onerror = event => {
           event.preventDefault();
           finish('fail', (event.message || 'Workerを起動できませんでした。') + '\n'+(event.filename||'worker.js')+':'+(event.lineno||0)+'\nworker.jsの配信、JavaScriptのMIMEタイプ、CSPのworker-srcを確認してください。');
@@ -160,7 +160,7 @@
         setResult('application',state,detail);resolve();
       };
       try{
-        worker=new Worker(new URL('../src/worker.js?v=20261006-terrain-grid-17',document.baseURI),{type:'module',name:'SimSim application probe'});
+        worker=new Worker(new URL('../src/worker.js?v=20261006-patrol-transition-18',document.baseURI),{type:'module',name:'SimSim application probe'});
         worker.onerror=event=>{event.preventDefault();finish('fail',(event.message||'本体Workerの読み込みに失敗しました。')+'\n'+(event.filename||'src/worker.js')+':'+(event.lineno||0));};
         worker.onmessageerror=()=>finish('fail','本体Workerの返信を読み取れませんでした。');
         worker.onmessage=({data})=>{if(data.type==='pong')finish('ok','本体の計算Workerと依存モジュールを読み込み、応答を確認しました（'+Math.round(performance.now()-started)+' ms）。画面の初期化やシナリオ計算の成否は別です。');};

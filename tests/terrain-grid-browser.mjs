@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261006-terrain-grid-17';
+import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261006-patrol-transition-18';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-terrain-grid-'));
 const server=http.createServer((req,res)=>{
