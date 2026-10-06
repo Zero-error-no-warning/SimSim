@@ -1,0 +1,1396 @@
+# SimSim シナリオ生成マニュアル — LLM用・単一ファイル
+
+文書版: 1.0 / 更新日: 2026-10-06
+対象: SimSim、feat/shared-behavior-replay、UIビルド 20261006-received-position-12
+生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
+仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/9873d7319b1abb7fe4b59951c974980b74a5da91
+
+## 0. 人がこのファイルを使う方法
+
+このファイル全体を社内AIへ渡し、その後に作りたいシナリオを自然言語で説明する。
+ファイル添付が使える環境では添付し、使えない環境では本文を貼り付ける。
+役割・手順・仕様・検査をまとめたSkill形式に近い指示書であり、専用のSkill登録機能を前提としない。
+このファイルだけで生成できるよう、必要な仕様と完成例を収録している。
+
+依頼文の例:
+「添付／上記のSimSimシナリオ生成マニュアルに従ってください。
+平坦な海域で敵UUVが西から東へ通過し、味方の周回UUV群が探知するシナリオを作成してください。
+群の個数0・4・8、探知距離750・1500・2500mを比較し、各条件100試行とします。
+仮定を先に短く提示し、その後、scenario.txtとして保存できる完全なJSONを出力してください。」
+
+出力のJSON部分だけをUTF-8の .txt に保存し、SimSim上部の「開く」から読み込む。
+このマニュアル自体や、説明・Markdownの囲み記号をシナリオファイルに混ぜない。
+追加JS、外部サイト、別の仕様書の参照は、シナリオ生成に必要ない。
+
+--- 以下はシナリオを生成するAIへの指示 ---
+
+## 1. あなたの役割・成果物
+
+あなたはSimSim用のシナリオ作成担当です。利用者の意図を、この文書にある実装済み機能だけで表現してください。
+成果物は「SimSimが読み込める完全なシナリオJSON」です。シミュレーション結果、再生記録、分析結果はSimSimが計算します。
+計算を実行していない場合は、計算済み・動作確認済み・成功率○%などと述べないでください。
+実装されていない項目をそれらしい名前で追加しても機能しません。未対応の要望は説明し、対応できる近似を提示してください。
+
+出力の決まり:
+1. 原則、採用した仮定・近似を短く示し、その後に完全なJSONを一つ出力する。
+2. 利用者が「JSONだけ」と指定したら、先頭 { から末尾 } までのJSONだけを出力する。
+3. チャットで説明を伴う場合、JSONを一つのコードブロックに入れる。保存時に取り除くべき囲み記号であることを短く伝える。
+4. ファイル作成が可能なら scenario.txt 等の .txt で保存する。中身は標準JSON、UTF-8とする。
+5. 省略記号 ...、コメント、末尾カンマ、NaN、Infinity、undefined、式、関数、配列生成コード、外部ファイル参照を使わない。
+6. 引用符は半角の二重引用符。数値・真偽値を文字列にしない。キーを重複させない。
+7. versionは数値3、unitsSystemは文字列 "SI"。旧版の開始ノード・ルール方式を出力しない。
+8. 一部だけの変更依頼でも、利用者が差分を指定しない限り、変更後の完全なシナリオを返す。
+
+実際の部隊・装備の数値が与えられていないときは、仮想の値として明示する。名称から実性能を推定して確定値にしない。
+
+## 2. 作成手順
+
+1. 計測する状態または探知目標、終了時刻、海域／陸域、担当ユニットを決める。
+2. 曖昧さが結果を大きく変える場合だけ確認する。軽微な未指定値は仮定として示して進める。
+   特に確認する項目: 何を達成とするか、受信位置への移動か現在位置の追跡か、一度だけか受信ごとに更新か。
+3. m・s・m/s・0～1の確率に単位変換する。地形の範囲と標高を決める。
+4. unitsとgroupsを定義する。センサー・通信は使うユニットにだけ明示する。
+5. routesとdestinationsを先に定義してIDを決める。
+6. behaviorsで状態ノード・条件線・共通イベントを作る。
+7. behaviorAssignmentsで単体または群に挙動を割り当てる。
+8. missionで計測条件を定義する。分析するならanalysisを追加する。
+9. recordingとanalysisの刻みを一致させる。
+10. 第15節の検査を行い、参照切れ・境界違反・届かないイベント・循環を修正してから出力する。
+
+通常の新規生成では、旧タスクのroute/baseより、名前付きroutes/destinationsを使う。
+単純な定速移動なら、挙動を割り当てずunits[].routeだけを使ってもよい。
+
+## 3. 概念・単位・ID
+
+| 概念 | JSONでの場所 | 意味 |
+|---|---|---|
+| 単体ユニット | units | 領域・陣営・速度・初期位置・センサー・通信等 |
+| ユニット群 | groups | 一つのひな型から生成する同種の個体集合 |
+| 経路 | routes | 名前付きの座標列 |
+| 目的 | destinations | 固定地点、単体の現在位置、受信した観測位置 |
+| 挙動 | behaviors | 状態と遷移の共通定義 |
+| タスク／担当 | behaviorAssignments | 誰がどの挙動をどの値で実行するか |
+| 計測 | mission | 達成とする状態・対象・期限 |
+| 分析 | analysis | 比較値と試行ごとのばらつき |
+| 計算／記録 | recording | 探知判定の計算刻みと再生記録間隔 |
+
+座標は平面のローカル座標。xは東、yは北、zは高さ。緯度経度ではない。
+全ての距離・座標・幅・標高はm、時刻・時間はs、速度はm/s。
+確率・位相・速度比は0～1。画面のkm・分・%表示と、JSONの保存単位を混同しない。
+例: 100km = 100000、10分 = 600、時速36km = 10m/s、100% = 1、25%の出発位相 = 0.25。
+海面seaLevelが0なら深度100mはz=-100。海面が20なら深度100mはz=-80。
+グラフのnode.x/yとtrigger.x/yだけは、地図のm座標ではなくエディタ上の位置。
+
+IDは英数字・_・-だけで作る。名前は日本語でよい。
+- unit、route、destination、behavior、assignment、node、trigger、担当値のID: 1～80文字。
+- group.id: 1～50文字。
+- 各配列内でIDを重複させない。ノードとトリガーのIDは挙動ごとに管理する。
+- 生成を簡単にするため、IDは文書全体でもなるべく一意にし、単体IDに "__" を使わない。
+- 群の個体IDは group.id + "__" + 1から始まる番号。例: watch__1。
+- 生成個体をunitsへ重ねて書かない。groupIdは生成専用で、unitsへ手書きしない。
+- タスクのtargetsは "unit:boat" / "group:watch" の形式。
+- receiverIdとdestination.unitIdは、unitsにある単体ID。"unit:" を付けず、群IDや生成個体IDも指定しない。
+- routeId、destinationId、behaviorId、mission.assignmentId、mission.nodeIdにも接頭辞を付けない。
+
+## 4. シナリオ全体
+
+| 項目 | 必須／推奨 | 型・制約 |
+|---|---|---|
+| version | 必須 | 3 |
+| unitsSystem | 必須 | "SI" |
+| title | 必須 | 1～160文字 |
+| duration | 必須 | 0より大きく86400以下、s |
+| terrain | 必須 | 第5節 |
+| units | 必須 | 配列。空でもよい。単体は最大2000件 |
+| groups | 推奨 | 配列、最大100群。未使用なら [] |
+| routes | 推奨 | 配列、最大128件。未使用なら [] |
+| destinations | 推奨 | 配列、最大256件。未使用なら [] |
+| behaviors | 推奨 | 配列、最大50件。未使用なら [] |
+| behaviorAssignments | 推奨 | 配列、最大100件。未使用なら [] |
+| seed | 推奨 | 100文字以下の文字列。省略時 "SimSim" |
+| trial | 推奨 | 0～1000000000の整数。省略時0 |
+| recording | 推奨 | {"step":10,"interval":10} 等 |
+| mission | 計測時必須 | 第11節。未使用なら項目ごと省略する |
+| analysis | 分析時必須 | 第12節。未使用なら項目ごと省略する |
+
+単体数 + 全群のcount合計 <= 2000。無効な単体・群も入力上の個数上限に含まれる。
+同じseed・trial・定義では乱数の結果を再現できる。分析はtrialを順に変える。
+不要なoptional項目へnullや空オブジェクトを入れず、省略する。
+
+recording:
+- step: 0.1～300s。
+- interval: step以上、300s以下、stepの整数倍。
+- duration / step <= 100000。
+- analysisがある場合、analysis.step = recording.step。
+- 初期値はstep=10、interval=10。短い通過接触の検出にはstepを小さくする。
+- 探知は刻みの区間末尾で試行する。通信受信・待機終了・固定位置への到着等は刻みの途中のイベント時刻も扱う。
+- 再生は計算済み記録を読む。LLMが再生フレームや計算結果を捏造する必要はない。
+
+## 5. 地形・領域の寸法
+
+terrainの必須項目:
+- columns、rows: 各2～513の整数。格子の「頂点数」であり、セル数ではない。
+- spacing: x方向の格子間隔、1～10000m。
+- spacingY: 任意。y方向の格子間隔、1～10000m。省略時spacingと同じ。
+- origin: {"x":...,"y":...}。左下（最小x・最小y）の位置。
+- seaLevel: 有限の数値、m。
+- elevations: -12000～10000mの数値を、columns*rows個並べた一次元配列。
+
+配列順: 西から東へ一行ずつ、その後に南から北へ行を進める。
+(row, column) の値は elevations[row*columns+column]。
+標高は海面からの水深ではなく、z座標と同じ基準の高さ。
+セル間は標高を双線形補間する。PNG、画像URL、3Dメッシュへの参照ではない。
+
+幅 = (columns-1)*spacing。
+高さ = (rows-1)*(spacingYを指定していればspacingY、なければspacing)。
+有効範囲: origin.x <= x <= origin.x+幅、origin.y <= y <= origin.y+高さ。
+全ユニットの配置、経路、移動先を範囲内に収める。群の配置幅・航跡ずれも見込んで余白を取る。
+既存シナリオの寸法変更ではcolumns/rowsを保ち、spacing/spacingYを調整する。
+新規生成時は、地形の複雑さに必要な小さな格子から始め、長大な標高配列を無理に手書きしない。
+50km幅を作るならspacing<=10000のためcolumns>=6が必要。
+
+地形は標高場として作る。平坦海域は標高を一定の負の値にする。島は海面より高い頂点を設ける。
+島と経路の端点だけが離れていても、線分の途中で島や浅瀬を横切れば停止する。全経路区間を確認する。
+自動迂回・経路探索はない。
+
+| domain | 配置・移動時の条件 |
+|---|---|
+| ground | 地形標高h > seaLevel。zは地形標高へ補正される |
+| surface | h <= seaLevel-5。zはseaLevelへ補正される |
+| subsurface | h < seaLevel、h+5 <= z <= seaLevel-1 |
+| air | z > max(h,seaLevel)+10。地表・海面の10mちょうどは不可 |
+
+入力の構文チェックだけで地形上の有効性が保証されるわけではない。物理条件違反は計算時の停止原因になる。
+
+## 6. 単体ユニット・能力・移動のばらつき
+
+unitsの各要素、およびgroups[].templateの必須項目:
+| 項目 | 型・範囲 |
+|---|---|
+| id | ID文字列 |
+| name | 1～120文字 |
+| domain | ground / surface / subsurface / air |
+| faction | friendly / hostile / neutral |
+| manned | boolean |
+| speed | 0～1500、m/s。0は静止 |
+| initial | {"x":数値,"y":数値,"z":数値} |
+| route | 最大500点の配列。空配列でよい。initialの後に通る点を並べる |
+| routeMode | once / loop / pingpong |
+
+任意項目:
+- enabled: boolean。単体は省略時true。falseなら画面に残すが移動・探知・通信・計測対象・計算記録の対象から外れる。
+- detectability: 0～10、省略時1。0は探知されない。値が大きいほど探知しやすい。
+- sensor、communication、motion: 下記。
+- mannedは属性であり、それだけで判断速度や能力が変わるモデルではない。
+
+個別routeはinitialを別に持つ。例: initial=A、route=[B,C]。
+onceは最終点で停止、loopは最終点から始点へ戻る閉路、pingpongは往復。
+経路を省略できないので静止ユニットもroute:[]を書く。空経路やspeed:0は到着イベントを期待する用途に使わない。
+タスク未割当はこの個別経路を進む。タスクに割り当てると状態ノードの動作に従う。
+
+### センサー
+
+sensorを指定する場合は以下を揃える:
+{"enabled":true,"range":5000,"probabilityPerMinute":0.6,"domains":["subsurface"],"terrainLOS":false}
+- enabled、terrainLOS: boolean。
+- range: 0より大きく100000以下、m。
+- probabilityPerMinute: 0～1。「距離0・被探知係数1で1分間」の基準確率。1刻みごとの確率ではない。
+- domains: 対象領域を一つ以上。陣営の指定ではない。
+- mountHeight: 任意、0～1000m。センサー位置を上げる。省略時groundは2m、それ以外は0m。
+- 同陣営は探知しない。neutralは現在の探知対象候補から外れる。
+- 探知距離は3次元距離。rangeちょうど以上は探知しない。
+- 自分のセンサー有効、現在状態のsensorがfalseではない、終了状態ではない、計算上停止エラーではないことが必要。
+- terrainLOS:trueは直線上の地形遮蔽を確認する。
+
+0 < p < 1 のとき、1区間の探知確率は次のモデル:
+1 - exp(-[-ln(1-p)/60] * 区間秒数 * 被探知係数 * (1-距離/range)^2)
+距離>=range、被探知係数<=0、p<=0なら0。
+p=1は特別扱いで、距離<rangeかつ被探知係数>0なら確率1（地形遮蔽は別判定）。
+
+これは汎用的な距離・確率・地形の簡易モデル。電波、光学、音響それぞれの媒質・海面通過・物理伝搬は別途再現していない。
+UAVから水中目標を探知させる等の設定を使う場合は、その近似を明記する。
+
+### 通信
+
+通信を送るユニットには例の全項目を指定する:
+{"enabled":true,"range":100000,"delay":7,"probability":1,"terrainLOS":false}
+- range: 0.001～100000m、3次元距離。range以内なら距離条件を満たす。
+- delay: 0～86400s。送信成功後、この遅延で受信イベントが届く。
+- probability: 0～1、送信試行の成功確率。
+- enabled、terrainLOS: boolean。
+- 受信先はunitsにある有効な単体。受信だけの単体にcommunicationを追加する必要はない。
+- 100%でも、通信無効、受信先不在・無効、距離超過、地形遮蔽では送れない。
+- 移動エラーで停止しただけの受信者は受信できる。有効な現在位置で受信遷移を行えば別の動作へ移れる。
+- 配置そのものが無効であれば、通信が届いてもその配置問題を自動修復しない。
+- 繰り返し送信の成功確率を、独立した毎回の乱数試行として仮定しない。現実装は試行内の送信元・報告状態・対象等のキーで判定する。
+
+### 航跡等のばらつき
+
+motionは任意。下記の項目だけを使い、必要なものを明示する。
+| 項目 | 範囲・意味 |
+|---|---|
+| horizontal | 0～10000m、個体の水平ずれ上限 |
+| commonHorizontal | 0～10000m、群共通の水平ずれ上限 |
+| vertical | 0～3000m、air/subsurfaceの上下ずれ |
+| scale | 10～100000m、航跡に沿ったずれの変動間隔。省略時2000 |
+| startDelay | 0～86400s、0～この値の乱数による出発遅れ |
+| speedVariation | 0～1、基準速度に対する±割合。例0.1は±10% |
+| loopStart | 0～1、閉経路の長さに対する開始位相。1と0は同じ |
+
+初期点・最終点付近はずれを抑え、閉経路の開始位相は経路長で指定する。
+個別／follow／patrolの経路生成に使う設定であり、moveの直線移動へ同じ航跡ずれを加える設定ではない。
+速度のばらつきはmoveにも反映する。水深・高度・海域境界に余裕を取る。
+
+## 7. ユニット群
+
+各groups要素に以下を指定する:
+- id: 1～50文字。
+- name: 1～100文字。
+- count: 入力シナリオでは1～2000の整数。
+- placement: grid / random。
+- width、height: 各0～100000m。ひな型initialを中心とした配置幅。
+- template: 第6節のユニットを一つ、完全なオブジェクトとして埋め込む。
+- enabled: 任意、省略時true。群全体の有効／無効はこの値で決まる。
+- loopStartMode: 任意、template / even / random。省略時template。
+
+ひな型から初期位置・個別routeを同じ配置ずれで平行移動し、個体を生成する。
+templateは参照IDではなく埋め込みオブジェクト。別途unitsに同じひな型を置く必要はない。
+編集用ひな型の単体も画面に残す場合は、unitsにenabled:falseで置き、群のtemplateには独立した定義を書く。後から自動同期されない。
+群ではtemplate.enabledよりgroup.enabledを使う。
+
+loopStartModeは、ひな型の個別routeModeがloopのとき、個別経路の開始割合を揃える／均等／ランダムにする。
+名前付き経路の協調patrolを初期状態にすると、通常はその経路始点とタスクのspacing・phaseで配置する。
+この場合は群のwidth/heightやloopStartModeで同じ経路上の位相が決まると思わないこと。
+- 名前付き経路で均等に周回: 初期patrol、spacing:"even"、joinModeを省略。
+- 現在の個別配置から経路へ合流: joinMode:"nearest"。initialが使われる。
+- 最初から: joinMode:"start"。初期状態なら経路始点に配置される。
+
+count=0は第12節の比較値では指定できるが、通常の入力groups[].countには指定できない。
+分析で0個の条件は群を除いた試行になり、状態計測の担当0人は未成立になる。
+
+## 8. 経路・目的
+
+### 名前付き経路 routes
+
+{"id":"route-a","name":"航路A","mode":"once","points":[{"x":0,"y":0,"z":1000},{"x":2000,"y":0,"z":1000}]}
+- pointsはinitialを含む完全な座標列、2～500点。各x/y/zは-1000000～1000000の有限の数値。
+- mode: once / loop / pingpong、省略時once。
+- patrolで参照する経路は3点以上で、閉路として扱う。
+- 経路自身のID・名前は必須。名前は1～120文字。
+- routes[].pointsとunits[].routeの「始点を含むか」の違いに注意する。
+
+follow/patrolにrouteIdを指定する。joinModeの意味:
+- "start": 現在位置から経路始点へ合流してから進む。初期状態では始点に配置される。
+- "nearest": 現在位置から3次元の直線距離が最も短い経路の線分上の点へ合流してから進む。
+- patrolの初期状態で省略: タスクのspacing/phaseによる従来の出発割合を使う。
+最短地点は、障害物を回避する最短経路ではない。
+
+### 目的 destinations
+
+目的は次の3種類。固定地点pointの各x/y/zは-1000000～1000000の有限の数値。
+{"id":"point-x","name":"地点X","kind":"point","point":{"x":2000,"y":0,"z":1000}}
+{"id":"live-target","name":"相手の現在位置","kind":"unit","unitId":"target"}
+{"id":"reported-target","name":"受信した目標位置","kind":"received"}
+
+| kind | 動作・情報の意味 |
+|---|---|
+| point | 定義した固定座標 |
+| unit | 相手の計算上の現在位置を参照し、移動に追随する。探知・通信が不要な全情報型の追跡 |
+| received | 受信通信に含まれる観測座標。moveに入る時に固定し、その移動中は相手の実位置を参照しない |
+
+受信情報に基づく対応にはreceivedを使う。unitを使うと通信1回で追跡権を得るモデルに見えるが、実際には常に現在位置を参照する別の指定になる。
+receivedは実行ユニットごとに保持する直近の受信位置であり、目標ごとの一覧やtargetIdによる選択機能ではない。
+同じ目標の古い観測時刻の報告では新しい保存位置を上書きしない。別目標の報告は直近に受信した目標として扱う。
+受信情報がなければmoveは待機する。位置情報のない通信は保存位置を上書きしない。
+
+heightMode（moveだけで指定可能）:
+- "keep": moveに入った時点の高度・深度を維持する。
+- "target": 目的座標のzへ向かう。
+- 省略時: pointならtarget、unit/receivedならkeep。
+地上・水上はどちらでも地形・海面へ補正する。
+UAVがUUVの観測位置へ進む場合はheightMode:"keep"を明示する。UUVの負のzへ飛行させると空中ユニットは停止する。
+
+## 9. 挙動・状態・遷移・共通イベント
+
+各behaviors要素:
+- id、name（1～120文字）。
+- nodes: 1～64個。edges: 0～128本。triggers: 0～32個。
+- initial: 初期状態のnode.id。省略可だが、initialまたは少なくとも一つのtriggersが必要。
+- parameters: 任意、第10節。
+状態ノードとイベントノードは別の配列。edgesは状態→状態だけを表す。
+初期状態もtriggerもないグラフ、未設定kind/when/toは出力しない。
+initialがない担当者は共通イベントまで待機する。
+
+### 状態ノード nodes
+
+共通項目: id、kind、任意のx/y（0～4000、エディタ座標）、sensor（boolean、省略時使用可能）。
+見やすい配置例: 状態をx=240,540,840等、y=80に並べ、イベントをx=40,y=260等に置く。
+
+| kind | 意味 | 主な追加項目 | この状態からのedges.when |
+|---|---|---|---|
+| follow | 経路を進む | routeId、joinMode | detected, received, arrived, near |
+| patrol | 協調して周回 | routeId、joinMode、speedFraction | detected, received, near |
+| signal | 情報を待つ／静止 | なし | received, detected, near |
+| report | 通信を一度試みる | receiverId または receiverRole | sent, sendFailed, near |
+| move | 目的へ直線移動 | destinationId、heightMode | arrived, received, detected, near |
+| wait | その状態に入ってから待機 | seconds | elapsed, received, detected, near |
+| stop | 終了・静止・探知停止 | なし | なし |
+
+- wait.seconds: 0～86400s、必須。初期状態からの絶対時刻ではなく状態への入場時刻が基準。
+- patrol.speedFraction: 0.05～1、省略時0.7。最大速度に対する通常周回速度比。
+- report.receiverId: unitsに存在する単体ID。
+- report.receiverRole:"report": タスクのreceiverIdを使う。通常は直接receiverIdか担当値を使うと簡単。
+- reportは状態へ入るたびに一度送る。周期報告はwait→report→wait、またはtimeトリガーで作る。
+- stopでも共通received/timeイベントから再起動できる。全ての処理を永久に停止するならその共通イベントを置かない。
+- stopは探知しない。完了後にも探知させたいならsignalを完了状態にする。
+- ルート途中の割り込みからfollowへ戻るedgeにresume:trueを付けると、同じ経路の保存した進行を再開する。
+- arrivedは経路終点／目的への到着。loopやpatrolには終点到着を期待しない。
+
+「状態を完了する」という汎用イベントはない。
+例えば、move状態A → arrived → signal状態B（完了）とし、missionで状態Bに入ったことを計測する。
+状態Bに入った時点で計測が成立する。状態Bのwaitやreportの処理終了を待たない。
+状態A自身を計測すると移動開始時に成立するので、到着評価と混同しない。
+
+### 条件線 edges
+
+{"from":"move","to":"done","when":"arrived"}
+- from/toは同じ挙動内のnode.id。
+- whenは始点ノードの表にある値だけ。
+- once: 任意boolean、省略時false。一つの実行個体でその条件線を一度だけ使う場合true。
+- resume: follow再開のときだけ必要に応じtrue。
+- 同じfromから同じ条件を二本出さない。任意の確率分岐、if式、else、AND/OR式は使えない。
+- nearだけは「目的ID・距離・距離種類」が異なれば同じfromから複数指定できる。
+
+nearの必須項目:
+{"from":"move","to":"done","when":"near","destinationId":"point-x","distance":500,"distanceMode":"horizontal"}
+- distance: 0～1000000m。
+- distanceMode: horizontal（水平） / absolute（3次元）。省略時absolute。生成では明示する。
+- 3次元距離は目標の本来のzを含む。heightMode:keepでUAVが水中目標の上に来ても高度差が大きければnear:absoluteは成立しない。
+- receivedを参照するmove中の同じ目的に対するnearも、moveに入った時の固定座標を基準にする。
+- 複数near条件が同時成立すると定義順で遷移先が選ばれ得る。任意の優先順位が実装されていると思わないこと。
+
+### 共通イベントノード triggers
+
+{"id":"receive","event":"received","to":"move","once":false,"x":40,"y":260}
+{"id":"after-60","event":"time","seconds":60,"to":"move","once":true,"x":40,"y":380}
+{"id":"detected","event":"detected","to":"report","once":true,"x":40,"y":500}
+{"id":"near-x","event":"near","destinationId":"point-x","distance":500,"distanceMode":"horizontal","to":"done","once":true,"x":40,"y":620}
+
+- event: received / time / detected / near。
+- to: 同じ挙動のnode.id。edgesにイベントノードからの線を書く必要はない。
+- once: boolean、省略時true。edgesの省略時falseとは異なる。
+- receivedは通信が届いたとき。once:falseは届くたびに現在の処理を中断しtoへ入る。
+- timeはシーン開始からの秒数。once:falseはsecondsごとに繰り返す。
+- time.seconds: 0～86400s、繰り返しは0より大きくする。
+- detectedは成功した探知。once:falseの共通detectedは、同じ目標の新たな成功した再観測でも発火する。
+- 共通detectedを繰り返しにしない通常の探知通知は、観測者・目標の組で最初の探知時に発生する。
+- nearは範囲へ入った時。繰り返しでも範囲内に留まるだけでは再発火しない。範囲外へ出た後の再入場が必要。
+- 共通イベントは現在状態からの同種edgesより優先する。一度だけの共通イベントを使い終わると、その後は状態のedgesで処理できる。
+- received/detectedは各挙動一つまで。timeは異なるsecondsなら複数、nearは異なる条件なら複数。
+- トリガーは単体・群の各実行個体で独立する。同時刻のtimeは定義順に処理する。
+
+### 観測位置の受信・報告・中継の作り方
+
+基本構成:
+1. 観測側: センサー有効 → detectedからreportへ → receiverIdへ報告。
+2. 中継側: receivedからreportへ → 次のreceiverIdへ報告。
+3. 移動側: receivedからmoveへ → destinationIdがkind:receivedの目的、heightMode:keep。
+4. 到着を測る場合: move → arrived → done、そのdoneをmissionで指定。
+
+通信には目標ID・観測座標・観測時刻・元の観測者が引き継がれる。送信遅延・中継で観測時刻は新しい時刻に置き換わらない。
+定期報告では直近の成功したセンサー観測を使う。未観測なら位置情報のない通信になり得る。
+受信位置はmoveへの入場時に固定する。後から受信位置が保存されても、同じmoveの移動先は自動では変わらない。
+- 最初の報告だけで移動: receivedトリガーをonce:true。
+- 報告のたびに再設定: receivedトリガーをonce:false、toをそのmoveへ。同じ状態への再入場で目的が更新される。
+- 状態間のreceived線でも、その線が使える現在状態なら再入場できる。全状態へ割り込みたい場合はtriggersを使う。
+- 信号だけの通信でもreceivedは発火する。保存済みの観測位置があればそれを使い、なければmoveで待機する。
+- 1回の報告から未知の速度・将来位置を推定する処理、目標を常時追尾する処理は自動では行わない。
+
+再発火がmoveを中断することに注意する。到着前に何度も移動先を更新する設計と、最初の位置へ一度だけ到着する設計を区別する。
+即時循環や中継循環を作らない。wait:0の循環、reportのsentから自身への循環、遅延0の相互送信は避ける。
+即時ノード遷移は最大64段、中継の因果経路も最大64段、行動・通信イベントには10万件の上限がある。
+
+## 10. タスク・再利用する担当値
+
+behaviorAssignmentsの各要素:
+- id、name（1～120文字）。
+- behaviorId: behaviors内のID。
+- targets: "unit:<id>" / "group:<id>" の配列、通常1～100要素。
+- 同じ単体・同じ群を複数タスクへ同時に割り当てない。targets内も重複させない。
+- spacing: none / even / fixed、省略時none。
+- spacingDistance: 0～100000m、省略時500。spacing:fixedの目標間隔。
+- gain: 0～1、省略時0.01。協調patrolの間隔調整係数。
+- phase: 0～1、省略時0。共有周回の出発位相。
+- receiverId: receiverRoleを使う場合に必要。units内の単体ID。
+- parameters: 必要時だけ、下記の担当値。
+
+spacingは同じタスク・同じ経路でpatrolする担当者間に働く。
+協調は経路上の位相差を速度調整で近づけるモデル。3次元空間の直線距離を厳密に一定にする制御ではない。
+名前付き経路の初期patrolでspacing:noneはphaseの位置へ同位置で配置される。
+名前付き経路の初期patrolでspacing:even/fixedは担当者を経路長に対する位相で分ける。fixedの初期配置も常にspacingDistanceぴったりになるという意味ではない。
+
+### 挙動の担当値（型付きの抽象値）
+
+同じ挙動を異なる経路・待機時間・目的へ割り当てる場合に使う。
+定義はbehaviors[].parameters、具体値はbehaviorAssignments[].parameters。
+
+定義の例（部品であり、単独シナリオではない）:
+```json
+{
+  "parameters": [
+    {"id":"assigned-route","name":"担当経路","type":"route"},
+    {"id":"assigned-goal","name":"担当目的","type":"destination"},
+    {"id":"assigned-wait","name":"待機秒数","type":"number","unit":"s","default":30},
+    {"id":"assigned-receiver","name":"報告先","type":"unit"}
+  ]
+}
+```
+参照の例（部品）:
+```json
+{
+  "nodes": [
+    {"id":"wait","kind":"wait","seconds":{"$param":"assigned-wait"}},
+    {"id":"follow","kind":"follow","routeId":{"$param":"assigned-route"}},
+    {"id":"move","kind":"move","destinationId":{"$param":"assigned-goal"},"heightMode":"keep"},
+    {"id":"report","kind":"report","receiverId":{"$param":"assigned-receiver"}}
+  ]
+}
+```
+担当での指定例（部品）:
+```json
+{
+  "parameters": {"assigned-route":"route-a","assigned-goal":"reported-target","assigned-wait":60,"assigned-receiver":"relay"}
+}
+```
+
+- 定義のtype: number / route / destination / unit。
+- numberのunit: s / m / ratio。数値が使われるフィールドの単位と一致させる。
+- defaultは任意。担当の指定が優先し、なければdefaultを使う。
+- 未指定・既定値なしの担当値が一つでもあれば、そのタスクは不正。
+- 定義は挙動ごとに最大64件。未定義のキーをタスクparametersに入れない。
+- 参照は {"$param":"ID"} だけのオブジェクト。追加キーや式を入れない。
+- 参照可能なフィールド: routeId、destinationId、receiverId、seconds、speedFraction、distance。
+- joinMode、heightMode、distanceMode、once、sensor、node.id等は直接値で指定する。
+- 数値の範囲は、解決後に各利用箇所の範囲へ収める。
+
+### 互換タスク設定を使う場合のみ
+
+既存シナリオにはassignment.route（始点込みの座標列）、routeMode、base（固定地点）がある。
+routeIdを省略したfollowはタスクroute、なければ個別経路を使う。
+routeIdを省略したpatrolはタスクrouteが3点以上必要。
+destinationIdを省略したmoveはタスクbaseが必要。
+既存データのこれらを扱う必要がなければ、新規生成では名前付き資源を使う。
+待機ノードにparameter:"preparation"を指定すると、secondsよりassignment.preparationが優先される。
+preparationは0～86400s、省略時はノードsecondsを使う。これを使うと分析のbehavior.preparationでタスク側を比較できる。
+
+## 11. 何を計測するか mission
+
+一つのシナリオでmissionは一つ。状態到達の計測を標準とし、探知確率そのものを評価するときはdetectを選ぶ。
+到着イベント単体を使うarriveも対応しているが、特定の挙動段階を評価するならstateが明確。
+
+### 状態への初回到達 state
+
+{"type":"state","assignmentId":"respond","nodeId":"done","join":"any","deadline":120}
+- assignmentIdはタスクID。nodeIdはそのタスクが参照する挙動内の状態ID。
+- join:anyは担当者の誰か1個体、allは全ての有効な担当者、countはrequiredCount個体以上が入れば成立。
+- countの場合だけrequiredCount（1～2000整数）を追加。
+- deadline: 0より大きくduration以下、s。
+- 計測対象状態へ初めて入った時刻を個体ごとに数える。出入りしても同じ個体を重複計数しない。
+- 初期状態自身を指定したら時刻0で到達扱い。
+- 担当者0人はallでも成功にはならない。
+- 無効ユニット／群は計測対象から外れる。
+
+### 探知 detect
+
+{"type":"detect","observerFaction":"friendly","targetFaction":"hostile","targetIds":["target"],"join":"any","deadline":600}
+- observerFaction、targetFactionは異なる陣営。実用上friendly/hostileを使う。
+- join:anyは一つ以上の対象、allは全対象を期限内に探知。
+- targetIdsは任意。指定するなら重複しない対象IDの非空配列。
+- 生成個体IDを指定する場合はその条件で存在するか注意する。LLM生成では、個数を変える対象群は陣営全体評価を使うのが簡単。
+- targetIdsを省略するとtargetFactionの有効な対象全体。
+- 観測側のセンサー等が実際に有効か、対象のfactionが一致しているかを確認する。
+
+### 到着イベント arrive
+
+{"type":"arrive","observerFaction":"friendly","targetFaction":"hostile","responderIds":["uav"],"join":"any","deadline":300}
+- responderIdsはunitsにある単体IDの非空配列。群IDではない。
+- join:anyは誰か一つ、allは全ての有効な評価対象の到着。
+- どの状態の到着かを限定する指定ではない。別の目的への到着を拾う曖昧さを避けるにはstateを使う。
+- observerFaction/targetFactionはこの形式でも必要で、異なる陣営を指定する。
+
+## 12. モンテカルロ分析 analysis
+
+分析にはmissionが必要。analysisは比較条件と乱数分布を指定し、結果の値を書かない。
+
+{"trials":100,"step":10,"requiredRate":0.9,"factors":[],"uncertainties":[]}
+- trials: 各比較条件で1～2000試行。
+- step: recording.stepと同じ。
+- requiredRate: 0～1。分析の達成率基準。個々の試行のmission成立条件を変える値ではない。
+- factors: 最大9変数。同じ変数に1～12個、重複しない比較値。
+- uncertainties: 最大8変数。試行ごとに抽出する分布。
+- 比較条件数はvaluesの個数の積、最大24条件。
+- 条件数 * trials <= 10000。
+- 同じ(target,parameter)をfactorsとuncertainties、または同じ配列内で重複指定しない。
+- trial + trials - 1 <= 1000000000。
+
+比較値の例（部品）:
+```json
+{"target":"group:watch","parameter":"capacity.population","values":[0,4,8]}
+```
+一様分布の例（部品）:
+```json
+{"target":"unit:observer","parameter":"interaction.communication.delay","distribution":"uniform","min":3,"max":10}
+```
+三角分布の例（部品）:
+```json
+{"target":"group:watch","parameter":"rate.movement.speed","distribution":"triangular","min":6,"mode":8,"max":10}
+```
+
+min<=max。三角分布はmin<=mode<=max。整数変数は整数の範囲を指定し、抽出値は整数に丸める。
+同じ試行番号の不確実値は比較条件間で対応するように抽出する。factorは全ての組み合わせを実行する。
+比較値も分布も、次の表の「JSONの単位」を使う。画面のkm・%・分の値をそのまま入力しない。
+
+### 使用できるparameter一覧
+
+| parameter（正確な文字列） | 設定する値 | JSONの単位・範囲 | 対象・条件 |
+|---|---|---|---|
+| `rate.movement.speed` | 移動速度 | m/s、0～1500 | unit:<id> / group:<id>（ひな型） |
+| `extent.sense.radius` | 最大探知距離 | m、0.001～100000 | unit:<id> / group:<id>（ひな型）、センサーあり（生成時はenabled:true） |
+| `interaction.detection.probability` | 距離0で1分の探知確率 | 比率、0～1 | unit:<id> / group:<id>（ひな型）、センサーあり（生成時はenabled:true） |
+| `extent.communication.radius` | 最大通信距離 | m、0.001～100000 | unit:<id> / group:<id>（ひな型）、通信enabled:true |
+| `interaction.communication.delay` | 通信遅延 | s、0～86400 | unit:<id> / group:<id>（ひな型）、通信enabled:true |
+| `interaction.communication.probability` | 通信成功確率 | 比率、0～1 | unit:<id> / group:<id>（ひな型）、通信enabled:true |
+| `behavior.preparation` | 出発準備時間 | s、0～86400 | assignment:<id>、parameter:preparationの待機状態が必要 |
+| `extent.signature.coefficient` | 被探知係数 | 係数、0～10 | unit:<id> / group:<id>（ひな型） |
+| `state.position.x` | 配置・経路の中心 x | m、-1000000～1000000 | unit:<id> / group:<id>（ひな型） |
+| `state.position.y` | 配置・経路の中心 y | m、-1000000～1000000 | unit:<id> / group:<id>（ひな型） |
+| `state.position.z` | 高度・深度 z | m、-20000～100000 | unit:<id> / group:<id>（ひな型）、生成時はair/subsurface |
+| `extent.sense.mountHeight` | センサー取付高 | m、0～1000 | unit:<id> / group:<id>（ひな型）、センサーあり（生成時はenabled:true） |
+| `state.route.phase` | 周回の出発点 | 比率、0～1 | unit:<id> / group:<id>（ひな型）、ユニット/ひな型routeMode:loop |
+| `motion.horizontal` | 個体の水平ずれ上限 | m、0～10000 | unit:<id> / group:<id>（ひな型） |
+| `motion.commonHorizontal` | 群共通の水平ずれ上限 | m、0～10000 | unit:<id> / group:<id>（ひな型） |
+| `motion.vertical` | 上下ずれ上限 | m、0～3000 | unit:<id> / group:<id>（ひな型）、生成時はair/subsurface |
+| `motion.scale` | 航跡の変動間隔 | m、10～100000 | unit:<id> / group:<id>（ひな型） |
+| `motion.startDelay` | 出発遅れ上限 | s、0～86400 | unit:<id> / group:<id>（ひな型） |
+| `motion.speedVariation` | 個体速度のばらつき | 比率、0～1 | unit:<id> / group:<id>（ひな型） |
+| `capacity.population` | 群の個数 | 整数（個）、0～2000 | group:<id> |
+| `extent.deployment.width` | 配置幅 x | m、0～100000 | group:<id> |
+| `extent.deployment.height` | 配置幅 y | m、0～100000 | group:<id> |
+| `task.route.x` | 共有経路の基準 x | m、-1000000～1000000 | assignment:<id>、タスクにrouteが必要 |
+| `task.route.y` | 共有経路の基準 y | m、-1000000～1000000 | assignment:<id>、タスクにrouteが必要 |
+| `task.route.z` | 共有経路の高度・深度 | m、-20000～100000 | assignment:<id>、タスクにrouteが必要 |
+| `task.route.phase` | 共有周回の出発点 | 比率、0～1 | assignment:<id>、patrol状態が必要 |
+| `coordination.spacing` | 協調する指定間隔 | m、0～100000 | assignment:<id>、spacing:fixed |
+| `coordination.gain` | 間隔の調整係数 | 1/s、0～1 | assignment:<id> |
+| `mission.deadline` | 成功条件の期限 | s、0.000001～86400 | scenario、mission必須 |
+
+追加注意:
+- 分析のtargetは "scenario" / "unit:<id>" / "group:<id>" / "assignment:<id>"。
+- groupで通常の性能を変えると、その群のtemplateの性能を変える。
+- capacity.populationは比較値で0を許可する。入力シナリオのgroup.countは1以上にする。
+- mission.deadlineの値・分布上限はduration以下にする。
+- task.route.x/y/zは互換タスクrouteを持つ担当向け。名前付きroutesのID・pointsを切り替える分析パラメータではない。
+- state.position.x/y/zは初期位置と個別routeを平行移動する。名前付き経路の座標列は移動しない。
+- 初期状態が名前付き経路から始まると初期位置がその経路で決まる場合がある。その場合、単体のstate.position比較で意図した配置変更が起きるとは限らない。
+- behaviors.parametersの任意の担当値を、analysis.parameterにそのIDで指定することはできない。この表にあるキーだけが対応している。
+- センサー・通信の有効無効、陣営、ID、領域、経路選択、地形配列はこの数値分析の比較変数ではない。
+- 分布の最大値・群の最大個数の条件でも、合計2000個・地形範囲・高さ・全参照が有効か確認する。
+- 正規分布、対数正規分布、CDFオブジェクト、CSVへの参照などは追加しない。
+
+## 13. 完成例
+
+この節の「完成例A/B/C」のコードブロックは、それぞれ単独で読み込める完全なシナリオ。
+一つを選び、そのJSONだけをファイルに保存する。3例を連結した配列にはしない。
+
+### 完成例A: 最小構成・水上ユニットの移動
+
+2km×2kmの平坦海域。1kmの移動を速度10m/sで行う。挙動や計測は付けない。
+
+```json
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "水上ユニットの移動",
+  "duration": 120,
+  "seed": "minimal-v1",
+  "trial": 0,
+  "terrain": {
+    "columns": 2,
+    "rows": 2,
+    "spacing": 2000,
+    "origin": {
+      "x": 0,
+      "y": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -100,
+      -100,
+      -100,
+      -100
+    ]
+  },
+  "units": [
+    {
+      "id": "boat",
+      "name": "水上ユニット",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 500,
+        "y": 500,
+        "z": 0
+      },
+      "route": [
+        {
+          "x": 1500,
+          "y": 500,
+          "z": 0
+        }
+      ],
+      "routeMode": "once"
+    }
+  ],
+  "groups": [],
+  "routes": [],
+  "destinations": [],
+  "behaviors": [],
+  "behaviorAssignments": [],
+  "recording": {
+    "step": 10,
+    "interval": 10
+  }
+}
+```
+
+### 完成例B: 観測 → 中継 → 受信位置へ移動 → 到着状態を計測
+
+40km×40kmの海域。観測側は静止、敵UUVは移動、UAVは周回から受信位置への直線移動へ切り替える。
+最初の報告だけを使い、UAVは高度1000mを維持して観測位置へ向かう。中継は元の観測時刻を保持する。
+観測側から水中目標を探知する機能は第6節の汎用的なセンサー近似として用いる。
+計測は「done状態に入ること」。UAVの速度3条件×各20試行で、通信遅延の一様分布を追加する。
+
+```json
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "観測位置の中継を受けてUAVが到着する",
+  "duration": 300,
+  "seed": "received-position",
+  "terrain": {
+    "columns": 5,
+    "rows": 5,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "observer",
+      "name": "observer",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 100000,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "subsurface"
+        ],
+        "terrainLOS": false
+      },
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 7,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "relay",
+      "name": "relay",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once",
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 3,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "uav",
+      "name": "uav",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 50,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "uuv",
+      "name": "uuv",
+      "domain": "subsurface",
+      "faction": "hostile",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 2000,
+        "y": 0,
+        "z": -100
+      },
+      "route": [
+        {
+          "x": 10000,
+          "y": 0,
+          "z": -100
+        }
+      ],
+      "routeMode": "once"
+    }
+  ],
+  "destinations": [
+    {
+      "id": "received",
+      "name": "受信した目標位置",
+      "kind": "received"
+    }
+  ],
+  "routes": [
+    {
+      "id": "patrol",
+      "name": "UAVの周回",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 1000
+        },
+        {
+          "x": 0,
+          "y": 3000,
+          "z": 1000
+        },
+        {
+          "x": 3000,
+          "y": 3000,
+          "z": 1000
+        },
+        {
+          "x": 3000,
+          "y": 0,
+          "z": 1000
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "observe",
+      "name": "位置を探知して報告",
+      "initial": "listen",
+      "triggers": [
+        {
+          "id": "detect",
+          "event": "detected",
+          "to": "report",
+          "once": true,
+          "x": 60,
+          "y": 270
+        }
+      ],
+      "nodes": [
+        {
+          "id": "listen",
+          "kind": "signal",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "relay",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "to": "listen",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "listen",
+          "when": "sendFailed",
+          "from": "report"
+        }
+      ]
+    },
+    {
+      "id": "relay",
+      "name": "観測位置を中継",
+      "initial": "listen",
+      "triggers": [
+        {
+          "id": "receive",
+          "event": "received",
+          "to": "report",
+          "once": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "listen",
+          "kind": "signal",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "uav",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "to": "listen",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "listen",
+          "when": "sendFailed",
+          "from": "report"
+        }
+      ]
+    },
+    {
+      "id": "respond",
+      "name": "受信位置へ高度を保って移動",
+      "initial": "patrol",
+      "triggers": [
+        {
+          "id": "receive",
+          "event": "received",
+          "to": "move",
+          "once": true,
+          "x": 140,
+          "y": 310
+        }
+      ],
+      "nodes": [
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "patrol",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "received",
+          "heightMode": "keep",
+          "x": 430,
+          "y": 70
+        },
+        {
+          "id": "done",
+          "kind": "signal",
+          "sensor": false,
+          "x": 740,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "from": "move",
+          "to": "done",
+          "when": "arrived"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "observe",
+      "name": "位置を探知して報告",
+      "behaviorId": "observe",
+      "targets": [
+        "unit:observer"
+      ],
+      "spacing": "none"
+    },
+    {
+      "id": "relay",
+      "name": "観測位置を中継",
+      "behaviorId": "relay",
+      "targets": [
+        "unit:relay"
+      ],
+      "spacing": "none"
+    },
+    {
+      "id": "respond",
+      "name": "受信位置へ高度を保って移動",
+      "behaviorId": "respond",
+      "targets": [
+        "unit:uav"
+      ],
+      "spacing": "none"
+    }
+  ],
+  "recording": {
+    "step": 10,
+    "interval": 10
+  },
+  "mission": {
+    "type": "state",
+    "assignmentId": "respond",
+    "nodeId": "done",
+    "join": "any",
+    "deadline": 120
+  },
+  "analysis": {
+    "trials": 20,
+    "step": 10,
+    "requiredRate": 0.9,
+    "factors": [
+      {
+        "target": "unit:uav",
+        "parameter": "rate.movement.speed",
+        "values": [
+          20,
+          50,
+          100
+        ]
+      }
+    ],
+    "uncertainties": [
+      {
+        "target": "unit:observer",
+        "parameter": "interaction.communication.delay",
+        "distribution": "uniform",
+        "min": 3,
+        "max": 10
+      }
+    ]
+  }
+}
+```
+
+変更のヒント:
+- 報告を繰り返したい: observeのtriggersにevent:time、seconds:30、once:false、to:reportを追加。
+- 同じ目標の成功した再観測ごとに送りたい: observeのdetectedトリガーをonce:falseにする。
+- 新しい報告ごとにUAVの目的を変えたい: respondのreceiveトリガーをonce:falseにする。
+- moveへの入場時点を計測したい: mission.nodeIdをmoveにする。その場合は到着を待たない。
+- 中継なしにしたい: 観測側report.receiverIdをuavへ変更し、relay単体・挙動・担当を削除し、全参照を確認。
+- 継続追跡そのものを仮定したい: kind:unitの目的を作って選ぶ。その情報の仮定を明記する。
+
+### 完成例C: 周回UUV群の個数・探知距離を比較
+
+20km×20kmの平坦海域。敵UUV1隻が西から東へ進む。
+味方UUV群は共有経路上で均等に周回。群0・4・8個×探知距離3条件の9条件、各20試行。
+航跡・個体速度のずれ、群ひな型速度の三角分布を使う。ひな型速度抽出と個体速度の±10%は重ねて適用される。
+
+```json
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "周回UUV群の個数と探知距離を比較",
+  "duration": 600,
+  "seed": "manual-group-v1",
+  "trial": 0,
+  "terrain": {
+    "columns": 3,
+    "rows": 3,
+    "spacing": 10000,
+    "spacingY": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "target",
+      "name": "通過する敵UUV",
+      "domain": "subsurface",
+      "faction": "hostile",
+      "enabled": true,
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": -4000,
+        "y": 0,
+        "z": -100
+      },
+      "route": [
+        {
+          "x": 4000,
+          "y": 0,
+          "z": -100
+        }
+      ],
+      "routeMode": "once",
+      "detectability": 1
+    }
+  ],
+  "groups": [
+    {
+      "id": "watch",
+      "name": "周回する監視UUV群",
+      "enabled": true,
+      "count": 4,
+      "placement": "grid",
+      "width": 0,
+      "height": 0,
+      "loopStartMode": "template",
+      "template": {
+        "id": "watch-template",
+        "name": "監視UUVひな型",
+        "domain": "subsurface",
+        "faction": "friendly",
+        "manned": false,
+        "speed": 8,
+        "initial": {
+          "x": -1000,
+          "y": -1000,
+          "z": -100
+        },
+        "route": [],
+        "routeMode": "loop",
+        "sensor": {
+          "enabled": true,
+          "range": 1500,
+          "probabilityPerMinute": 0.6,
+          "domains": [
+            "subsurface"
+          ],
+          "terrainLOS": false
+        },
+        "motion": {
+          "horizontal": 30,
+          "vertical": 0,
+          "commonHorizontal": 20,
+          "scale": 500,
+          "startDelay": 0,
+          "speedVariation": 0.1,
+          "loopStart": 0
+        }
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "watch-loop",
+      "name": "監視用の閉じた経路",
+      "mode": "loop",
+      "points": [
+        {
+          "x": -1000,
+          "y": -1000,
+          "z": -100
+        },
+        {
+          "x": 1000,
+          "y": -1000,
+          "z": -100
+        },
+        {
+          "x": 1000,
+          "y": 1000,
+          "z": -100
+        },
+        {
+          "x": -1000,
+          "y": 1000,
+          "z": -100
+        }
+      ]
+    }
+  ],
+  "destinations": [],
+  "behaviors": [
+    {
+      "id": "watch-behavior",
+      "name": "経路長に沿って均等間隔で周回",
+      "initial": "patrol",
+      "triggers": [],
+      "nodes": [
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "watch-loop",
+          "speedFraction": 0.7,
+          "sensor": true,
+          "x": 240,
+          "y": 80
+        }
+      ],
+      "edges": []
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "watch-task",
+      "name": "群で監視する",
+      "behaviorId": "watch-behavior",
+      "targets": [
+        "group:watch"
+      ],
+      "spacing": "even",
+      "gain": 0.01,
+      "phase": 0
+    }
+  ],
+  "recording": {
+    "step": 10,
+    "interval": 10
+  },
+  "mission": {
+    "type": "detect",
+    "observerFaction": "friendly",
+    "targetFaction": "hostile",
+    "targetIds": [
+      "target"
+    ],
+    "join": "any",
+    "deadline": 600
+  },
+  "analysis": {
+    "trials": 20,
+    "step": 10,
+    "requiredRate": 0.9,
+    "factors": [
+      {
+        "target": "group:watch",
+        "parameter": "capacity.population",
+        "values": [
+          0,
+          4,
+          8
+        ]
+      },
+      {
+        "target": "group:watch",
+        "parameter": "extent.sense.radius",
+        "values": [
+          750,
+          1500,
+          2500
+        ]
+      }
+    ],
+    "uncertainties": [
+      {
+        "target": "group:watch",
+        "parameter": "rate.movement.speed",
+        "distribution": "triangular",
+        "min": 6,
+        "mode": 8,
+        "max": 10
+      }
+    ]
+  }
+}
+```
+
+## 14. よくある構成の選び方
+
+| 利用者の意図 | 作る構成 |
+|---|---|
+| 航路Aを進み、探知したら航路Bへ | follow(route-a) → detected → follow(route-b)。切替時のjoinModeを明示 |
+| 報告を受信したら待機をやめて出発 | signal → received → follow、または共通receivedからfollow |
+| 報告位置へ向かい、到着を数える | 共通received → move(received,keep) → arrived → done。mission:state(done) |
+| 500m以内になったら待機 | move → near(horizontal/absoluteを明示) → signal |
+| 30秒ごとに最新観測を送る | 共通time(seconds:30,once:false) → report → sent/sendFailed → 元の状態 |
+| 報告の試行に失敗したら30秒後に再試行 | report → sendFailed → wait(30) → elapsed → report。実装の通信乱数キーにより同じ試行で成功し直すと保証しない |
+| 完了状態に何人が入ったかを数える | mission:state、join:count、requiredCount |
+| 同じ挙動で違う航路を担当 | behaviors.parametersのrouteと、タスクparametersの具体routeId |
+| 群だけ使い、編集用単体を残す | groups.templateを埋め込み、残すunits側ひな型をenabled:false |
+
+現時点でこのJSONに追加しても機能しないもの:
+攻撃・武器・弾薬・命中・撃破、燃料・電池・充電、ユニット同士の物理衝突、経路の自動迂回、任意のJS/eval、任意のif条件式、複数条件の論理式、イベント受信者の対象IDフィルター、通信メッセージ種別の自由定義、目標ごとの受信情報一覧、予測迎撃、PNG地形参照、実伝搬モデル。
+近似するなら、例えば「一定距離内へ入った状態」を効果到達の代理指標にする。その近似を明記する。
+
+## 15. 出力前の検査
+
+### JSONと単位
+- [ ] 完全なトップレベルオブジェクト一つ。version:3、unitsSystem:"SI"。
+- [ ] コメント・省略・式・末尾カンマがなく、全ての配列要素を実際の値で書いた。
+- [ ] km→m、分→s、km/h→m/s、%→0～1を変換した。
+- [ ] 任意の未知キーを追加せず、記録・分析結果を生成していない。
+
+### 地形とユニット
+- [ ] elevationsの個数 = columns*rows。配列の行方向が正しい。
+- [ ] 領域寸法は(columns-1)*spacing等で計算した。
+- [ ] 初期位置・経路全区間・目的・配置ずれを含め、地形範囲内。
+- [ ] ground/surface/subsurface/airの地形・水深・高度条件を満たす。
+- [ ] 単体+群の合計<=2000。群の入力countは1以上。比較条件の最大数も<=2000。
+- [ ] 使わないひな型単体はenabled:false。使う群はgroup.enabled:true。
+- [ ] 移動したいユニットのspeed>0。到着を期待する経路は空でない。
+
+### IDと挙動
+- [ ] 全IDは有効で重複なし。生成個体IDも単体と衝突しない。
+- [ ] 全参照を対応する配列で確認した。IDに不要な接頭辞を付けていない。
+- [ ] 各挙動に有効なinitialまたはtriggers。全node.kind・edge.when・trigger.toを設定した。
+- [ ] edge.whenは始点状態で使える条件。同じfrom・条件の重複なし。
+- [ ] 初期state、trigger.to、edge.from/toはその挙動内のnodesに存在する。
+- [ ] 一つの単体／群にタスクを重複割当していない。
+- [ ] patrol経路は3点以上。route.pointsは始点込み、unit.routeは始点の後の点。
+- [ ] 担当値の型・単位・defaultまたは担当指定を全て確認した。
+- [ ] 無限即時遷移・周期0・報告／中継の循環がない。
+
+### 探知・通信・計測・分析
+- [ ] 観測側sensor.enabled、対象domain・faction、被探知係数、距離とLOSが適切。
+- [ ] 通信の送信元communication.enabled、受信者有効、range・delay・probabilityが適切。
+- [ ] 観測位置へ進む場合はkind:received。全情報で追跡する仮定だけkind:unit。
+- [ ] 空中から水中位置へ進む場合heightMode:keep。
+- [ ] 受信一度だけ／報告ごとの更新をonceで意図どおり指定した。
+- [ ] nearのhorizontal/absoluteを高度差に合わせて選んだ。
+- [ ] 計測状態は、その処理を開始した時点なのか、到着後の状態なのかを確認した。
+- [ ] mission.deadlineは0<deadline<=duration。
+- [ ] 到着所要時間・通信遅延・待機時間に対して、durationとdeadlineが意図どおり。
+- [ ] analysisの全parameterが第12節の文字列と完全一致し、targetの型・機能が対応。
+- [ ] 比較値は1～12個、組合せ<=24、条件数×trials<=10000、変数重複なし。
+- [ ] 分布min/mode/maxは有効。analysis.step=recording.step、intervalはstepの整数倍。
+
+計算コードを実行できる環境での追加検証（Copilot側では必須ではない）:
+1. JSON.parseで構文を検査。
+2. SimSimのimportScenario / validateScenarioで入力を検査。
+3. createSimulation + sharedStepsで計算し、invalidUnits、停止エラー、行動履歴、初回到達時刻を確認。
+4. 分析がある場合prepareAnalysisで最大個数・分布端点を含む条件を検査し、実際の試行も計算する。
+コードを実行できなければ、上の静的検査を実施した範囲を伝え、実行検証済みと称さない。
+
+## 16. 読み込み・操作エラーの修正方針
+
+エラーを利用者から受け取ったら、エラー文と該当項目を対応させ、修正後の完全なJSONを返す。
+既存の意図と、修正する必要がないID・配置・条件を保つ。versionを1へ下げて通す対応はしない。
+
+| 症状／エラー | 確認と修正 |
+|---|---|
+| 標高配列・terrain不正 | rows*columnsと数値個数、spacing/spacingY、origin/seaLevel |
+| 状態ノードの目的地・経路参照不正 | destinationId/routeIdが資源配列にあるか、担当値の型と解決値 |
+| 接続条件が始点に対応しない | 第9節のkindとwhen表。例patrolからarrivedは不可 |
+| 初期状態またはイベントが必要 | initialを有効なnode.idへ、または正しいtriggerを追加 |
+| タスクの担当・報告先が不正 | targetsの接頭辞、単体／群の存在、重複、receiverIdは単体 |
+| 担当値が未指定 | behaviors.parametersの全定義にdefaultまたはassignment.parametersを指定 |
+| 分析と記録の刻みが一致しない | analysis.stepとrecording.stepを同じ数値にする |
+| 地形範囲外、浅瀬、空中の高さ違反 | 範囲・海底・海面・経路全区間、group幅、motion、heightMode |
+| 通信100%でも送信失敗 | 有効な受信先、範囲、LOS、通信enabled。履歴のreasonを確認 |
+| 受信後に動かない | receivedからmoveへの遷移、位置情報の有無、speed、目的kind、停止エラー |
+| 到着したのに計測されない | mission.assignmentId/nodeId、到着からdoneへの線、期限、joinの必要人数 |
+| 未移動なのに成功 | missionで初期状態や移動開始状態を選んでいないか |
+| 再発火で移動が何度も中断 | 共通received/detectedのonce、周期報告、到着まで固定したいか |
+| 個数0の群を入力するとエラー | group.countを1以上へ。0はanalysis.factorsの比較値に置く |
+| 条件数／試行上限 | valuesの個数の積を24以下、積×trialsを10000以下へ |
+| module Worker応答なし・起動時のJSエラー | 配信・ブラウザ実行環境の問題として扱う。シナリオのversion変更で修復しない |
+
+## 17. 確認に使った実装（必要な仕様はこの文書内に収録済み）
+
+以下は根拠と更新時の確認箇所。生成時にアクセスする必要はない。
+全て次の固定版のsrc/配下:
+https://github.com/Zero-error-no-warning/SimSim/tree/9873d7319b1abb7fe4b59951c974980b74a5da91/src
+
+- engine.js: トップレベル・地形・単体・群の入力制約、移動・領域の条件。
+- navigation.js / navigation-ui.js: 名前付き経路・目的・接近条件。
+- shared-settings.js: 状態・条件・共通イベント・タスク・記録設定。
+- behavior-parameters.js: 型付き担当値と解決。
+- recorded-engine.js: 状態への入場、通信、中継、受信位置の固定、高度維持、再観測。
+- contact.js: センサー確率・3次元距離・地形LOS。
+- random.js: 群生成・個体ID・配置・出発位相・乱数。
+- state-measurement.js: 初回状態到達とany/all/count。
+- detection-settings.js / parameters.js / detection.js: 成功条件・分析変数・分布・試行制約。
+- scenario-import.js: 現行version 3と旧版の読み込み境界。
+
+旧資料が「detected繰り返しは新たな別対象だけ」「目的は地点とユニットだけ」と説明している場合は、この文書の対象ビルドでは第8・9節を優先する。
+ツールの版が変わったら、この文書をその版の検証処理・実行処理と再照合する。
+
+## 18. このマニュアルの検証範囲
+
+2026-10-06、対象ビルドの実装で確認:
+- JSONコードブロック9個を全てJSON.parseで解析。
+- 完成例3個をimportScenarioで読み込み、終了時刻まで計算。
+- 各例の配置不正・移動停止エラーなし。再生記録の保存・復元で終了位置が一致。
+- 完成例Bでは観測時刻10sを中継して保持し、UAVが観測座標x=2100mへ高度1000mで到着。敵の実位置はその後も移動。
+- 完成例Bの3条件×20試行、完成例Cの9条件×20試行、合計240試行を実行し、配置不正・経路制約エラーなし。
+- 担当値の部品を組み合わせた挙動も読み込み・計算できることを確認。
+- 対応する数値分析parameter 29種類が一覧に含まれることを確認。
+
+これは収録した例と記載した仕様の確認。これを使ってAIが今後生成する全シナリオの動作を保証するものではない。
