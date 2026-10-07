@@ -3,7 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261007-plans-23';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261007-worker-version-24';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(fileURLToPath(new URL('..',import.meta.url))),requests=[];
 const server=http.createServer((req,res)=>{
@@ -71,7 +71,7 @@ try{
       assert((await page.locator('#module-status').innerText()).includes('判定保留'));
       assert((await page.locator('#summary').innerText()).includes('区別できません'));
     }else if(mode==='slow'){
-      await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('最大60秒'));
+      await page.waitForFunction(()=>document.getElementById('boot').textContent.includes('最大60秒'));
       assert(!await page.locator('#error-dialog').isVisible());assert(await page.locator('#record-run').isDisabled());
       await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
       assert(!await page.locator('#error-dialog').isVisible());assert(!await page.locator('#record-run').isDisabled());
@@ -83,14 +83,13 @@ try{
       // The next worker starts after the previous response has been accepted.
       assert(requests.findIndex(r=>r.mode==='slow'&&r.relative==='src/worker.js'&&r.applicationProbe)>requests.findIndex(r=>r.mode==='slow'&&r.relative==='environment-check/worker.js'&&r.delayedModule));
     }else if(mode==='late'){
-      await page.waitForSelector('#error-dialog[open]',{timeout:5000});
-      assert((await page.locator('#error-text').innerText()).includes('未判定'));
+      await page.waitForFunction(()=>document.getElementById('boot').textContent.includes('未判定'),{},{timeout:5000});
       await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
       assert(!await page.locator('#error-dialog').isVisible());assert(!await page.locator('#record-run').isDisabled());
     }else if(mode==='silent'){
-      await page.waitForSelector('#boot[hidden]',{state:'attached'});
-      await page.waitForSelector('#error-dialog[open]',{timeout:16000});
-      assert((await page.locator('#error-text').innerText()).includes('シナリオを計算Workerへ送信しました'));
+      await page.waitForFunction(()=>document.getElementById('boot').textContent.includes('未判定'),{},{timeout:16000});
+      assert((await page.locator('#boot').innerText()).includes('応答を引き続き待ちます'));
+      assert(!await page.locator('#error-dialog').isVisible());
     }else{
       await page.waitForFunction(()=>document.getElementById('boot').textContent.includes('起動できませんでした'));
       const message=await page.locator('#boot').innerText();

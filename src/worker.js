@@ -1,4 +1,5 @@
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261007-plans-23';
+import {RUNTIME_BUILD} from './ui-dom.js?v=20261007-worker-version-24';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261007-worker-version-24';
 let simulation, latest, generation=0, state='idle', failure=null;
 function sendHistory(){
   if(simulation.frames)self.postMessage({type:'recordingHistory',revision:latest.revision,history:{duration:simulation.source.duration,unitIds:simulation.states.map(s=>s.unit.id),events:simulation.result.actionEvents}});
@@ -24,7 +25,7 @@ self.onmessage=({
 })=>{
   // Probe this actual module graph independently of page initialization.
   if(data.type==='ping'){
-    self.postMessage({type:'pong'});
+    self.postMessage({type:'pong',build:RUNTIME_BUILD});
     return;
   }
   try {

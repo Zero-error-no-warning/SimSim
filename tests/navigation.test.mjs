@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-plans-23';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plans-23';
-import {moveDefinition,editWaypoint,removeDefinition} from '../src/editor.js?v=20261007-plans-23';
+import {clone,validateScenario} from '../src/engine.js?v=20261007-worker-version-24';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-worker-version-24';
+import {moveDefinition,editWaypoint,removeDefinition} from '../src/editor.js?v=20261007-worker-version-24';
 const point=(x,y=0,z=0)=>({x,y,z});
 const unit=(id,x=0,speed=10)=>({id,name:id,domain:'surface',faction:id==='actor'?'friendly':'hostile',manned:false,speed,initial:point(x),route:[point(x+10000)],routeMode:'once'});
 const base={version:3,unitsSystem:'SI',title:'Named navigation',duration:250,seed:'nav',terrain:{columns:5,rows:5,spacing:10000,origin:point(-10000,-10000),seaLevel:0,elevations:Array(25).fill(-500)},units:[unit('actor')],routes:[{id:'a',name:'A',points:[point(0),point(1000)]},{id:'b',name:'B',points:[point(0,1000),point(1000,1000)]}],destinations:[{id:'x',name:'X',kind:'point',point:point(1000)}],behaviors:[{id:'g',name:'G',initial:'a',triggers:[{id:'switch',event:'time',seconds:10,to:'b'}],nodes:[{id:'a',kind:'follow',routeId:'a'},{id:'b',kind:'follow',routeId:'b'},{id:'done',kind:'stop'}],edges:[{from:'b',to:'done',when:'arrived'}]}],behaviorAssignments:[{id:'task',name:'Task',behaviorId:'g',targets:['unit:actor'],spacing:'none'}],recording:{step:10,interval:10}};

@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261007-plans-23';
-import { sharedAssignment } from './shared-settings.js?v=20261007-plans-23';
+import { editableDefinition } from './editor.js?v=20261007-worker-version-24';
+import { sharedAssignment } from './shared-settings.js?v=20261007-worker-version-24';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261007-plans-23';
+import { Terrain, Simulation } from './engine.js?v=20261007-worker-version-24';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };

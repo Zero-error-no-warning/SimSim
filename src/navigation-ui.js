@@ -1,6 +1,6 @@
-import {navigationErrors} from './navigation.js?v=20261007-plans-23';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261007-plans-23';
-import {requireElement} from './ui-dom.js?v=20261007-plans-23';
+import {navigationErrors} from './navigation.js?v=20261007-worker-version-24';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261007-worker-version-24';
+import {requireElement} from './ui-dom.js?v=20261007-worker-version-24';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

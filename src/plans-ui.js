@@ -1,10 +1,10 @@
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plans-23';
-import {bindingTargetExists} from './parameters.js?v=20261007-plans-23';
-import {clone} from './engine.js?v=20261007-plans-23';
-import {capturePlan,applyPlan,planDifferences,planMetric} from './plan-settings.js?v=20261007-plans-23';
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-plans-23';
-import {summarizePlans} from './plans.js?v=20261007-plans-23';
-import {requireElement as $} from './ui-dom.js?v=20261007-plans-23';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-worker-version-24';
+import {bindingTargetExists} from './parameters.js?v=20261007-worker-version-24';
+import {clone} from './engine.js?v=20261007-worker-version-24';
+import {capturePlan,applyPlan,planDifferences,planMetric} from './plan-settings.js?v=20261007-worker-version-24';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-worker-version-24';
+import {summarizePlans} from './plans.js?v=20261007-worker-version-24';
+import {requireElement as $} from './ui-dom.js?v=20261007-worker-version-24';
 const format=(n,kind,delta=false)=>n===null?'—':(delta&&n>0?'+':'')+Number((n*(kind==='rate'?100:1)).toFixed(2))+(kind==='rate'?(delta?'ポイント':'%'):'秒');
 export class PlansUI{
   constructor(owner){

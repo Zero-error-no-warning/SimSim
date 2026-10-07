@@ -1,18 +1,19 @@
-import {PlansUI} from './plans-ui.js?v=20261007-plans-23';
-import {preparePlans,planTrialSource} from './plans.js?v=20261007-plans-23';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261007-plans-23';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-plans-23';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plans-23';
-import {HistoryUI} from './history-ui.js?v=20261007-plans-23';
-import {MeasurementUI} from './measurement-ui.js?v=20261007-plans-23';
-import {stateMembers} from './state-measurement.js?v=20261007-plans-23';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-plans-23';
-import { RECORD_MODEL } from './recording.js?v=20261007-plans-23';
-import { numericScale } from './chart-scale.js?v=20261007-plans-23';
-import { clone,validateScenario } from './engine.js?v=20261007-plans-23';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-plans-23';
-import { ParameterEditor } from './parameter-ui.js?v=20261007-plans-23';
-import { requireElement } from './ui-dom.js?v=20261007-plans-23';
+import {verifiedWorker} from './worker-client.js?v=20261007-worker-version-24';
+import {PlansUI} from './plans-ui.js?v=20261007-worker-version-24';
+import {preparePlans,planTrialSource} from './plans.js?v=20261007-worker-version-24';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261007-worker-version-24';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-worker-version-24';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-worker-version-24';
+import {HistoryUI} from './history-ui.js?v=20261007-worker-version-24';
+import {MeasurementUI} from './measurement-ui.js?v=20261007-worker-version-24';
+import {stateMembers} from './state-measurement.js?v=20261007-worker-version-24';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-worker-version-24';
+import { RECORD_MODEL } from './recording.js?v=20261007-worker-version-24';
+import { numericScale } from './chart-scale.js?v=20261007-worker-version-24';
+import { clone,validateScenario } from './engine.js?v=20261007-worker-version-24';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-worker-version-24';
+import { ParameterEditor } from './parameter-ui.js?v=20261007-worker-version-24';
+import { requireElement } from './ui-dom.js?v=20261007-worker-version-24';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -23,7 +24,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-plans-23',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261007-worker-version-24',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

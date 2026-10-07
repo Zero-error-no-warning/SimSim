@@ -66,7 +66,7 @@ node tests/browser-smoke.mjs
 
 Playwrightのモジュール指定は `SIMSIM_PLAYWRIGHT`、Chromiumの実行ファイル指定は `SIMSIM_BROWSER_EXECUTABLE`。通常のアプリ配布にこれらは不要です。検証範囲は [検証](docs/workspace-v3.md#検証) を参照してください。
 
-画面・JavaScriptを更新して公開する前に、`src/ui-dom.js` の `UI_BUILD` を変更し、`node tools/version-assets.mjs` を実行してください。HTML・起動スクリプト・依存モジュール・Workerの読み込みURLと、ロゴ横のバージョン表示を同じ版で更新します。ロゴ横は日付と更新番号（例：v2026.10.06.17）を表示し、固定の0.8.0-dev表示は廃止しました。HTMLとJavaScriptの版が混在した場合は起動を止め、画面内に版情報・エラー詳細・最新版の再読込リンクを表示します。画面初期化失敗をWorkerのタイムアウトとして表示しません。
+画面・JavaScriptを更新して公開する前に、`src/ui-dom.js` の `UI_BUILD` を変更し、`node tools/version-assets.mjs` を実行してください。HTML・起動スクリプト・依存モジュール・Workerの読み込みURLと、ロゴ横のバージョン表示を同じ版で更新します。ロゴ横は日付と更新番号（例：v2026.10.06.17）を表示し、固定の0.8.0-dev表示は廃止しました。実行された計算・分析Workerとも版を照合します。持ち込み版は3本のJSの内容を含むビルド識別子を確認し、古いWorkerが新しいサンプルを拒否する前に案内します。HTMLとJavaScriptの版が混在した場合は起動を止め、画面内に版情報・エラー詳細・最新版の再読込リンクを表示します。画面初期化失敗をWorkerのタイムアウトとして表示しません。
 
 起動不具合の回帰テストは `node tests/startup-browser.mjs`。旧HTMLとの混在、画面部品の欠落、キャッシュされた旧モジュールの回避、実際のWorker無応答、環境確認の本体Workerを検証します。
 

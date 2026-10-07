@@ -1,4 +1,4 @@
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-plans-23';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-worker-version-24';
 export const PLAN_FIELDS=['units','groups','behaviors','behaviorAssignments','routes','destinations'];
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function capturePlan(s){return Object.fromEntries(PLAN_FIELDS.map(k=>[k,copy(s[k]??[])]));}

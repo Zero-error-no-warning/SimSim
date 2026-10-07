@@ -1,8 +1,8 @@
-import {importScenario} from './scenario-import.js?v=20261007-plans-23';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-plans-23';
-import {applyPlan,planMetric} from './plan-settings.js?v=20261007-plans-23';
-import {summarizePaired} from './sensitivity.js?v=20261007-plans-23';
-import {RECORD_MODEL} from './recording.js?v=20261007-plans-23';
+import {importScenario} from './scenario-import.js?v=20261007-worker-version-24';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-worker-version-24';
+import {applyPlan,planMetric} from './plan-settings.js?v=20261007-worker-version-24';
+import {summarizePaired} from './sensitivity.js?v=20261007-worker-version-24';
+import {RECORD_MODEL} from './recording.js?v=20261007-worker-version-24';
 export function planTrialSource(s,condition){
   const p=s.analysis.plans.items.find(p=>'plan:'+p.id===condition.id);
   if(!p)throw Error('運用案が見つかりません。');
