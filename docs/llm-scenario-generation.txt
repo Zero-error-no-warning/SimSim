@@ -1,7 +1,7 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 1.8 / 更新日: 2026-10-07
-対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-sensitivity-22
+文書版: 1.9 / 更新日: 2026-10-07
+対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-plans-23
 生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
 仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 
@@ -2088,3 +2088,16 @@ candidatesは最大32件、各要素はtarget、parameter、low、high。low/hig
 - target:"behavior:<挙動ID>"、parameter:"behavior.trigger.<イベントID>.seconds"：時間イベント（秒、0～86400、繰り返しは0不可）。
 挙動の数値変更はその挙動を使う全タスクへ作用する。担当値への参照になっている数値はこの固定値形式では変えない。IDは実際に定義したものと一致させる。
 感度分析結果ファイルはtype:"SimSim-sensitivity",version:1,model:"trigger-behavior-v3"。シナリオ・記録・従来の通常分析のversionを変更しない。生成AIは試行結果を捏造せず、シナリオと設定のみを生成する。
+
+
+## 運用案比較（UIビルド23で追加）
+analysis.mode: "plans" は配置・経路・報告周期・挙動・担当・能力の複合案比較。
+analysis.plans は { metric, baselineId, items }。metricはmission.rate、mission.time、point.<計測点ID>.rate|time|duration。baselineIdは基準の案ID。
+itemsは最大8件の配列。各要素は { id, name, operation }。idは重複しない英数字・_・-で1～80文字、nameは1～120文字。
+operationには units、groups、behaviors、behaviorAssignments、routes、destinations の6配列だけを保存し、省略時の内容も空配列として明示する。それぞれ本マニュアルのシナリオ側配列と同じ定義を使う。analysisやmission、terrainをoperation内へ入れない。再帰的にシナリオ全体を保存しない。
+地形・期間・成功条件・計測点・seed・trial・recording・analysisの試行数／ばらつきは現在のシナリオを全案に共通適用する。数値全組合せのfactors・旧groupId/counts・感度候補は実行に使用しない。共通のばらつきが複合案の設定値へ上書きされるため、案で比較する値はばらつきの対象に入れない。
+比較実行には2案以上、合計案数×試行数10000以下が必要。各案1～2000試行。
+全案で成功条件・追加計測点の参照タスク／状態と、共通のばらつき対象を有効に保つ。対象数0を表現する場合は案の担当を無効化するなど、参照先を削除せず未達として計測できる構成にする。
+共通要素のIDを保持する。名前・配置・経路・挙動の編集や案の順序ではシード・試行番号による抽出値は変わらない。新しいIDは元の要素と対応しない。
+案をJSONで直接生成する場合、operationを展開した各案が共通成功条件で検証できるか確認する。data/plans-demo.txtは完成サンプル。運用案一覧は通常のシナリオTXTに保持される。分析結果はSimSim-plans/version 1でSimSimが生成する。LLMは試行結果を捏造しない。
+成功条件の有効／無効のUIトグルは廃止。分析画面で条件を設定すると常に使用される。missionを持たないシナリオの通常計算は従来どおり可能。

@@ -1,22 +1,23 @@
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-sensitivity-22';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261007-sensitivity-22';
-import {parameter} from './parameters.js?v=20261007-sensitivity-22';
-import {WorkspaceUI} from './workspace-ui.js?v=20261007-sensitivity-22';
-import {NavigationUI} from './navigation-ui.js?v=20261007-sensitivity-22';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261007-sensitivity-22';
-import {ContextMenu} from './context-menu.js?v=20261007-sensitivity-22';
-import {TerrainUI} from './terrain-ui.js?v=20261007-sensitivity-22';
-import { BehaviorUI } from './behavior-ui.js?v=20261007-sensitivity-22';
-import { createSimulation } from './recorded-engine.js?v=20261007-sensitivity-22';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261007-sensitivity-22';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261007-sensitivity-22';
-import { importScenario } from './scenario-import.js?v=20261007-sensitivity-22';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261007-sensitivity-22';
-import { restoreAnalysisResult } from './detection.js?v=20261007-sensitivity-22';
-import { AnalysisUI } from './analysis-ui.js?v=20261007-sensitivity-22';
-import { MapView } from './view.js?v=20261007-sensitivity-22';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261007-sensitivity-22';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261007-sensitivity-22';
+import {restorePlansResult} from './plans.js?v=20261007-plans-23';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plans-23';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261007-plans-23';
+import {parameter} from './parameters.js?v=20261007-plans-23';
+import {WorkspaceUI} from './workspace-ui.js?v=20261007-plans-23';
+import {NavigationUI} from './navigation-ui.js?v=20261007-plans-23';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261007-plans-23';
+import {ContextMenu} from './context-menu.js?v=20261007-plans-23';
+import {TerrainUI} from './terrain-ui.js?v=20261007-plans-23';
+import { BehaviorUI } from './behavior-ui.js?v=20261007-plans-23';
+import { createSimulation } from './recorded-engine.js?v=20261007-plans-23';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261007-plans-23';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261007-plans-23';
+import { importScenario } from './scenario-import.js?v=20261007-plans-23';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261007-plans-23';
+import { restoreAnalysisResult } from './detection.js?v=20261007-plans-23';
+import { AnalysisUI } from './analysis-ui.js?v=20261007-plans-23';
+import { MapView } from './view.js?v=20261007-plans-23';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261007-plans-23';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261007-plans-23';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
@@ -35,7 +36,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261007-sensitivity-22',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261007-plans-23',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -992,7 +993,7 @@ $('file').addEventListener('change',async()=>{
   const file=$('file').files[0];if(!file)return;
   try {
     if(file.size>MAX_FILE_BYTES)throw new Error('ファイルは256MB以下にしてください。');
-    const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-sensitivity'?restoreSensitivityResult(parsed):parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
+    const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-plans'?restorePlansResult(parsed):parsed.type==='SimSim-sensitivity'?restoreSensitivityResult(parsed):parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
     if(parsed.type==='SimSim-recording'&&(parsed.version!==2||parsed.model!==RECORD_MODEL))throw Error('旧版の記録は元の版で開いてください。');
     const recording=parsed.type==='SimSim-recording'?parsed:null,next=restored?.source??importScenario(recording?.source??parsed);
     if(dirty&&!confirm('保存していない変更があります。ファイルを読み込みますか？'))return;

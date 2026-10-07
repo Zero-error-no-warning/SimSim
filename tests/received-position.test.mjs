@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-sensitivity-22';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-sensitivity-22';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261007-sensitivity-22';
+import {clone,validateScenario} from '../src/engine.js?v=20261007-plans-23';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plans-23';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261007-plans-23';
 const source=JSON.parse(fs.readFileSync(new URL('../data/received-position-demo.txt',import.meta.url)));
 const run=s=>{const model=createSimulation(s),g=sharedSteps(model,undefined,undefined,{horizon:s.duration,record:true});for(const x of g){}return model;};
 const pos=(model,t,id='uav')=>model.evaluate(t).units.find(u=>u.id===id);

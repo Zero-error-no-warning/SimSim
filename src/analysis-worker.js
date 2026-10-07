@@ -1,7 +1,8 @@
-import {prepareSensitivity} from './sensitivity.js?v=20261007-sensitivity-22';
-import { trialScenario } from './parameters.js?v=20261007-sensitivity-22';
-import { createSimulation } from './recorded-engine.js?v=20261007-sensitivity-22';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261007-sensitivity-22';
+import {preparePlans} from './plans.js?v=20261007-plans-23';
+import {prepareSensitivity} from './sensitivity.js?v=20261007-plans-23';
+import { trialScenario } from './parameters.js?v=20261007-plans-23';
+import { createSimulation } from './recorded-engine.js?v=20261007-plans-23';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261007-plans-23';
 let generation=0;
 self.onmessage=({
   data
@@ -10,15 +11,15 @@ self.onmessage=({
     generation++;
     return;
   }
-  if(['run','sensitivity'].includes(data.type))run(data,++generation);
+  if(['run','sensitivity','plans'].includes(data.type))run(data,++generation);
 };
 async function run(data,token) {
   const start=performance.now();
   try {
     const {
-      scenario,trialSource,analysis,startTrial,conditions
+      scenario,trialSource,sources,analysis,startTrial,conditions
     }
-    =(data.type==='sensitivity'?prepareSensitivity(data.scenario):prepareAnalysis(data.scenario)),rows=[],planned=conditions.length*analysis.trials;
+    =(data.type==='plans'?preparePlans(data.scenario):data.type==='sensitivity'?prepareSensitivity(data.scenario):prepareAnalysis(data.scenario)),rows=[],planned=conditions.length*analysis.trials;
     let completed=0,lastProgress=0,lastYield=performance.now();
     for(const condition of conditions) {
       const trials=[];
@@ -27,7 +28,7 @@ async function run(data,token) {
         const trial=startTrial+i,{
           scenario:sample,sampled
         }
-        =trialScenario(trialSource??scenario,condition,trial),model=createSimulation(sample),generator=detectionSteps(model,sample.mission,analysis.step);
+        =trialScenario(sources?.[condition.id]??trialSource??scenario,condition,trial),model=createSimulation(sample),generator=detectionSteps(model,sample.mission,analysis.step);
         let state=generator.next();
         while(!state.done) {
           if(performance.now()-lastYield>16){

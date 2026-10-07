@@ -1,15 +1,16 @@
-import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-sensitivity-22';
-import {measurementErrors} from './measurement-points.js?v=20261007-sensitivity-22';
-import {Terrain} from './terrain.js?v=20261007-sensitivity-22';
-export {Terrain} from './terrain.js?v=20261007-sensitivity-22';
-import {navigationProfileErrors} from './route-planner.js?v=20261007-sensitivity-22';
-import {materializeRoutes} from './route-planner.js?v=20261007-sensitivity-22';
-import {stateGoalErrors} from './state-measurement.js?v=20261007-sensitivity-22';
-import { readParameter } from './parameters.js?v=20261007-sensitivity-22';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261007-sensitivity-22';
-import { actionErrors } from './action-settings.js?v=20261007-sensitivity-22';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261007-sensitivity-22';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261007-sensitivity-22';
+import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-plans-23';
+import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plans-23';
+import {measurementErrors} from './measurement-points.js?v=20261007-plans-23';
+import {Terrain} from './terrain.js?v=20261007-plans-23';
+export {Terrain} from './terrain.js?v=20261007-plans-23';
+import {navigationProfileErrors} from './route-planner.js?v=20261007-plans-23';
+import {materializeRoutes} from './route-planner.js?v=20261007-plans-23';
+import {stateGoalErrors} from './state-measurement.js?v=20261007-plans-23';
+import { readParameter } from './parameters.js?v=20261007-plans-23';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261007-plans-23';
+import { actionErrors } from './action-settings.js?v=20261007-plans-23';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261007-plans-23';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261007-plans-23';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -103,6 +104,11 @@ export function validateScenario(value) {
     }
   }
   if(!errors.length)errors.push(...sensitivityConfigErrors(value));
+  if(!errors.length)errors.push(...planConfigErrors(value));
+  if(!errors.length&&value.analysis?.plans)for(const plan of value.analysis.plans.items){
+    try{const operational=applyPlan(value,plan);delete operational.analysis;delete operational.mission;delete operational.measurements;validateScenario(operational);}
+    catch(e){errors.push('運用案「'+plan.name+'」: '+e.message);}
+  }
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));
   return materializeRoutes(migrateTriggers(clone(value)));
 }

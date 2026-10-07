@@ -1,5 +1,5 @@
-import { sharedAssignment } from './shared-settings.js?v=20261007-sensitivity-22';
-import { random01,streamKey } from './random.js?v=20261007-sensitivity-22';
+import { sharedAssignment } from './shared-settings.js?v=20261007-plans-23';
+import { random01,streamKey } from './random.js?v=20261007-plans-23';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={
@@ -232,7 +232,7 @@ export function variableErrors(a,duration) {
   }
   const conditions=(a.groupId?a.counts?.length??0:1)*(Array.isArray(a.factors)?a.factors.reduce((n,f)=>n*(f?.values?.length??0),1):1);
   if(conditions>24)errors.push('比較値の組合せは最大24条件にしてください。');
-  if(a.mode!=='sensitivity'&&conditions*a.trials>10000)errors.push('条件数×試行数は10000以下にしてください。');
+  if(!['sensitivity','plans'].includes(a.mode)&&conditions*a.trials>10000)errors.push('条件数×試行数は10000以下にしてください。');
   return errors;
 }
 export function analysisConditions(s) {
@@ -260,7 +260,7 @@ export function trialScenario(source,condition,trial,{
 }) {
   const scenario=copy(source),sampled=[];
   scenario.trial=trial;
-  if(scenario.analysis){delete scenario.analysis.sensitivity;delete scenario.analysis.mode;}
+  if(scenario.analysis){delete scenario.analysis.sensitivity;delete scenario.analysis.plans;delete scenario.analysis.mode;}
   // Shared uncertainty sample per binding and trial, independent of comparison values/order.
   for(const b of source.analysis.uncertainties??[]) {
     const u=random01(streamKey(scenario,bindingKey(b),'parameter-sample-v1'));

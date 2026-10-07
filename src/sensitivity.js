@@ -1,14 +1,14 @@
-import {importScenario} from './scenario-import.js?v=20261007-sensitivity-22';
-import {clone,validateScenario} from './engine.js?v=20261007-sensitivity-22';
-import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-sensitivity-22';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-sensitivity-22';
-import {median} from './measurement-points.js?v=20261007-sensitivity-22';
-import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-sensitivity-22';
-import {RECORD_MODEL} from './recording.js?v=20261007-sensitivity-22';
+import {importScenario} from './scenario-import.js?v=20261007-plans-23';
+import {clone,validateScenario} from './engine.js?v=20261007-plans-23';
+import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-plans-23';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-plans-23';
+import {median} from './measurement-points.js?v=20261007-plans-23';
+import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plans-23';
+import {RECORD_MODEL} from './recording.js?v=20261007-plans-23';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;
-  delete next.analysis.mode;delete next.analysis.sensitivity;return next;
+  delete next.analysis.mode;delete next.analysis.sensitivity;delete next.analysis.plans;return next;
 }
 export function prepareSensitivity(source){
   const scenario=importScenario(source),config=scenario.analysis?.sensitivity,errors=sensitivityConfigErrors(scenario);

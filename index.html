@@ -1,23 +1,23 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261007-sensitivity-22">
+<html lang="ja" data-simsim-build="20261007-plans-23">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261007-sensitivity-22">
-<script src="src/bootstrap.js?v=20261007-sensitivity-22" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261007-plans-23">
+<script src="src/bootstrap.js?v=20261007-plans-23" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.07.22</span>
+<h1>SimSim <span id="app-version">v2026.10.07.23</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
-<option value="measurement-history-demo.txt">段階別計測・通信履歴</option><option value="sensitivity-demo.txt">感度分析：通信・移動・報告周期</option>
+<option value="measurement-history-demo.txt">段階別計測・通信履歴</option><option value="plans-demo.txt">運用案比較・配置／経路／報告周期</option><option value="sensitivity-demo.txt">感度分析：通信・移動・報告周期</option>
 <option value="route-planning-demo.txt">島を避ける経路の自動生成</option>
 <option value="island-patrol-demo.txt">島間通過・周回UUV</option>
 <option value="shared-demo.txt">協調監視・報告・帰投</option>
@@ -286,7 +286,7 @@
 </div>
 <div class="analysis-layout">
 <section><h3>計測対象・成立条件</h3>
-<label class="check-field"><input id="mission-enabled" type="checkbox">この計測条件を使用</label><div id="mission-factions" class="fields-two">
+<p class="route-help">ここで設定した条件を、分析の成功判定に使用します。</p><div id="mission-factions" class="fields-two">
 <label class="field">観測側<select id="mission-observer"><option value="friendly">味方</option>
 <option value="hostile">相手側</option>
 <option value="neutral">中立</option></select></label><label class="field">対象側<select id="mission-target"><option value="hostile">相手側</option>
@@ -306,7 +306,7 @@
 <label class="field">期限（開始から秒）<input id="measurement-deadline" type="number" min="0.000001" step="any"></label><label class="field">所要時間の起点<select id="measurement-previous"></select></label>
 </section></details>
 <h3>モンテカルロ</h3>
-<label class="field">分析の種類<select id="analysis-mode"><option value="comparison">比較値の全組合せ</option><option value="sensitivity">感度分析（一項目ずつ変更）</option></select></label>
+<label class="field">分析の種類<select id="analysis-mode"><option value="comparison">比較値の全組合せ</option><option value="plans">運用案の比較（配置・経路・挙動）</option><option value="sensitivity">感度分析（一項目ずつ変更）</option></select></label>
 <section id="comparison-editor"><h3>比較変数</h3>
 <div id="factors-editor"></div>
 <button id="add-factors" type="button">比較変数を追加</button><p id="parameter-plan" class="route-help"></p></section>
@@ -317,6 +317,11 @@
 <p id="sensitivity-empty" class="route-help" hidden>候補がありません。使用するユニット、センサー、通信、挙動を設定してください。</p>
 <div class="sensitivity-candidate-scroll"><table class="results-table"><thead><tr><th>性能</th><th>現在の基準値</th><th>小さい値</th><th>大きい値</th></tr></thead><tbody id="sensitivity-candidates"></tbody></table></div>
 <p id="sensitivity-plan" class="route-help"></p><p class="route-help">初期候補の変更幅は基準値の±10%。0は表示単位の1、個数は最低1個の差です。範囲端では片側だけを変更します。数値は編集できます。全組合せの比較値を使わず現在の設定を基準にします。ばらつきに指定した性能は候補から除外します。</p></section>
+<section id="plans-editor" hidden><h3>運用案を保存して比較</h3>
+<p class="route-help">現在の設定を保存し、分析を閉じて地図や挙動を編集したら、新しい案として保存します。保存済みの案を選ぶと更新できます。地形・成功条件・計測点・期間・シード・判定間隔・ばらつきは全案で共通です。</p>
+<label class="field">運用案<select id="plan-select"></select></label><label class="field">案の名前<input id="plan-name" maxlength="120"></label><div class="compact-actions"><button id="plan-save">現在の設定を保存</button><button id="plan-load">地図に戻して編集</button><button id="plan-delete">削除</button></div><p id="plan-current" class="route-help"></p>
+<label class="field">基準案<select id="plan-baseline"></select></label><label class="field">比較する評価指標<select id="plan-metric"></select></label><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th></tr></thead><tbody id="plan-list"></tbody></table></div><p id="plan-budget" class="route-help"></p>
+<p class="route-help">同じユニット・群・タスク・ノードのIDを保って編集すると、対応する乱数を共有できます。名称変更は対応を変えません。案の比較では数値の全組合せを使用しません。</p></section>
 <h3>試行ごとのばらつき</h3>
 <div id="uncertainties-editor"></div>
 <button id="add-uncertainties" type="button">ばらつきを追加</button><p class="route-help">群のひな型への抽出値は、その試行の全個体で共通です。個体間の差は航跡のずれ・速度のばらつき・出発遅れで設定します。</p>
@@ -335,6 +340,9 @@
 <p class="route-help">表やグラフで選択すると、対象の表示と基準・変更の同じ試行の再生ができます。区間は対応試行の差の標準誤差から求めた近似です。1試行では区間を表示せず、差がすべて同じ場合は幅0になります。順位と区間は今回の変更幅・試行数に依存します。</p>
 <section id="sensitivity-selection" hidden><strong id="sensitivity-selection-name"></strong><p id="sensitivity-selection-note" class="route-help"></p><button id="sensitivity-focus">対象を表示</button><label class="field">対応する試行<select id="sensitivity-trial"></select></label><div class="compact-actions"><button id="sensitivity-replay-base">基準を再生</button><button id="sensitivity-replay-changed">変更を再生</button></div></section>
 </section>
+<section id="plans-results" hidden><h3 id="plan-result-heading">基準案との差</h3><p id="plan-result-note" class="route-help"></p>
+<div class="results-scroll"><table class="results-table"><thead><tr><th>比較案</th><th>対応基準の平均</th><th>対応比較の平均</th><th>平均差</th><th>差の95%近似区間</th><th>有効な対応／完了試行</th><th>改善／悪化</th><th>値なし：基準／比較</th><th>初期配置不正の対応</th></tr></thead><tbody id="plan-result-rows"></tbody></table></div>
+<p class="route-help">区間は対応試行の差の標準誤差による近似。1試行では区間を表示せず、差がすべて同じ場合は幅0です。下の表とグラフは各案の成立率です。</p><label class="field">再生する比較案<select id="plan-result-select"></select></label><label class="field">対応する試行<select id="plan-trial"></select></label><div class="compact-actions"><button id="plan-replay-base">基準案を再生</button><button id="plan-replay-changed">比較案を再生</button></div></section>
 <section id="comparison-results"><div class="chart-options">
 <label>横軸 <select id="chart-axis" aria-label="散布図の横軸"></select></label><label><input id="chart-log" type="checkbox">横軸を対数表示</label>
 </div>

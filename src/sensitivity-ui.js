@@ -1,8 +1,8 @@
-import {clone} from './engine.js?v=20261007-sensitivity-22';
-import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-sensitivity-22';
-import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261007-sensitivity-22';
-import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261007-sensitivity-22';
-import {requireElement as $} from './ui-dom.js?v=20261007-sensitivity-22';
+import {clone} from './engine.js?v=20261007-plans-23';
+import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-plans-23';
+import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261007-plans-23';
+import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261007-plans-23';
+import {requireElement as $} from './ui-dom.js?v=20261007-plans-23';
 const number=n=>n===null?'—':Number(n.toFixed(3)).toString();
 export class SensitivityUI{
   constructor(owner){
@@ -40,8 +40,8 @@ export class SensitivityUI{
     const sensible=this.bindings.filter(b=>!b.parameter.startsWith('state.')&&!b.parameter.startsWith('motion.')&&!b.parameter.startsWith('task.route.')&&!b.parameter.startsWith('extent.deployment.')&&b.parameter!=='extent.sense.mountHeight');
     this.config=clone(stored??{metric:sensitivityMetrics(this.scenario)[0]?.id,candidates:sensible.slice(0,32).map(b=>defaultSensitivityCandidate(this.scenario,b))});
     $('analysis-mode').value=this.scenario.analysis?.mode??'comparison';
-    const active=$('analysis-mode').value==='sensitivity';$('sensitivity-editor').hidden=!active;$('comparison-editor').hidden=active;
-    $('analysis-run').textContent=active?'感度分析を実行':'分析を実行';
+    const active=$('analysis-mode').value==='sensitivity';$('sensitivity-editor').hidden=!active;$('comparison-editor').hidden=$('analysis-mode').value!=='comparison';
+    $('analysis-run').textContent=active?'感度分析を実行':$('analysis-mode').value==='plans'?'運用案を比較':'分析を実行';
     $('sensitivity-metric').replaceChildren(...sensitivityMetrics(this.scenario).map(m=>new Option(m.label,m.id)));$('sensitivity-metric').value=this.config.metric??'';
     const targets=new Map(this.bindings.map(b=>[b.target,b.targetLabel])),select=$('sensitivity-target'),old=select.value;
     select.replaceChildren(...[...targets].map(([id,name])=>new Option(name,id)));if(targets.has(old))select.value=old;

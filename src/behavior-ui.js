@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261007-sensitivity-22';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-sensitivity-22';
-import {isParameterRef} from './behavior-parameters.js?v=20261007-sensitivity-22';
-import {NavigationUI} from './navigation-ui.js?v=20261007-sensitivity-22';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-sensitivity-22';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-sensitivity-22';
-import { clone,validateScenario } from './engine.js?v=20261007-sensitivity-22';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-sensitivity-22';
-import { requireElement } from './ui-dom.js?v=20261007-sensitivity-22';
+import {ContextMenu} from './context-menu.js?v=20261007-plans-23';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-plans-23';
+import {isParameterRef} from './behavior-parameters.js?v=20261007-plans-23';
+import {NavigationUI} from './navigation-ui.js?v=20261007-plans-23';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-plans-23';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-plans-23';
+import { clone,validateScenario } from './engine.js?v=20261007-plans-23';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-plans-23';
+import { requireElement } from './ui-dom.js?v=20261007-plans-23';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

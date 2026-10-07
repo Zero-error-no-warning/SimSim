@@ -1,16 +1,18 @@
-import {SensitivityUI} from './sensitivity-ui.js?v=20261007-sensitivity-22';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-sensitivity-22';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-sensitivity-22';
-import {HistoryUI} from './history-ui.js?v=20261007-sensitivity-22';
-import {MeasurementUI} from './measurement-ui.js?v=20261007-sensitivity-22';
-import {stateMembers} from './state-measurement.js?v=20261007-sensitivity-22';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-sensitivity-22';
-import { RECORD_MODEL } from './recording.js?v=20261007-sensitivity-22';
-import { numericScale } from './chart-scale.js?v=20261007-sensitivity-22';
-import { clone,validateScenario } from './engine.js?v=20261007-sensitivity-22';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-sensitivity-22';
-import { ParameterEditor } from './parameter-ui.js?v=20261007-sensitivity-22';
-import { requireElement } from './ui-dom.js?v=20261007-sensitivity-22';
+import {PlansUI} from './plans-ui.js?v=20261007-plans-23';
+import {preparePlans,planTrialSource} from './plans.js?v=20261007-plans-23';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261007-plans-23';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-plans-23';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plans-23';
+import {HistoryUI} from './history-ui.js?v=20261007-plans-23';
+import {MeasurementUI} from './measurement-ui.js?v=20261007-plans-23';
+import {stateMembers} from './state-measurement.js?v=20261007-plans-23';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-plans-23';
+import { RECORD_MODEL } from './recording.js?v=20261007-plans-23';
+import { numericScale } from './chart-scale.js?v=20261007-plans-23';
+import { clone,validateScenario } from './engine.js?v=20261007-plans-23';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-plans-23';
+import { ParameterEditor } from './parameter-ui.js?v=20261007-plans-23';
+import { requireElement } from './ui-dom.js?v=20261007-plans-23';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -21,7 +23,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-sensitivity-22',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-plans-23',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -36,6 +38,7 @@ export class AnalysisUI {
     this.history=new HistoryUI({getScenario,getSnapshot,seek});
     this.measurements=new MeasurementUI(this);
     this.sensitivity=new SensitivityUI(this);
+    this.plans=new PlansUI(this);
     this.resultMode='comparison';
     this.runId=0;
     this.running=false;
@@ -73,8 +76,7 @@ export class AnalysisUI {
       $('analysis-dialog').showModal();
     };
     $('analysis-close').onclick=()=>$('analysis-dialog').close();
-    for(const id of ['mission-enabled','mission-type','mission-assignment','mission-state','mission-count','mission-responders','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
-      if(id.startsWith('mission-')&&id!=='mission-enabled')$('mission-enabled').checked=true;
+    for(const id of ['mission-type','mission-assignment','mission-state','mission-count','mission-responders','mission-observer','mission-target','mission-join','mission-deadline','analysis-trials','analysis-step','analysis-required'])$(id).addEventListener('change',()=>{
       if(id==='mission-assignment')this.stateOptions($('mission-assignment').value);
       if(id==='mission-observer'&&$('mission-observer').value===$('mission-target').value)$('mission-target').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-observer').value);
       if(id==='mission-target'&&$('mission-observer').value===$('mission-target').value)$('mission-observer').value=['friendly','hostile','neutral'].find(v=>v!==$('mission-target').value);
@@ -162,7 +164,6 @@ export class AnalysisUI {
     },a=normalizedAnalysis(s.analysis??{
       factors:[],trials:100,step:10,requiredRate:.95
     });
-    $('mission-enabled').checked=!!s.mission;
     const type=m.type??(s.behaviorAssignments?.length?'state':'detect');
     $('mission-type').value=type;this.stateOptions(m.assignmentId,m.nodeId);
     $('state-measure-fields').hidden=type!=='state';$('mission-factions').hidden=type==='state';
@@ -200,7 +201,7 @@ export class AnalysisUI {
       ...s,analysis:a
     });
     $('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
-    this.sensitivity.renderConfig();
+    this.sensitivity.renderConfig();this.plans.renderConfig();
   }
   stateOptions(assignmentId,nodeId){
     const s=this.getScenario(),list=$('mission-assignment'),old=assignmentId??list.value;
@@ -212,28 +213,25 @@ export class AnalysisUI {
   }
   readConfig(changedId='') {
     const next=clone(this.getScenario());
-    if($('mission-enabled').checked){
-      next.mission={
-        ...next.mission,type:$('mission-type').value,observerFaction:$('mission-observer').value,targetFaction:$('mission-target').value,join:$('mission-join').value,deadline:$('mission-deadline').value===$('mission-deadline').dataset.display?Number($('mission-deadline').dataset.seconds):Math.round(Number($('mission-deadline').value)*60*1e6)/1e6
-      };
-      if(next.mission.type==='state'){
-        next.mission.assignmentId=$('mission-assignment').value;next.mission.nodeId=$('mission-state').value;
-        if(next.mission.join==='count')next.mission.requiredCount=Number($('mission-count').value);else delete next.mission.requiredCount;
-        for(const key of ['observerFaction','targetFaction','targetIds','responderIds'])delete next.mission[key];
-      }else{
-        for(const key of ['assignmentId','nodeId','requiredCount'])delete next.mission[key];
-        if(next.mission.join==='count')next.mission.join='any';
-      }
-      if(next.mission.type==='arrive')next.mission.responderIds=[...$('mission-responders').selectedOptions].map(o=>o.value);
-      else delete next.mission.responderIds;
-      if(changedId==='mission-target')delete next.mission.targetIds;
+    next.mission={
+      ...next.mission,type:$('mission-type').value,observerFaction:$('mission-observer').value,targetFaction:$('mission-target').value,join:$('mission-join').value,deadline:$('mission-deadline').value===$('mission-deadline').dataset.display?Number($('mission-deadline').dataset.seconds):Math.round(Number($('mission-deadline').value)*60*1e6)/1e6
+    };
+    if(next.mission.type==='state'){
+      next.mission.assignmentId=$('mission-assignment').value;next.mission.nodeId=$('mission-state').value;
+      if(next.mission.join==='count')next.mission.requiredCount=Number($('mission-count').value);else delete next.mission.requiredCount;
+      for(const key of ['observerFaction','targetFaction','targetIds','responderIds'])delete next.mission[key];
+    }else{
+      for(const key of ['assignmentId','nodeId','requiredCount'])delete next.mission[key];
+      if(next.mission.join==='count')next.mission.join='any';
     }
-    else delete next.mission;
+    if(next.mission.type==='arrive')next.mission.responderIds=[...$('mission-responders').selectedOptions].map(o=>o.value);
+    else delete next.mission.responderIds;
+    if(changedId==='mission-target')delete next.mission.targetIds;
     if(changedId==='analysis-step')next.recording={
       step:Number($('analysis-step').value),interval:Number($('analysis-step').value)
     };
     next.analysis={
-      ...next.analysis,...this.parameters.read(),...this.sensitivity.read(),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100
+      ...next.analysis,...this.parameters.read(),...this.sensitivity.read(),...this.plans.read(),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100
     };
     delete next.analysis.groupId;
     delete next.analysis.counts;
@@ -244,10 +242,10 @@ export class AnalysisUI {
     try {
       const next=this.readConfig();
       if(JSON.stringify(next)!==JSON.stringify(this.getScenario())&&!this.commit(next,'分析設定を変更しました。'))return;
+      const base=clone(this.getScenario()),mode=base.analysis.mode??'comparison';
+      const conditions=mode==='plans'?preparePlans(base).conditions:mode==='sensitivity'?prepareSensitivity(base).conditions:analysisConditions(base);
       this.stop();
-      this.base=clone(this.getScenario());
-      this.resultMode=this.base.analysis.mode??'comparison';
-      const conditions=this.resultMode==='sensitivity'?prepareSensitivity(this.base).conditions:analysisConditions(this.base);
+      this.base=base;this.resultMode=mode;
       this.rows=[];
       this.running=true;
       this.highlightCount=null;
@@ -259,7 +257,7 @@ export class AnalysisUI {
       $('analysis-bar').max=this.planned;
       $('analysis-bar').value=0;
       this.worker.postMessage({
-        type:this.resultMode==='sensitivity'?'sensitivity':'run',runId:++this.runId,scenario:this.base
+        type:this.resultMode==='plans'?'plans':this.resultMode==='sensitivity'?'sensitivity':'run',runId:++this.runId,scenario:this.base
       });
     }catch(error){
       this.showError(error.message);
@@ -273,7 +271,7 @@ export class AnalysisUI {
   }
   renderResults() {
     const sensitive=this.resultMode==='sensitivity'&&!!this.base;
-    $('comparison-results').hidden=sensitive;this.sensitivity.renderResults();
+    $('comparison-results').hidden=sensitive;this.sensitivity.renderResults();this.plans.renderResults();
     if(sensitive)return;
     const state=(this.base??this.getScenario())?.mission?.type==='state';
     $('analysis-observed-heading').textContent=state?'1つ以上状態へ到達した試行':'1つ以上探知した試行';
@@ -315,7 +313,7 @@ export class AnalysisUI {
   }
   replayTrial(row,trial,seekTime,label='') {
     if(!trial)return;
-    const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.resultMode==='sensitivity'?sensitivityTrialSource(this.base):this.base,condition,trial.trial);
+    const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.resultMode==='plans'?planTrialSource(this.base,condition):this.resultMode==='sensitivity'?sensitivityTrialSource(this.base):this.base,condition,trial.trial);
     this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
     this.seek(seekTime??trial.successTime??next.mission?.deadline??next.duration);
     $('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(label?' · '+label+'未達':'')+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');
@@ -339,19 +337,19 @@ export class AnalysisUI {
     host.replaceChildren();
     legend.replaceChildren();
     $('chart-note').textContent='';
-    const previous=axis.value,bindings=this.base?analysisConditions(this.base)[0].settings:[];
+    const previous=axis.value,bindings=this.base&&this.resultMode!=='plans'?analysisConditions(this.base)[0].settings:[];
     axis.replaceChildren();
     for(const b of bindings){
       const p=parameter(b.parameter);
       axis.append(new Option(formatBinding(this.base,b,b.value).split(' = ')[0]+' ('+p.unit+')',bindingKey(b)));
     }
-    if(!bindings.length)axis.append(new Option('基準条件','baseline'));
+    if(!bindings.length)axis.append(new Option(this.resultMode==='plans'?'運用案（案番号）':'基準条件','baseline'));
     if([...axis.options].some(o=>o.value===previous))axis.value=previous;
-    const key=axis.value,binding=bindings.find(b=>bindingKey(b)===key),p=binding?parameter(binding.parameter):null,log=$('chart-log').checked;
+    const key=axis.value,binding=bindings.find(b=>bindingKey(b)===key),p=binding?parameter(binding.parameter):null,log=!!bindings.length&&$('chart-log').checked;
     axis.disabled=!bindings.length;
     $('chart-log').disabled=!bindings.length;
     if(!this.rows.length)return;
-    const value=row=>binding?row.condition.settings.find(b=>bindingKey(b)===key).value/p.scale:1;
+    const value=row=>this.resultMode==='plans'?row.condition.index:binding?row.condition.settings.find(b=>bindingKey(b)===key).value/p.scale:1;
     const omitted=this.rows.filter(r=>log&&value(r)<=0).length,rows=this.rows.filter(r=>r.rate!==null&&(!log||value(r)>0)),scale=numericScale(rows.map(value),log);
     $('chart-note').textContent=omitted?'対数軸では0以下の '+omitted+' 条件を図から除外しています。表・集計には含まれます。':'';
     if(!scale){
@@ -395,7 +393,7 @@ export class AnalysisUI {
     for(const row of rows){
       const other=row.condition.settings.filter(b=>bindingKey(b)!==key),seriesKey=JSON.stringify(other.map(b=>[bindingKey(b),b.value]));
       if(!series.has(seriesKey))series.set(seriesKey,{
-        color:colors[series.size%colors.length],label:other.map(b=>formatBinding(this.base,b,b.value)).join(' / ')||'成功率（縦線は95%区間）'
+        color:colors[series.size%colors.length],label:other.map(b=>formatBinding(this.base,b,b.value)).join(' / ')||(this.resultMode==='plans'?this.rows.map(r=>r.condition.index+'：'+r.condition.label).join(' · '):'成功率（縦線は95%区間）')
       });
       const color=series.get(seriesKey).color,group=add('g',{
         'data-condition':row.condition.id,'data-x-value':value(row)
@@ -414,7 +412,7 @@ export class AnalysisUI {
     }
     add('text',{
       x:(left+right)/2,y:285,fill:'#a7bfd1','text-anchor':'middle','font-size':11
-    },(p?p.label+' ('+p.unit+')':'基準条件')+' · '+(log?'対数':'線形'));
+    },(p?p.label+' ('+p.unit+')':(this.resultMode==='plans'?'運用案（案番号）':'基準条件'))+' · '+(log?'対数':'線形'));
     host.append(svg);
     for(const item of series.values()){
       const el=document.createElement('span'),dot=document.createElement('i');
@@ -476,13 +474,13 @@ export class AnalysisUI {
   export() {
     const sensitive=this.resultMode==='sensitivity';
     const payload={
-      type:sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive?1:5,model:RECORD_MODEL,confidence:sensitive?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
+      type:this.resultMode==='plans'?'SimSim-plans':sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive||this.resultMode==='plans'?1:5,model:RECORD_MODEL,confidence:sensitive||this.resultMode==='plans'?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
     };
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{
       type:'text/plain;charset=utf-8'
     }),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;
-    a.download=sensitive?'SimSim-sensitivity.txt':'SimSim-analysis.txt';
+    a.download=this.resultMode==='plans'?'SimSim-plans.txt':sensitive?'SimSim-sensitivity.txt':'SimSim-analysis.txt';
     document.body.append(a);
     a.click();
     a.remove();

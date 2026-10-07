@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261007-sensitivity-22';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261007-plans-23';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){
@@ -21,7 +21,7 @@ export function defaultSensitivityCandidate(s,b){
 }
 export function sensitivityConfigErrors(s){
   const a=s.analysis,c=a?.sensitivity,errors=[];
-  if(a?.mode!==undefined&&!['comparison','sensitivity'].includes(a.mode))errors.push('分析の種類はcomparison・sensitivityです。');
+  if(a?.mode!==undefined&&!['comparison','sensitivity','plans'].includes(a.mode))errors.push('分析の種類はcomparison・sensitivity・plansです。');
   if(c===undefined)return errors;
   if(!c||typeof c!=='object'||Array.isArray(c))return [...errors,'感度分析の設定はオブジェクトにしてください。'];
   if(!sensitivityMetrics(s).some(m=>m.id===c.metric))errors.push('感度分析の評価指標を選択してください。');
