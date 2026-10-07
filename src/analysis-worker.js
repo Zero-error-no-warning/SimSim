@@ -1,6 +1,6 @@
-import { trialScenario } from './parameters.js?v=20261007-patrol-reentry-20';
-import { createSimulation } from './recorded-engine.js?v=20261007-patrol-reentry-20';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261007-patrol-reentry-20';
+import { trialScenario } from './parameters.js?v=20261007-observed-position-21';
+import { createSimulation } from './recorded-engine.js?v=20261007-observed-position-21';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261007-observed-position-21';
 let generation=0;
 self.onmessage=({
   data

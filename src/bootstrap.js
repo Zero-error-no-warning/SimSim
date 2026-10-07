@@ -1,4 +1,4 @@
-import('./app.js?v=20261007-patrol-reentry-20').catch(error => {
+import('./app.js?v=20261007-observed-position-21').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

@@ -1,5 +1,5 @@
-import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261007-patrol-reentry-20';
-import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261007-patrol-reentry-20';
+import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261007-observed-position-21';
+import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261007-observed-position-21';
 // Named navigation resources, shared by state nodes and proximity conditions.
 export function routeFor(s,a,n,u){
   const graph=s.behaviors?.find(g=>g.id===a?.behaviorId),id=resolveValue(n?.routeId,graph,a);
@@ -35,7 +35,7 @@ export function navigationErrors(s){
         if(!point(item.point))errors.push('目的地の地点座標が不正です。');
       }else if(item.kind==='unit'){
         if(!s.units?.some(u=>u.id===item.unitId))errors.push('目的地のユニットがありません。');
-      }else if(item.kind!=='received')errors.push('目的地は地点・ユニット・受信した目標位置を指定してください。');
+      }else if(item.kind!=='received')errors.push('目的地は地点・ユニット・取得した目標位置（探知・受信）を指定してください。');
     }
   }
   return errors;

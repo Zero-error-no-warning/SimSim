@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261007-patrol-reentry-20">
+<html lang="ja" data-simsim-build="20261007-observed-position-21">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261007-patrol-reentry-20-1bbdc8a11d22">
-<script src="main.js?v=20261007-patrol-reentry-20-1bbdc8a11d22" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261007-observed-position-21-a0759e98f0e6">
+<script src="main.js?v=20261007-observed-position-21-a0759e98f0e6" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.07.20</span>
+<h1>SimSim <span id="app-version">v2026.10.07.21</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
@@ -234,7 +234,7 @@
 <label class="field">生成の必須地点（m）：一行に 東西, 南北<textarea id="navigation-via" rows="4"></textarea></label>
 <button id="navigation-via-current">現在の経路の点を必須地点にする</button><button id="navigation-generate" class="primary">地形を避けて生成</button>
 <p class="route-help">最初が出発点、最後が目的地。途中の点も必ず通ります。周回は最後から最初への区間も生成します。生成結果は上の座標欄で編集し、保存後は地図上でドラッグできます。通れない必須地点は変更してください。検査で問題がある区間は保存後に地図上で赤く表示します。</p>
-</details></section><section id="navigation-destination-fields"><label class="field">目的の種類<select id="navigation-kind"><option value="point">地点</option><option value="unit">ユニットの現在位置</option><option value="received">受信した目標位置</option></select></label><section id="navigation-point-fields"><button id="navigation-pick">地図で地点を指定</button><div class="actions-columns"><label class="field">東西（km）<input id="navigation-x" type="number" step="any"></label><label class="field">南北（km）<input id="navigation-y" type="number" step="any"></label><label class="field">高度・深度の座標（m）<input id="navigation-z" type="number" step="any"></label></div><p class="route-help">高さはz座標です。海面が0mの場合、深度120mは −120m と指定します。</p></section><label id="navigation-unit-field" class="field" hidden>目標のユニット（単体）<select id="navigation-unit"></select></label><p class="route-help">「受信した目標位置」は通信に含まれる観測位置です。移動状態に入った時点で目的地を固定します。新しい報告で目的地を更新するには「情報受信」イベントを繰り返しにして、この移動状態へ接続してください。位置情報が届くまでは待機します。「ユニットの現在位置」は相手の移動を追い続けます。</p></section><div class="dialog-actions"><button id="navigation-delete">削除</button><button id="navigation-cancel">取消</button><button id="navigation-save" class="primary">保存して選択</button><button id="navigation-close" hidden>閉じる</button></div></dialog>
+</details></section><section id="navigation-destination-fields"><label class="field">目的の種類<select id="navigation-kind"><option value="point">地点</option><option value="unit">ユニットの現在位置</option><option value="received">取得した目標位置（探知・受信）</option></select></label><section id="navigation-point-fields"><button id="navigation-pick">地図で地点を指定</button><div class="actions-columns"><label class="field">東西（km）<input id="navigation-x" type="number" step="any"></label><label class="field">南北（km）<input id="navigation-y" type="number" step="any"></label><label class="field">高度・深度の座標（m）<input id="navigation-z" type="number" step="any"></label></div><p class="route-help">高さはz座標です。海面が0mの場合、深度120mは −120m と指定します。</p></section><label id="navigation-unit-field" class="field" hidden>目標のユニット（単体）<select id="navigation-unit"></select></label><p class="route-help">「取得した目標位置（探知・受信）」は、自分で探知した位置または通信で受け取った観測位置です。移動状態に入った時点で目的地を固定します。「対象探知」「情報受信」イベントからこの移動状態へ接続できます。繰り返しのイベントは周回中も移動状態へ戻すため、到達後に周回を続ける場合は「一度だけ遷移」にします。位置を取得するまでは待機します。「ユニットの現在位置」は相手の移動を追い続けます。</p></section><div class="dialog-actions"><button id="navigation-delete">削除</button><button id="navigation-cancel">取消</button><button id="navigation-save" class="primary">保存して選択</button><button id="navigation-close" hidden>閉じる</button></div></dialog>
 <dialog id="route-check-dialog"><h2>経路の検査</h2><p class="route-help">問題がある区間は地図上で赤く表示します。固定経路と周回の閉じる区間を検査します。イベント時点の接続、追跡先への移動、揺らぎを含む経路は実行時にも確認してください。</p><div id="route-check-list"></div><button id="route-check-close">閉じる</button></dialog>
 <dialog id="error-dialog"><h2>読み込み・操作エラー</h2>
 <pre id="error-text"></pre>

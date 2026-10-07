@@ -1,13 +1,13 @@
-import {measurePoints} from './measurement-points.js?v=20261007-patrol-reentry-20';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261007-patrol-reentry-20';
-import {resolveGraph} from './behavior-parameters.js?v=20261007-patrol-reentry-20';
-import { Simulation } from './engine.js?v=20261007-patrol-reentry-20';
-import { importScenario } from './scenario-import.js?v=20261007-patrol-reentry-20';
-import { random01, streamKey } from './random.js?v=20261007-patrol-reentry-20';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261007-patrol-reentry-20';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261007-patrol-reentry-20';
-import { graphTriggers } from './shared-settings.js?v=20261007-patrol-reentry-20';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261007-patrol-reentry-20';
+import {measurePoints} from './measurement-points.js?v=20261007-observed-position-21';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261007-observed-position-21';
+import {resolveGraph} from './behavior-parameters.js?v=20261007-observed-position-21';
+import { Simulation } from './engine.js?v=20261007-observed-position-21';
+import { importScenario } from './scenario-import.js?v=20261007-observed-position-21';
+import { random01, streamKey } from './random.js?v=20261007-observed-position-21';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261007-observed-position-21';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261007-observed-position-21';
+import { graphTriggers } from './shared-settings.js?v=20261007-observed-position-21';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261007-observed-position-21';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -88,7 +88,7 @@ export class RecordedSimulation extends Simulation {
     }
     for (const s of this.states) if (!s.graph) Object.assign(s,super.evaluateUnit(s.unit,0));
   }
-  enter(s, id, t, initial=false, resume=false) {
+  enter(s, id, t, initial=false, resume=false, observation=null) {
     const previous=s.node;
     if(previous?.kind==='follow')s.routeContexts.set(previous.routeId??'default',{path:s.path,started:s.routeStarted,travel:s.routeTravel??0,offset:s.routeOffset??0,paused:t,join:s.join});
     s.node=s.graph.nodes.find(n=>n.id===id);
@@ -96,7 +96,8 @@ export class RecordedSimulation extends Simulation {
     // select a different action while the unit is stopped at a valid position.
     if(previous&&s.error)s.error=this.terrain.project(s.position,s.unit.domain).error;
     s.moveHeight=s.position.z;
-    s.moveGoal=s.node.kind==='move'&&destinationFor(this.source,s.assignment,s.node)?.kind==='received'&&s.receivedPosition?{...s.receivedPosition.targetPosition}:null;
+    const observed=this.observedPosition(s,observation);
+    s.moveGoal=s.node.kind==='move'&&destinationFor(this.source,s.assignment,s.node)?.kind==='received'&&observed?{...observed}:null;
     s.nodeTime=t;
     s.sent=false;
     s.elapsed=false;
@@ -159,7 +160,7 @@ export class RecordedSimulation extends Simulation {
     s.triggerTimes.set(trigger.id,t);
     const from=s.node?.id;
     s.activated=true;
-    this.enter(s,trigger.to,t);
+    this.enter(s,trigger.to,t,false,false,payload);
     events.push({type:'triggered',time:t,unitId:s.unit.id,triggerId:trigger.id,event,nodeId:trigger.to});
     events.push({type:'nodeChanged',time:t,unitId:s.unit.id,from:from??null,nodeId:trigger.to});
     if(s.node.parameter==='preparation')events.push({type:'preparing',time:t,unitId:s.unit.id,nodeId:s.node.id});
@@ -186,7 +187,7 @@ export class RecordedSimulation extends Simulation {
     if (s.trace.length>64) throw Error('情報の中継が64段を超えました。');
     if (s.node.kind==='follow') s.pauseTime=t;
     const from=s.node.id;
-    this.enter(s,edge.to,t,false,edge.resume);
+    this.enter(s,edge.to,t,false,edge.resume,payload);
     events.push({
       type:'nodeChanged',time:t,unitId:s.unit.id,from,nodeId:edge.to
     });
@@ -198,10 +199,22 @@ export class RecordedSimulation extends Simulation {
     });
     return true;
   }
+  rememberObservation(s,observation){
+    const previous=s.latestObservation,time=o=>o.observationTime??o.sampleTime??o.time;
+    if(!previous||previous.targetId!==observation.targetId||time(observation)>=time(previous))s.latestObservation=observation;
+  }
+  observedPosition(s,event){
+    const latest=s.latestObservation??s.receivedPosition,time=o=>o.observationTime??o.sampleTime??o.time;
+    // Prefer the observation causing this transition, including a first
+    // detection among several simultaneous contacts. Keep newer coordinates
+    // when an older report for that same target arrives afterwards.
+    const observed=event?.targetPosition&&!(latest?.targetId===event.targetId&&time(latest)>time(event))?event:latest;
+    return observed?.targetPosition??null;
+  }
   destination(s,reference=s.node,positions){
     const d=destinationFor(this.source,s.assignment,reference);
     if(!d)return null;
-    if(d.kind==='received')return s.node?.kind==='move'&&destinationFor(this.source,s.assignment,s.node)?.id===d.id?s.moveGoal:s.receivedPosition?.targetPosition??null;
+    if(d.kind==='received')return s.node?.kind==='move'&&destinationFor(this.source,s.assignment,s.node)?.id===d.id?s.moveGoal:this.observedPosition(s);
     return d.kind==='point'?d.point:positions?.get(d.unitId)??this.byId.get(d.unitId)?.position??null;
   }
   movementDestination(s,positions){
@@ -487,7 +500,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         const previous=s.receivedPosition;
         if(!previous||previous.targetId!==m.targetId||(m.observationTime??m.time)>=(previous.observationTime??previous.time)){
           s.receivedPosition={...m,targetPosition:{...m.targetPosition}};
-          s.latestObservation=s.receivedPosition;
+          model.rememberObservation(s,s.receivedPosition);
         }
       }
       changed=model.transition(s,'received',t,events,m)||changed;
@@ -616,7 +629,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
                 ...p
               },trace:[]
             };
-            s.latestObservation=observed;
+            model.rememberObservation(s,observed);
             if(!pairs.has(pair)||s.graph?.triggers.some(t=>t.event==='detected'&&t.once===false))contacts.push(observed);
             pairs.add(pair);
           }

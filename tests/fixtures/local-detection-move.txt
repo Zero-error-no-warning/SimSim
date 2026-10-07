@@ -1,0 +1,157 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "自分で探知した位置へ移動して周回",
+  "duration": 100,
+  "terrain": {
+    "columns": 3,
+    "rows": 3,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "observer",
+      "name": "探知するユニット",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 20,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 3000,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "surface"
+        ],
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "target",
+      "name": "対象",
+      "domain": "surface",
+      "faction": "hostile",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 1000,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    }
+  ],
+  "routes": [
+    {
+      "id": "r",
+      "name": "四角形",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 1000,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 1000,
+          "y": 1000,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 1000,
+          "z": 0
+        }
+      ]
+    }
+  ],
+  "destinations": [
+    {
+      "id": "known",
+      "name": "取得した目標位置",
+      "kind": "received"
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "g",
+      "name": "探知から移動して周回",
+      "initial": "patrol",
+      "nodes": [
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "known",
+          "heightMode": "keep"
+        },
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "r",
+          "speedFraction": 0.7,
+          "joinMode": "nearest"
+        }
+      ],
+      "edges": [
+        {
+          "from": "move",
+          "to": "patrol",
+          "when": "arrived"
+        }
+      ],
+      "triggers": [
+        {
+          "id": "detect",
+          "event": "detected",
+          "to": "move",
+          "once": false
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "a",
+      "name": "探知ユニット",
+      "behaviorId": "g",
+      "targets": [
+        "unit:observer"
+      ],
+      "spacing": "none"
+    }
+  ],
+  "recording": {
+    "step": 1,
+    "interval": 1
+  }
+}

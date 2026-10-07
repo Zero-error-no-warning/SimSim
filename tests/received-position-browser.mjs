@@ -4,6 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261007-observed-position-21';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-new-task-'));
 const server=http.createServer((req,res)=>{
@@ -26,7 +27,7 @@ try{
   await page.locator('#behavior-canvas [data-node="move"] > rect:first-child').click();
   assert.equal(await page.locator('#node-height-mode').inputValue(),'keep');assert((await page.locator('#node-destination option:checked').textContent()).includes('受信した目標位置'));
   await page.locator('#node-height-mode').selectOption('target');await page.locator('#behavior-undo').click();assert.equal(await page.locator('#node-height-mode').inputValue(),'keep');
-  await page.locator('#node-destination-edit').click();assert.equal(await page.locator('#navigation-kind').inputValue(),'received');assert(await page.locator('#navigation-point-fields').isHidden());assert(await page.locator('#navigation-unit-field').isHidden());
+  await page.locator('#node-destination-edit').click();assert.equal(await page.locator('#navigation-kind').inputValue(),'received');assert((await page.locator('#navigation-kind option:checked').textContent()).includes('探知・受信'));assert(await page.locator('#navigation-point-fields').isHidden());assert(await page.locator('#navigation-unit-field').isHidden());
   await page.locator('#navigation-kind').selectOption('unit');assert(await page.locator('#navigation-unit-field').isVisible());await page.locator('#navigation-kind').selectOption('received');await page.locator('#navigation-save').click();
   await page.locator('#behavior-apply').click();
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,'received.txt');await download.saveAs(file);const saved=JSON.parse(fs.readFileSync(file));
@@ -37,5 +38,17 @@ try{
   const history=await page.locator('#event-list').textContent();assert(history.includes('観測位置'));assert(history.includes('観測時刻'));assert(history.includes('高さ -100m'));assert(!history.includes('送信失敗'));
   await page.locator('#events-close').click();
   const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);const archive=path.join(folder,'record.txt');await record.saveAs(archive);const recording=JSON.parse(fs.readFileSync(archive));assert(recording.result.actionEvents.some(e=>e.type==='received'&&e.targetPosition.z===-100&&e.observationTime===10));
-  assert.deepEqual(errors,[]);console.log('PASS: received-position editor, hidden manual coordinates, height control Undo, save/reopen, repeated event settings, Worker calculation, observation coordinates/time history and exported recording');
+  const local=JSON.parse(fs.readFileSync(new URL('fixtures/local-detection-move.txt',import.meta.url)));
+  for(const once of [false,true]){
+    local.behaviors[0].triggers[0].once=once;local.duration=once?400:100;
+    const input=path.join(folder,'local.txt');fs.writeFileSync(input,JSON.stringify(local));
+    await page.locator('#file').setInputFiles(input);await page.waitForFunction(()=>document.getElementById('title').value==='自分で探知した位置へ移動して周回');
+    await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});assert(!await page.locator('#error-dialog').isVisible());
+    const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);const output=path.join(folder,'local-record.txt');await download.saveAs(output);
+    const replay=restoreRecording(JSON.parse(fs.readFileSync(output)));assert(!replay.result.actionEvents.some(e=>e.type==='received'));
+    const early=replay.evaluate(10).units.find(u=>u.id==='observer');assert(early.distance>150);assert.equal(early.status,'moving');
+    if(once){const last=replay.evaluate(400).units.find(u=>u.id==='observer');assert.equal(last.nodeId,'patrol');assert(last.distance>5000);}
+    await page.locator('#file').setInputFiles(output);await page.waitForFunction(()=>!document.getElementById('play').disabled);assert(!await page.locator('#error-dialog').isVisible());
+  }
+  assert.deepEqual(errors,[]);console.log('PASS: local detection -> observed-position movement -> patrol with Worker/replay, received-position editor, hidden manual coordinates, height control Undo, save/reopen, repeated event settings, Worker calculation, observation coordinates/time history and exported recording');
 }finally{await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});}

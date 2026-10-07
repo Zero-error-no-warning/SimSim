@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {paintTerrain} from '../src/terrain-editor.js?v=20261007-patrol-reentry-20';
-import {Terrain} from '../src/engine.js?v=20261007-patrol-reentry-20';
-import {terrainVisible} from '../src/contact.js?v=20261007-patrol-reentry-20';
+import {paintTerrain} from '../src/terrain-editor.js?v=20261007-observed-position-21';
+import {Terrain} from '../src/engine.js?v=20261007-observed-position-21';
+import {terrainVisible} from '../src/contact.js?v=20261007-observed-position-21';
 const data={columns:7,rows:7,spacing:100,origin:{x:0,y:0},seaLevel:0,elevations:Array(49).fill(-100)};
 const original=structuredClone(data);const center={x:300,y:300};
 assert(paintTerrain(data,center,{mode:'raise',radius:200,amount:300}));assert.equal(data.elevations[24],200);assert.equal(data.elevations[0],-100);assert.equal(data.elevations[22],-100);
@@ -14,7 +14,7 @@ paintTerrain(data,center,{mode:'raise',radius:200,amount:1e6});assert.equal(data
 assert.throws(()=>paintTerrain(data,center,{mode:'raise',radius:1,amount:10}),/ブラシ/);
 console.log('PASS: terrain brush bounds/falloff, raise/lower/flatten/smooth, SI heights, domain constraints and sensor terrain occlusion');
 
-const {resizeTerrain}=await import('../src/terrain-editor.js?v=20261007-patrol-reentry-20');
+const {resizeTerrain}=await import('../src/terrain-editor.js?v=20261007-observed-position-21');
 const slope={...structuredClone(original),elevations:Array.from({length:49},(_,i)=>i%7+Math.floor(i/7)*10)};
 const resized=resizeTerrain(slope,600,1200),rect=new Terrain(resized);
 assert.equal(resized.columns,7);assert.equal(resized.rows,7);assert.equal(resized.spacing,100);assert.equal(resized.spacingY,200);
@@ -47,7 +47,7 @@ assert.throws(()=>resizeTerrain(original,1,600,{columns:7,rows:7}),/領域サイ
 assert.throws(()=>resizeTerrain(original,20000,600,{columns:2,rows:7}),/領域サイズ/);
 console.log('PASS: variable terrain grid counts, nested island preservation, world coordinates/bounds, exact interpolation, coarsening, limits and immutable input');
 
-const {sampleTerrainHeight}=await import('../src/terrain-editor.js?v=20261007-patrol-reentry-20');
+const {sampleTerrainHeight}=await import('../src/terrain-editor.js?v=20261007-observed-position-21');
 const gradual={...structuredClone(original),elevations:Array(49).fill(0)};
 paintTerrain(gradual,center,{mode:'flatten',radius:200,target:100,strength:.2});assert.equal(gradual.elevations[24],20);assert.equal(gradual.elevations[23],11.25);
 paintTerrain(gradual,center,{mode:'flatten',radius:200,target:100,strength:.2});assert.equal(gradual.elevations[24],36);

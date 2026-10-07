@@ -1,13 +1,13 @@
-import {HistoryUI} from './history-ui.js?v=20261007-patrol-reentry-20';
-import {MeasurementUI} from './measurement-ui.js?v=20261007-patrol-reentry-20';
-import {stateMembers} from './state-measurement.js?v=20261007-patrol-reentry-20';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-patrol-reentry-20';
-import { RECORD_MODEL } from './recording.js?v=20261007-patrol-reentry-20';
-import { numericScale } from './chart-scale.js?v=20261007-patrol-reentry-20';
-import { clone,validateScenario } from './engine.js?v=20261007-patrol-reentry-20';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-patrol-reentry-20';
-import { ParameterEditor } from './parameter-ui.js?v=20261007-patrol-reentry-20';
-import { requireElement } from './ui-dom.js?v=20261007-patrol-reentry-20';
+import {HistoryUI} from './history-ui.js?v=20261007-observed-position-21';
+import {MeasurementUI} from './measurement-ui.js?v=20261007-observed-position-21';
+import {stateMembers} from './state-measurement.js?v=20261007-observed-position-21';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-observed-position-21';
+import { RECORD_MODEL } from './recording.js?v=20261007-observed-position-21';
+import { numericScale } from './chart-scale.js?v=20261007-observed-position-21';
+import { clone,validateScenario } from './engine.js?v=20261007-observed-position-21';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-observed-position-21';
+import { ParameterEditor } from './parameter-ui.js?v=20261007-observed-position-21';
+import { requireElement } from './ui-dom.js?v=20261007-observed-position-21';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -18,7 +18,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-patrol-reentry-20',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-observed-position-21',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-patrol-reentry-20';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-patrol-reentry-20';
-import {trialScenario,availableBindings,readParameter,writeParameter} from '../src/parameters.js?v=20261007-patrol-reentry-20';
-import {newScenario,editableDefinition,moveDefinition,editWaypoint,addWaypoint,removeWaypoint,removeBehavior,setPosition} from '../src/editor.js?v=20261007-patrol-reentry-20';
-import {importScenario} from '../src/scenario-import.js?v=20261007-patrol-reentry-20';
+import {clone,validateScenario} from '../src/engine.js?v=20261007-observed-position-21';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-observed-position-21';
+import {trialScenario,availableBindings,readParameter,writeParameter} from '../src/parameters.js?v=20261007-observed-position-21';
+import {newScenario,editableDefinition,moveDefinition,editWaypoint,addWaypoint,removeWaypoint,removeBehavior,setPosition} from '../src/editor.js?v=20261007-observed-position-21';
+import {importScenario} from '../src/scenario-import.js?v=20261007-observed-position-21';
 const sample=JSON.parse(fs.readFileSync(new URL('../data/shared-demo.txt',import.meta.url)));
 const empty=clone(sample);newScenario(empty);assert.equal(validateScenario(empty).units.length,0);assert.equal(empty.behaviors.length,0);
 const route=clone(sample),id='patrol__1',a=route.behaviorAssignments[0];

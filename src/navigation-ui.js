@@ -1,6 +1,6 @@
-import {navigationErrors} from './navigation.js?v=20261007-patrol-reentry-20';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261007-patrol-reentry-20';
-import {requireElement} from './ui-dom.js?v=20261007-patrol-reentry-20';
+import {navigationErrors} from './navigation.js?v=20261007-observed-position-21';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261007-observed-position-21';
+import {requireElement} from './ui-dom.js?v=20261007-observed-position-21';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

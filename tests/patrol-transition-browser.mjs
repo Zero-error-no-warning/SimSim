@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261007-patrol-reentry-20';
-import {UI_VERSION} from '../src/ui-dom.js?v=20261007-patrol-reentry-20';
+import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261007-observed-position-21';
+import {UI_VERSION} from '../src/ui-dom.js?v=20261007-observed-position-21';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-patrol-transition-'));
 const server=http.createServer((req,res)=>{

@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261007-patrol-reentry-20';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-patrol-reentry-20';
-import {isParameterRef} from './behavior-parameters.js?v=20261007-patrol-reentry-20';
-import {NavigationUI} from './navigation-ui.js?v=20261007-patrol-reentry-20';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-patrol-reentry-20';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-patrol-reentry-20';
-import { clone,validateScenario } from './engine.js?v=20261007-patrol-reentry-20';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-patrol-reentry-20';
-import { requireElement } from './ui-dom.js?v=20261007-patrol-reentry-20';
+import {ContextMenu} from './context-menu.js?v=20261007-observed-position-21';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-observed-position-21';
+import {isParameterRef} from './behavior-parameters.js?v=20261007-observed-position-21';
+import {NavigationUI} from './navigation-ui.js?v=20261007-observed-position-21';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-observed-position-21';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-observed-position-21';
+import { clone,validateScenario } from './engine.js?v=20261007-observed-position-21';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-observed-position-21';
+import { requireElement } from './ui-dom.js?v=20261007-observed-position-21';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -737,7 +737,7 @@ export class BehaviorUI{
     $('node-route').disabled=routeBound;$('node-route-new').disabled=routeBound;$('node-route-edit').disabled=routeBound||!n?.routeId&&!u;
     $('node-join-mode').value=n?.joinMode??'';
     $('node-destination-fields').hidden=n?.kind!=='move';
-    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニットの現在位置）':d.kind==='received'?'（受信した目標位置）':'（地点）')])],n?.destinationId??'');
+    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニットの現在位置）':d.kind==='received'?'（探知・受信した位置）':'（地点）')])],n?.destinationId??'');
     const destinationBound=this.parameters.bind('node-destination-binding',n,'destinationId','destination',null,'移動する目的');
     $('node-height-mode').value=n?.heightMode??(destinationFor(this.draft,a,n)?.kind==='point'?'target':'keep');
     $('node-destination').disabled=destinationBound;$('node-destination-new').disabled=destinationBound;$('node-destination-edit').disabled=destinationBound||!n?.destinationId&&!a?.base;
