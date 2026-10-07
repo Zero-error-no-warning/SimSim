@@ -1,5 +1,5 @@
-import { sharedAssignment } from './shared-settings.js?v=20261007-observed-position-21';
-import { random01,streamKey } from './random.js?v=20261007-observed-position-21';
+import { sharedAssignment } from './shared-settings.js?v=20261007-sensitivity-22';
+import { random01,streamKey } from './random.js?v=20261007-sensitivity-22';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={
@@ -95,7 +95,16 @@ define('mission.deadline','成功条件の期限','Mission','mission.deadline',.
   unit:'min',scale:60,scope:'scenario'
 })
 ];
-export const parameter=key=>PARAMETERS.find(p=>p.key===key);
+export function parameter(key){
+  const fixed=PARAMETERS.find(p=>p.key===key);if(fixed)return fixed;
+  const match=/^behavior\.(node|trigger)\.([A-Za-z0-9_-]{1,80})\.(seconds|speedFraction)$/.exec(key??'');
+  if(!match||match[1]==='trigger'&&match[3]!=='seconds')return undefined;
+  const [,kind,id,field]=match;
+  return define(key,(kind==='trigger'?'イベント ':'状態 ')+id+' · '+(field==='seconds'?'待機・発火時間':'周回速度割合'),'Behavior',field,field==='speedFraction'?.05:0,field==='speedFraction'?1:86400,{scope:'behavior',unit:field==='seconds'?'s':'%',scale:field==='seconds'?1:.01,default:field==='speedFraction'?.7:undefined,collection:kind==='node'?'nodes':'triggers',itemId:id});
+}
+export function bindingTargetExists(s,b){
+  try{return Number.isFinite(readParameter(s,b));}catch{return false;}
+}
 export const bindingKey=b=>JSON.stringify([b.target,b.parameter]);
 // Legacy count controls are converted to an ordinary comparison factor for editing.
 export function normalizedAnalysis(a) {
@@ -114,8 +123,14 @@ function resolve(s,target,p) {
     return s;
   }
   const colon=target?.indexOf(':')??-1,kind=target?.slice(0,colon),id=target?.slice(colon+1);
-  const object=kind==='unit'?s.units?.find(u=>u.id===id):kind==='group'?s.groups?.find(g=>g.id===id):kind==='assignment'?s.behaviorAssignments?.find(a=>a.id===id):null;
+  const object=kind==='unit'?s.units?.find(u=>u.id===id):kind==='group'?s.groups?.find(g=>g.id===id):kind==='assignment'?s.behaviorAssignments?.find(a=>a.id===id):kind==='behavior'?s.behaviors?.find(g=>g.id===id):null;
   if(!object||p.scope==='scenario'||(p.scope==='group'&&kind!=='group'))throw new Error('変数の対象が見つかりません: '+target);
+  if(p.scope==='behavior'){
+    const item=kind==='behavior'?object[p.collection]?.find(n=>n.id===p.itemId):null;
+    if(!item||(p.collection==='triggers'?item.event!=='time':p.path==='seconds'?item.kind!=='wait'||item.parameter==='preparation':item.kind!=='patrol')||item[p.path]!==undefined&&typeof item[p.path]!=='number')throw Error('ノードの数値設定がありません。');
+    return item;
+  }
+  if(kind==='behavior')throw Error('変数の対象が一致しません。');
   if((p.scope==='assignment')!==(kind==='assignment'))throw new Error('変数の対象が一致しません。');
   const entity=kind==='group'&&p.scope==='entity'?object.template:object;
   if(kind!=='assignment'&&sharedAssignment(s,kind==='group'?id+'__1':id)?.route?.length&&(p.translate||p.loopOnly||p.key.startsWith('extent.deployment.')))throw new Error('共有経路の位置・開始割合はタスク側の変数を選んでください。');
@@ -168,6 +183,12 @@ export function availableBindings(s) {
   for(const a of s.behaviorAssignments??[])for(const p of PARAMETERS.filter(p=>p.scope==='assignment'&&(!p.fixedSpacing||a.spacing==='fixed')&&(!p.routeAxis||a.route?.length)&&(!p.patrol||s.behaviors?.find(g=>g.id===a.behaviorId)?.nodes.some(n=>n.kind==='patrol'))&&(!p.preparation||s.behaviors?.find(g=>g.id===a.behaviorId)?.nodes.some(n=>n.parameter==='preparation'))))out.push({
     target:'assignment:'+a.id,targetLabel:'協調: '+a.name,parameter:p.key,label:a.name+' · '+p.label+' ('+p.unit+')'
   });
+  for(const g of s.behaviors??[])for(const [kind,items] of [['node',g.nodes],['trigger',g.triggers]])for(const n of items??[]){
+    const field=kind==='trigger'&&n.event==='time'||kind==='node'&&n.kind==='wait'&&n.parameter!=='preparation'?'seconds':kind==='node'&&n.kind==='patrol'?'speedFraction':null;
+    if(!field||n[field]!==undefined&&typeof n[field]!=='number')continue;
+    const key='behavior.'+kind+'.'+n.id+'.'+field,p=parameter(key);
+    out.push({target:'behavior:'+g.id,targetLabel:'挙動: '+g.name+'（使用する全タスク）',parameter:key,label:g.name+' · '+p.label+' ('+p.unit+')'});
+  }
   if(s.mission)for(const p of PARAMETERS.filter(p=>p.scope==='scenario'))out.push({
     target:'scenario',targetLabel:'シナリオ・ミッション',parameter:p.key,label:p.label+' ('+p.unit+')'
   });
@@ -178,6 +199,7 @@ export function formatBinding(s,b,value) {
   let name=b.target;
   if(b.target.startsWith('group:'))name=s.groups?.find(g=>g.id===b.target.slice(6))?.name??name;
   if(b.target.startsWith('assignment:'))name=s.behaviorAssignments?.find(a=>a.id===b.target.slice(11))?.name??name;
+  if(b.target.startsWith('behavior:'))name=s.behaviors?.find(g=>g.id===b.target.slice(9))?.name??name;
   if(b.target.startsWith('unit:'))name=s.units?.find(u=>u.id===b.target.slice(5))?.name??name;
   return name+' / '+p.label+' = '+Number((value/p.scale).toFixed(5))+' '+p.unit;
 }
@@ -210,7 +232,7 @@ export function variableErrors(a,duration) {
   }
   const conditions=(a.groupId?a.counts?.length??0:1)*(Array.isArray(a.factors)?a.factors.reduce((n,f)=>n*(f?.values?.length??0),1):1);
   if(conditions>24)errors.push('比較値の組合せは最大24条件にしてください。');
-  if(conditions*a.trials>10000)errors.push('条件数×試行数は10000以下にしてください。');
+  if(a.mode!=='sensitivity'&&conditions*a.trials>10000)errors.push('条件数×試行数は10000以下にしてください。');
   return errors;
 }
 export function analysisConditions(s) {
@@ -238,6 +260,7 @@ export function trialScenario(source,condition,trial,{
 }) {
   const scenario=copy(source),sampled=[];
   scenario.trial=trial;
+  if(scenario.analysis){delete scenario.analysis.sensitivity;delete scenario.analysis.mode;}
   // Shared uncertainty sample per binding and trial, independent of comparison values/order.
   for(const b of source.analysis.uncertainties??[]) {
     const u=random01(streamKey(scenario,bindingKey(b),'parameter-sample-v1'));
@@ -260,9 +283,9 @@ export function trialScenario(source,condition,trial,{
   scenario.groups=scenario.groups?.filter(g=>g.count!==0);
   if(scenario.behaviorAssignments)scenario.behaviorAssignments=scenario.behaviorAssignments.map(a=>({
     ...a,targets:a.targets.filter(t=>!t.startsWith('group:')||scenario.groups?.some(g=>g.id===t.slice(6)))
-  })).filter(a=>a.targets.length||scenario.mission?.type==='state'&&scenario.mission.assignmentId===a.id);
+  })).filter(a=>a.targets.length||scenario.mission?.type==='state'&&scenario.mission.assignmentId===a.id||scenario.measurements?.some(m=>m.assignmentId===a.id));
   if(scenario.analysis){
-    const present=b=>b.target==='scenario'?!!scenario.mission:b.target.startsWith('assignment:')?scenario.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?scenario.groups?.some(g=>g.id===b.target.slice(6)):scenario.units.some(u=>u.id===b.target.slice(5));
+    const present=b=>b.target==='scenario'?!!scenario.mission:b.target.startsWith('behavior:')?scenario.behaviors?.some(g=>g.id===b.target.slice(9)):b.target.startsWith('assignment:')?scenario.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?scenario.groups?.some(g=>g.id===b.target.slice(6)):scenario.units.some(u=>u.id===b.target.slice(5));
     for(const key of ['factors','uncertainties'])scenario.analysis[key]=scenario.analysis[key]?.filter(present);
     if(scenario.analysis.groupId&&!scenario.groups?.some(g=>g.id===scenario.analysis.groupId)){
       delete scenario.analysis.groupId;

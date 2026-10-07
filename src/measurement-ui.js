@@ -1,7 +1,7 @@
-import {clone,validateScenario} from './engine.js?v=20261007-observed-position-21';
-import {NODE_KINDS} from './shared-settings.js?v=20261007-observed-position-21';
-import {summarizeMeasurements} from './measurement-points.js?v=20261007-observed-position-21';
-import {requireElement as $} from './ui-dom.js?v=20261007-observed-position-21';
+import {clone,validateScenario} from './engine.js?v=20261007-sensitivity-22';
+import {NODE_KINDS} from './shared-settings.js?v=20261007-sensitivity-22';
+import {summarizeMeasurements} from './measurement-points.js?v=20261007-sensitivity-22';
+import {requireElement as $} from './ui-dom.js?v=20261007-sensitivity-22';
 const pct=n=>n===null?'—':(n*100).toFixed(1)+'%';
 const time=n=>n===null?'—':n.toFixed(1)+'秒';
 export class MeasurementUI{

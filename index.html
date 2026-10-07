@@ -1,23 +1,23 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261007-observed-position-21">
+<html lang="ja" data-simsim-build="20261007-sensitivity-22">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261007-observed-position-21">
-<script src="src/bootstrap.js?v=20261007-observed-position-21" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261007-sensitivity-22">
+<script src="src/bootstrap.js?v=20261007-sensitivity-22" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.07.21</span>
+<h1>SimSim <span id="app-version">v2026.10.07.22</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
-<option value="measurement-history-demo.txt">段階別計測・通信履歴</option>
+<option value="measurement-history-demo.txt">段階別計測・通信履歴</option><option value="sensitivity-demo.txt">感度分析：通信・移動・報告周期</option>
 <option value="route-planning-demo.txt">島を避ける経路の自動生成</option>
 <option value="island-patrol-demo.txt">島間通過・周回UUV</option>
 <option value="shared-demo.txt">協調監視・報告・帰投</option>
@@ -306,21 +306,36 @@
 <label class="field">期限（開始から秒）<input id="measurement-deadline" type="number" min="0.000001" step="any"></label><label class="field">所要時間の起点<select id="measurement-previous"></select></label>
 </section></details>
 <h3>モンテカルロ</h3>
-<h3>比較変数</h3>
+<label class="field">分析の種類<select id="analysis-mode"><option value="comparison">比較値の全組合せ</option><option value="sensitivity">感度分析（一項目ずつ変更）</option></select></label>
+<section id="comparison-editor"><h3>比較変数</h3>
 <div id="factors-editor"></div>
-<button id="add-factors" type="button">比較変数を追加</button><h3>試行ごとのばらつき</h3>
+<button id="add-factors" type="button">比較変数を追加</button><p id="parameter-plan" class="route-help"></p></section>
+<section id="sensitivity-editor" hidden><h3>調べる性能</h3>
+<label class="field">評価指標<select id="sensitivity-metric"></select></label>
+<label class="field">対象<select id="sensitivity-target"></select></label>
+<label class="check-field"><input id="sensitivity-all" type="checkbox">この対象の性能をすべて選ぶ</label>
+<p id="sensitivity-empty" class="route-help" hidden>候補がありません。使用するユニット、センサー、通信、挙動を設定してください。</p>
+<div class="sensitivity-candidate-scroll"><table class="results-table"><thead><tr><th>性能</th><th>現在の基準値</th><th>小さい値</th><th>大きい値</th></tr></thead><tbody id="sensitivity-candidates"></tbody></table></div>
+<p id="sensitivity-plan" class="route-help"></p><p class="route-help">初期候補の変更幅は基準値の±10%。0は表示単位の1、個数は最低1個の差です。範囲端では片側だけを変更します。数値は編集できます。全組合せの比較値を使わず現在の設定を基準にします。ばらつきに指定した性能は候補から除外します。</p></section>
+<h3>試行ごとのばらつき</h3>
 <div id="uncertainties-editor"></div>
 <button id="add-uncertainties" type="button">ばらつきを追加</button><p class="route-help">群のひな型への抽出値は、その試行の全個体で共通です。個体間の差は航跡のずれ・速度のばらつき・出発遅れで設定します。</p>
-<p id="parameter-plan" class="route-help"></p>
 <div class="fields-two">
 <label class="field">各条件の試行数<input id="analysis-trials" type="number" min="1" max="2000" step="1"></label><label class="field">判定間隔（秒）<input id="analysis-step" type="number" min="1" max="300" step="1"></label>
 </div>
 <label class="field">要求成功率（%）<input id="analysis-required" type="number" min="0" max="100" step="1"></label><p class="route-help">現在のシード・試行番号から開始。各条件で同じ試行番号と抽出値を使用。比較値は全組合せ（最大24条件・合計10000試行）。個数0は対象群を取り除きます。判定間隔を小さくして結果の変化も確認してください。</p>
 <div class="analysis-actions">
 <button id="analysis-run" class="primary">分析を実行</button><button id="analysis-cancel" disabled>中止</button>
-</div></section><section class="analysis-results"><h3>比較結果</h3>
+</div></section><section class="analysis-results"><h3>分析結果</h3>
 <div id="analysis-progress" role="status">分析は未実行です。</div>
-<progress id="analysis-bar" value="0" max="1"></progress><div class="chart-options">
+<progress id="analysis-bar" value="0" max="1"></progress>
+<section id="sensitivity-results" hidden><h3 id="sensitivity-result-heading">感度分析</h3>
+<p id="sensitivity-summary" class="route-help"></p><div id="sensitivity-chart" class="sensitivity-chart"></div><p class="route-help">緑：改善、橙：悪化、灰：計測値なし。線は差の95%近似区間です。</p>
+<div class="results-scroll"><table class="results-table"><thead><tr><th>順位</th><th>対象・性能</th><th>基準 → 変更</th><th>対応基準の平均</th><th>対応変更の平均</th><th>平均差</th><th>差の95%近似区間</th><th>有効な対応／完了試行</th><th>改善／悪化の試行</th><th>値なし：基準／変更</th></tr></thead><tbody id="sensitivity-rows"></tbody></table></div>
+<p class="route-help">表やグラフで選択すると、対象の表示と基準・変更の同じ試行の再生ができます。区間は対応試行の差の標準誤差から求めた近似です。1試行では区間を表示せず、差がすべて同じ場合は幅0になります。順位と区間は今回の変更幅・試行数に依存します。</p>
+<section id="sensitivity-selection" hidden><strong id="sensitivity-selection-name"></strong><p id="sensitivity-selection-note" class="route-help"></p><button id="sensitivity-focus">対象を表示</button><label class="field">対応する試行<select id="sensitivity-trial"></select></label><div class="compact-actions"><button id="sensitivity-replay-base">基準を再生</button><button id="sensitivity-replay-changed">変更を再生</button></div></section>
+</section>
+<section id="comparison-results"><div class="chart-options">
 <label>横軸 <select id="chart-axis" aria-label="散布図の横軸"></select></label><label><input id="chart-log" type="checkbox">横軸を対数表示</label>
 </div>
 <p id="chart-note" class="route-help" role="status"></p>
@@ -344,7 +359,7 @@
 <section id="measurement-results" hidden><h3>段階別の到達率・所要時間</h3><label class="field">比較条件<select id="measurement-condition"></select></label>
 <div class="results-scroll"><table class="results-table"><thead><tr><th>計測点</th><th>到達／全試行</th><th>到達率</th><th>成立時刻の中央値</th><th>所要時間の起点</th><th>起点成立後の到達／起点成立試行</th><th>所要時間の中央値</th><th>未達試行</th></tr></thead><tbody id="measurement-rows"></tbody></table></div>
 <p class="route-help">到達率は全試行が分母。所要時間は起点と終点が成立し、終点が起点以降の試行で集計します。人数条件の成立時刻どうしの差であり、個体ごとの移動時間ではありません。</p></section>
-<section id="state-time-distribution" hidden><h3>状態到達の成立時刻の分布</h3><label class="field">表示する比較条件<select id="state-time-condition"></select></label><div id="state-time-chart"></div><p id="state-time-note" class="route-help"></p></section><div class="analysis-actions">
+<section id="state-time-distribution" hidden><h3>状態到達の成立時刻の分布</h3><label class="field">表示する比較条件<select id="state-time-condition"></select></label><div id="state-time-chart"></div><p id="state-time-note" class="route-help"></p></section></section><div class="analysis-actions">
 <button id="analysis-restore" disabled>分析元のシナリオに戻す</button><button id="analysis-export" disabled>結果を.txtで保存</button>
 </div>
 <p class="route-help">信頼区間は乱数試行による誤差の目安です。モデル・入力データの妥当性や実際の能力を保証するものではありません。通信は範囲・地形遮蔽・成功確率・遅延の簡易モデル。追尾継続や攻撃は未モデル化。</p></section>

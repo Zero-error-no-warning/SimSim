@@ -1,11 +1,11 @@
-import {validateMeasurements} from './measurement-points.js?v=20261007-observed-position-21';
-import {stateSummary,validateStateResult} from './state-measurement.js?v=20261007-observed-position-21';
-import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261007-observed-position-21';
-import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261007-observed-position-21';
-import { clone,validateScenario } from './engine.js?v=20261007-observed-position-21';
-import { missionErrors,analysisErrors } from './detection-settings.js?v=20261007-observed-position-21';
-export { terrainVisible,contactProbability } from './contact.js?v=20261007-observed-position-21';
-import { importScenario } from './scenario-import.js?v=20261007-observed-position-21';
+import {validateMeasurements} from './measurement-points.js?v=20261007-sensitivity-22';
+import {stateSummary,validateStateResult} from './state-measurement.js?v=20261007-sensitivity-22';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261007-sensitivity-22';
+import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261007-sensitivity-22';
+import { clone,validateScenario } from './engine.js?v=20261007-sensitivity-22';
+import { missionErrors,analysisErrors } from './detection-settings.js?v=20261007-sensitivity-22';
+export { terrainVisible,contactProbability } from './contact.js?v=20261007-sensitivity-22';
+import { importScenario } from './scenario-import.js?v=20261007-sensitivity-22';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
   if(!(model instanceof RecordedSimulation)&&model.source.version!==3&&step!==undefined){
@@ -77,7 +77,11 @@ export function restoreAnalysisResult(payload) {
   const {
     scenario,analysis,startTrial,conditions
   }
-  =prepareAnalysis(payload.source),counts=new Set(),rows=[];
+  =prepareAnalysis(payload.source);
+  return restoreAnalysisRows({scenario,analysis,startTrial,conditions},payload);
+}
+export function restoreAnalysisRows({scenario,analysis,startTrial,conditions},payload){
+  const counts=new Set(),rows=[];
   if(payload.source.version!==3)throw new Error('旧モデルの集計は旧版で開いてください。シナリオ定義は変換できます。');
   if(!Array.isArray(payload.rows)||payload.rows.length>conditions.length)throw new Error('分析結果の条件数が不正です。');
   for(const row of payload.rows) {

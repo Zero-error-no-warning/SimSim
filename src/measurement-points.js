@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261007-observed-position-21';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261007-sensitivity-22';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

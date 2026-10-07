@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261007-observed-position-21';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-observed-position-21';
-import {isParameterRef} from './behavior-parameters.js?v=20261007-observed-position-21';
-import {NavigationUI} from './navigation-ui.js?v=20261007-observed-position-21';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-observed-position-21';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-observed-position-21';
-import { clone,validateScenario } from './engine.js?v=20261007-observed-position-21';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-observed-position-21';
-import { requireElement } from './ui-dom.js?v=20261007-observed-position-21';
+import {ContextMenu} from './context-menu.js?v=20261007-sensitivity-22';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-sensitivity-22';
+import {isParameterRef} from './behavior-parameters.js?v=20261007-sensitivity-22';
+import {NavigationUI} from './navigation-ui.js?v=20261007-sensitivity-22';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-sensitivity-22';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-sensitivity-22';
+import { clone,validateScenario } from './engine.js?v=20261007-sensitivity-22';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-sensitivity-22';
+import { requireElement } from './ui-dom.js?v=20261007-sensitivity-22';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -182,6 +182,7 @@ export class BehaviorUI{
       this.graph().triggers=this.graph().triggers.filter(t=>t.id!==this.selectedTrigger);
       this.selectedTrigger=null;
       this.selectedEdge=null;
+      pruneReferences(this.draft);
       this.render();
     };
     $('edge-delete').onclick=()=>{
@@ -479,6 +480,7 @@ export class BehaviorUI{
       if(id==='assignment-phase')a.phase=Number($('assignment-phase').value)/100;
       if(id==='assignment-preparation')a.preparation=Number($('assignment-preparation').value);
     }
+    pruneReferences(this.draft);
     this.render();
   }
   conditionDefaults(c,event){

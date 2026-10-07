@@ -1,5 +1,7 @@
-import {resolveValue} from './behavior-parameters.js?v=20261007-observed-position-21';
-import { sharedAssignment } from './shared-settings.js?v=20261007-observed-position-21';
+import {bindingTargetExists} from './parameters.js?v=20261007-sensitivity-22';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-sensitivity-22';
+import {resolveValue} from './behavior-parameters.js?v=20261007-sensitivity-22';
+import { sharedAssignment } from './shared-settings.js?v=20261007-sensitivity-22';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -80,7 +82,8 @@ export function pruneReferences(s) {
     const a=s.behaviorAssignments?.find(a=>a.id===s.mission.assignmentId),g=s.behaviors?.find(g=>g.id===a?.behaviorId);
     if(!g?.nodes.some(n=>n.id===s.mission.nodeId))delete s.mission;
   }
-  for(const key of ['factors','uncertainties'])if(s.analysis?.[key])s.analysis[key]=s.analysis[key].filter(b=>b.target==='scenario'?!!s.mission:b.target.startsWith('assignment:')?s.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?s.groups?.some(g=>g.id===b.target.slice(6)):s.units.some(u=>u.id===b.target.slice(5)));
+  pruneSensitivity(s);
+  for(const key of ['factors','uncertainties'])if(s.analysis?.[key])s.analysis[key]=s.analysis[key].filter(b=>bindingTargetExists(s,b));
 }
 export function removeAssignment(s,id) {
   s.behaviorAssignments=s.behaviorAssignments.filter(a=>a.id!==id);
@@ -155,7 +158,7 @@ export function removeDefinition(s,id) {
       delete s.analysis.groupId;
       delete s.analysis.counts;
     }
-    for(const key of ['factors','uncertainties'])s.analysis[key]=s.analysis[key]?.filter(b=>b.target==='scenario'?!!s.mission:b.target.startsWith('assignment:')?s.behaviorAssignments?.some(a=>a.id===b.target.slice(11)):b.target.startsWith('group:')?s.groups?.some(g=>g.id===b.target.slice(6)):s.units.some(u=>u.id===b.target.slice(5)));
+    for(const key of ['factors','uncertainties'])s.analysis[key]=s.analysis[key]?.filter(b=>bindingTargetExists(s,b));
   }
 }
 export function circleRoute(center,edge,count=32){

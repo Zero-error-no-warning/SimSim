@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261007-observed-position-21';
-import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-observed-position-21';
-import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261007-observed-position-21';
-import {trialScenario} from '../src/parameters.js?v=20261007-observed-position-21';
-import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261007-observed-position-21';
-import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261007-observed-position-21';
+import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261007-sensitivity-22';
+import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-sensitivity-22';
+import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261007-sensitivity-22';
+import {trialScenario} from '../src/parameters.js?v=20261007-sensitivity-22';
+import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261007-sensitivity-22';
+import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261007-sensitivity-22';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 const run=(s,record=true)=>{const model=new RecordedSimulation(s),g=sharedSteps(model,s.mission,undefined,{horizon:s.duration,record});let v=g.next();while(!v.done)v=g.next();return {model,result:v.value};};
 validateScenario(source);assert.deepEqual(stateMembers(source),['group__1','group__2']);

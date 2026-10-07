@@ -1,5 +1,5 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261007-observed-position-21';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261007-observed-position-21';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261007-sensitivity-22';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261007-sensitivity-22';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
@@ -111,7 +111,7 @@ export function sharedErrors(s, resolved=false) {
     if (typeof a.name !== 'string' || !a.name.trim() || a.name.length > 120) errors.push('タスク名は1～120文字です。');
     const g = graphs.find(g => g.id === a.behaviorId);
     if (!g) errors.push('タスクの挙動がありません。');
-    if (!Array.isArray(a.targets) || (!a.targets.length&&!(s.mission?.type==='state'&&s.mission.assignmentId===a.id)) || a.targets.length > 100) {
+    if (!Array.isArray(a.targets) || (!a.targets.length&&!(s.mission?.type==='state'&&s.mission.assignmentId===a.id)&&!s.measurements?.some(m=>m.assignmentId===a.id)) || a.targets.length > 100) {
       errors.push('タスクの担当を選んでください。');
       continue;
     }

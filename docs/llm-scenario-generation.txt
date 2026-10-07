@@ -1,7 +1,7 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 1.7 / 更新日: 2026-10-07
-対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-observed-position-21
+文書版: 1.8 / 更新日: 2026-10-07
+対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-sensitivity-22
 生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
 仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 
@@ -2070,3 +2070,21 @@ previousIdは任意。その点より前に登録した計測点のID。省略�
 追加点がある分析はdurationまで実行する。主ミッションのdeadlineは変更しない。各点の到達率は全試行が分母。起点成立後の到達率は、起点が成立した試行を分母とし、終点が起点以降に成立した試行を分子にする。所要時間は両方が成立し順序が正しい試行の時刻差。順序逆転は別途表示する。
 人数条件の成立時刻どうしの差であり、同じ個体の移動時間とは限らない。追尾継続時間や地理的な計測線はこのフィールドでは定義できない。
 実行例はdata/measurement-history-demo.txt。参照実装はsrc/measurement-points.jsとsrc/measurement-ui.js。計算履歴のタイムラインは記録済みの状態・探知・通信イベントを表示し、追加計測点とは別機能。
+
+## 追加仕様：感度分析（2026-10-07）
+
+analysis.modeは省略または"comparison"なら全組合せ比較、"sensitivity"なら一項目ずつの感度分析。感度分析は現在のシナリオの数値を基準にし、factorsの比較値は使用しない。uncertaintiesは同じ試行番号で共通に抽出する。
+analysis.sensitivityにはmetricとcandidatesを指定する。metricは"mission.rate"、"mission.time"、"point.<計測点ID>.rate"、"point.<計測点ID>.time"、"point.<計測点ID>.duration"のいずれか。
+candidatesは最大32件、各要素はtarget、parameter、low、high。low/highはSI単位で、小さい値 <= 現在の基準値 <= 大きい値にする。少なくとも片側は基準と異なる値。整数性能は整数値。
+例（analysisの部品。relayが存在し、通信成功確率の基準が0～1内の場合）:
+{"mode":"sensitivity","trials":100,"step":10,"requiredRate":0.95,"factors":[],"uncertainties":[],"sensitivity":{"metric":"mission.rate","candidates":[{"target":"unit:relay","parameter":"interaction.communication.probability","low":0,"high":1}]}}
+
+基準1条件と、小さい値・大きい値が基準と異なる各条件を計算する。最大65条件、条件数×trialsは10000以下。各条件の試行数は1～2000。感度分析の候補とuncertaintiesに同じ(target,parameter)を指定しない。成功条件の期限、無効ユニット・群、センサー・通信が無効な対応性能は候補に含めない。
+率は全試行の変更率−基準率。時刻・所要時間は、両方で有効な同じ試行番号の変更時間−基準時間を平均する。未達・所要時間の起点未達・順序逆転を0秒で埋めない。順位は指定した変更幅での平均差の絶対値で、普遍的な重要度を表さない。
+
+通常の比較・ばらつき・感度分析で追加されたノードの数値:
+- target:"behavior:<挙動ID>"、parameter:"behavior.node.<状態ID>.seconds"：固定数値の時間待ち（秒、0～86400）。parameter:"preparation"の待機状態はタスクのbehavior.preparationを使う。
+- target:"behavior:<挙動ID>"、parameter:"behavior.node.<状態ID>.speedFraction"：周回速度割合（比率、0.05～1）。
+- target:"behavior:<挙動ID>"、parameter:"behavior.trigger.<イベントID>.seconds"：時間イベント（秒、0～86400、繰り返しは0不可）。
+挙動の数値変更はその挙動を使う全タスクへ作用する。担当値への参照になっている数値はこの固定値形式では変えない。IDは実際に定義したものと一致させる。
+感度分析結果ファイルはtype:"SimSim-sensitivity",version:1,model:"trigger-behavior-v3"。シナリオ・記録・従来の通常分析のversionを変更しない。生成AIは試行結果を捏造せず、シナリオと設定のみを生成する。

@@ -1490,3 +1490,13 @@ body { min-width:1100px; }
 
 .terrain-grid-help summary {cursor:pointer}
 @media(max-width:1300px){.terrain-size-fields label {width:90px;min-width:0}.terrain-size-fields input {width:100%}}
+
+.sensitivity-candidate-scroll {max-height:360px;overflow:auto}
+#sensitivity-candidates input[type=number] {width:95px;min-width:65px}
+#sensitivity-candidates label {display:flex;align-items:center;gap:8px;white-space:normal;min-width:150px}
+.sensitivity-chart {max-height:350px;overflow:auto;border:1px solid var(--border);border-radius:8px;margin:12px 0}
+.sensitivity-chart svg {width:100%;min-width:560px;display:block}
+.sensitivity-chart g[role=button],#sensitivity-rows tr {cursor:pointer}
+#sensitivity-rows tr:hover,#sensitivity-rows tr:focus-visible {background:#284859;outline:2px solid #9bdfff;outline-offset:-2px}
+.unit-item.sensitivity-target {box-shadow:inset 4px 0 #64d6b1}
+#sensitivity-selection {padding:12px;border:1px solid #64d6b1;border-radius:8px;margin:12px 0}

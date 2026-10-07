@@ -1,10 +1,10 @@
-import {importScenario} from '../src/scenario-import.js?v=20261007-observed-position-21';
+import {importScenario} from '../src/scenario-import.js?v=20261007-sensitivity-22';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-observed-position-21';
-import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording,createSimulation} from '../src/recorded-engine.js?v=20261007-observed-position-21';
-import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow} from '../src/detection.js?v=20261007-observed-position-21';
-import {trialScenario,availableBindings} from '../src/parameters.js?v=20261007-observed-position-21';
+import {clone,validateScenario} from '../src/engine.js?v=20261007-sensitivity-22';
+import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording,createSimulation} from '../src/recorded-engine.js?v=20261007-sensitivity-22';
+import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow} from '../src/detection.js?v=20261007-sensitivity-22';
+import {trialScenario,availableBindings} from '../src/parameters.js?v=20261007-sensitivity-22';
 const demo=JSON.parse(readFileSync(new URL('../data/shared-demo.txt',import.meta.url)));
 function run(s,record=true){const m=new RecordedSimulation(s),g=sharedSteps(m,s.mission,undefined,{horizon:s.duration,record});let v=g.next();while(!v.done)v=g.next();return {m,r:v.value};}
 const {m,r}=run(demo);assert(m.frames.length>1);assert(r.events.length);assert(r.actionEvents.some(e=>e.type==='nodeChanged'&&e.nodeId==='home'));assert(r.actionEvents.some(e=>e.type==='arrived'));assert(r.actionEvents.some(e=>e.type==='received'));const before=m.computeCount,a=m.evaluate(110),b=m.evaluate(0);assert.equal(b.time,0);assert.deepEqual(m.evaluate(110),a);assert.equal(m.computeCount,before);const restored=restoreRecording(recordingPayload(m));assert.deepEqual(restored.evaluate(110),{...a,recording:{...a.recording,computeCount:0}});assert.equal(restored.computeCount,0);

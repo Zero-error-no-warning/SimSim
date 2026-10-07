@@ -1,24 +1,27 @@
-import {WorkspaceUI} from './workspace-ui.js?v=20261007-observed-position-21';
-import {NavigationUI} from './navigation-ui.js?v=20261007-observed-position-21';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261007-observed-position-21';
-import {ContextMenu} from './context-menu.js?v=20261007-observed-position-21';
-import {TerrainUI} from './terrain-ui.js?v=20261007-observed-position-21';
-import { BehaviorUI } from './behavior-ui.js?v=20261007-observed-position-21';
-import { createSimulation } from './recorded-engine.js?v=20261007-observed-position-21';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261007-observed-position-21';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261007-observed-position-21';
-import { importScenario } from './scenario-import.js?v=20261007-observed-position-21';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261007-observed-position-21';
-import { restoreAnalysisResult } from './detection.js?v=20261007-observed-position-21';
-import { AnalysisUI } from './analysis-ui.js?v=20261007-observed-position-21';
-import { MapView } from './view.js?v=20261007-observed-position-21';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261007-observed-position-21';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261007-observed-position-21';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-sensitivity-22';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261007-sensitivity-22';
+import {parameter} from './parameters.js?v=20261007-sensitivity-22';
+import {WorkspaceUI} from './workspace-ui.js?v=20261007-sensitivity-22';
+import {NavigationUI} from './navigation-ui.js?v=20261007-sensitivity-22';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261007-sensitivity-22';
+import {ContextMenu} from './context-menu.js?v=20261007-sensitivity-22';
+import {TerrainUI} from './terrain-ui.js?v=20261007-sensitivity-22';
+import { BehaviorUI } from './behavior-ui.js?v=20261007-sensitivity-22';
+import { createSimulation } from './recorded-engine.js?v=20261007-sensitivity-22';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261007-sensitivity-22';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261007-sensitivity-22';
+import { importScenario } from './scenario-import.js?v=20261007-sensitivity-22';
+import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261007-sensitivity-22';
+import { restoreAnalysisResult } from './detection.js?v=20261007-sensitivity-22';
+import { AnalysisUI } from './analysis-ui.js?v=20261007-sensitivity-22';
+import { MapView } from './view.js?v=20261007-sensitivity-22';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261007-sensitivity-22';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261007-sensitivity-22';
 assertDocumentVersion();
 const motionFields=[['motion-horizontal','horizontal',1,0],['motion-vertical','vertical',1,0],['motion-scale','scale',1,2000],['motion-delay','startDelay',1,0],['motion-speed','speedVariation',100,0]];
 const $=requireElement;
 new WorkspaceUI();
-let selectedTask=null;
+let selectedTask=null,sensitivityTarget=null;
 const mapMenu=new ContextMenu($('map-menu'));
 const FACTION_NAMES={
   friendly:'味方',hostile:'相手側',neutral:'中立'
@@ -32,7 +35,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='無効（計算対象外）';
-const worker=new Worker(new URL('./worker.js?v=20261007-observed-position-21',import.meta.url),{
+const worker=new Worker(new URL('./worker.js?v=20261007-sensitivity-22',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 let workerReady=false,timeout=null,waitNotice=null,workerWaitMessage=null;
@@ -131,6 +134,7 @@ const analysisUI=new AnalysisUI({
       keepResults:true,autoRecord:true,message
     });undo.push(previous);if(undo.length>25)undo.shift();redo.length=0;dirty=true;updateUndo();const target=model.scenario.units.find(u=>u.faction===next.mission?.targetFaction);if(target)select(target.id);
   },
+  focusSensitivity:b=>focusSensitivity(b),
   seek:(value,id)=>{
     setAuthoring(false);setEditMode(null);if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();
   }
@@ -287,6 +291,7 @@ function applyScenario(next,{
   if(selectedWaypoint&&(!definition(scenario,selectedWaypoint.id)||selectedWaypoint.index>=editableDefinition(scenario,selectedWaypoint.id).unit.route.length))selectedWaypoint=null;
   if(!model.scenario.units.some(u=>u.id===selected))selected=model.scenario.units[0]?.id||null;
   snapshot=model.evaluate(0);
+  sensitivityTarget=null;
   view.setScenario(model.scenario,selected,model);
   refreshRouteChecks();
   view.updateSnapshot(snapshot);
@@ -328,6 +333,7 @@ function commit(mutate,message) {
   const next=clone(scenario);
   try{
     mutate(next);
+    pruneSensitivity(next);
     validateScenario(next);
   }catch(error){
     showError(error.message);
@@ -356,6 +362,7 @@ function updateUndo(){
   $('redo').disabled=!redo.length;
 }
 function select(id){
+  sensitivityTarget=null;
   selectedWaypoint=null;
   selected=id;
   setEditMode(null);
@@ -374,8 +381,27 @@ function scrollSelectedUnit(){
   if(button)button.scrollIntoView({block:'nearest',inline:'nearest'});
 }
 function selectTask(id){
+  sensitivityTarget=null;
   selectedTask=id;
   updateLinks();
+}
+function sensitivityUnits(b){
+  const [kind,id]=b.target.split(':');
+  return model.scenario.units.filter(u=>kind==='unit'?u.id===id:kind==='group'?u.groupId===id:kind==='assignment'?sharedAssignment(scenario,u.id)?.id===id:kind==='behavior'?sharedAssignment(scenario,u.id)?.behaviorId===id:false).map(u=>u.id);
+}
+function focusSensitivity(b){
+  const ids=sensitivityUnits(b),[kind,id]=b.target.split(':');
+  if(ids.length){$('unit-search').value='';select(ids[0]);}
+  sensitivityTarget=b;updateLinks();
+  if(ids.length)view.focusSelected();
+  if(kind==='behavior'){
+    const a=scenario.behaviorAssignments.find(a=>a.behaviorId===id),p=parameter(b.parameter);behaviorUI.open(a?.id);
+    behaviorUI.graphId=id;behaviorUI.assignmentId=a?.id??null;
+    behaviorUI.selected=p.collection==='nodes'?p.itemId:null;behaviorUI.selectedTrigger=p.collection==='triggers'?p.itemId:null;behaviorUI.fitAll=true;behaviorUI.render();behaviorUI.tab('graph');
+  }else if(kind==='assignment'){
+    behaviorUI.open(id);behaviorUI.tab('task');
+  }
+  notify('感度分析の対象を強調しました。'+(ids.length?' '+ids.length+'ユニット。':' 現在の配置に対象ユニットはありません。'));
 }
 function renderTasks(){
   const list=$('task-list');list.replaceChildren();
@@ -391,9 +417,9 @@ function renderTasks(){
   }
 }
 function updateLinks(){
-  const ids=model.scenario.units.filter(u=>sharedAssignment(scenario,u.id)?.id===selectedTask).map(u=>u.id);
+  const ids=sensitivityTarget?sensitivityUnits(sensitivityTarget):model.scenario.units.filter(u=>sharedAssignment(scenario,u.id)?.id===selectedTask).map(u=>u.id);
   const related=new Set(ids),owner=sharedAssignment(scenario,selected)?.id;
-  for(const button of $('unit-list').children){button.classList.toggle('selected',button.dataset.id===selected);button.classList.toggle('related',related.has(button.dataset.id));button.setAttribute('aria-pressed',String(button.dataset.id===selected));}
+  for(const button of $('unit-list').children){button.classList.toggle('sensitivity-target',!!sensitivityTarget&&related.has(button.dataset.id));button.classList.toggle('selected',button.dataset.id===selected);button.classList.toggle('related',related.has(button.dataset.id));button.setAttribute('aria-pressed',String(button.dataset.id===selected));}
   for(const button of $('task-list').querySelectorAll('.task-item')){button.classList.toggle('selected',button.dataset.task===selectedTask);button.classList.toggle('related',button.dataset.task===owner);button.setAttribute('aria-pressed',String(button.dataset.task===selectedTask));}
   view.setRelatedUnits(ids);
 }
@@ -966,7 +992,7 @@ $('file').addEventListener('change',async()=>{
   const file=$('file').files[0];if(!file)return;
   try {
     if(file.size>MAX_FILE_BYTES)throw new Error('ファイルは256MB以下にしてください。');
-    const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
+    const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-sensitivity'?restoreSensitivityResult(parsed):parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
     if(parsed.type==='SimSim-recording'&&(parsed.version!==2||parsed.model!==RECORD_MODEL))throw Error('旧版の記録は元の版で開いてください。');
     const recording=parsed.type==='SimSim-recording'?parsed:null,next=restored?.source??importScenario(recording?.source??parsed);
     if(dirty&&!confirm('保存していない変更があります。ファイルを読み込みますか？'))return;

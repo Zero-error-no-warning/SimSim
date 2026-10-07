@@ -1,24 +1,27 @@
-import {HistoryUI} from './history-ui.js?v=20261007-observed-position-21';
-import {MeasurementUI} from './measurement-ui.js?v=20261007-observed-position-21';
-import {stateMembers} from './state-measurement.js?v=20261007-observed-position-21';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-observed-position-21';
-import { RECORD_MODEL } from './recording.js?v=20261007-observed-position-21';
-import { numericScale } from './chart-scale.js?v=20261007-observed-position-21';
-import { clone,validateScenario } from './engine.js?v=20261007-observed-position-21';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-observed-position-21';
-import { ParameterEditor } from './parameter-ui.js?v=20261007-observed-position-21';
-import { requireElement } from './ui-dom.js?v=20261007-observed-position-21';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261007-sensitivity-22';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-sensitivity-22';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-sensitivity-22';
+import {HistoryUI} from './history-ui.js?v=20261007-sensitivity-22';
+import {MeasurementUI} from './measurement-ui.js?v=20261007-sensitivity-22';
+import {stateMembers} from './state-measurement.js?v=20261007-sensitivity-22';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-sensitivity-22';
+import { RECORD_MODEL } from './recording.js?v=20261007-sensitivity-22';
+import { numericScale } from './chart-scale.js?v=20261007-sensitivity-22';
+import { clone,validateScenario } from './engine.js?v=20261007-sensitivity-22';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-sensitivity-22';
+import { ParameterEditor } from './parameter-ui.js?v=20261007-sensitivity-22';
+import { requireElement } from './ui-dom.js?v=20261007-sensitivity-22';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({
-    getScenario,getSnapshot,commit,replay,seek,showError,notify
+    getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity
   }) {
     Object.assign(this,{
-      getScenario,getSnapshot,commit,replay,seek,showError,notify
+      getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity
     });
-    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-observed-position-21',import.meta.url),{
+    this.worker=new Worker(new URL('./analysis-worker.js?v=20261007-sensitivity-22',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -32,6 +35,8 @@ export class AnalysisUI {
     });
     this.history=new HistoryUI({getScenario,getSnapshot,seek});
     this.measurements=new MeasurementUI(this);
+    this.sensitivity=new SensitivityUI(this);
+    this.resultMode='comparison';
     this.runId=0;
     this.running=false;
     this.rows=[];
@@ -121,6 +126,7 @@ export class AnalysisUI {
       this.stop();
       this.rows=[];
       this.base=null;
+      this.resultMode='comparison';
       this.highlightCount=null;
       this.completed=0;
       this.planned=0;
@@ -135,6 +141,7 @@ export class AnalysisUI {
   loadResult(result) {
     this.stop();
     this.base=clone(result.source);
+    this.resultMode=result.mode??'comparison';
     this.rows=result.rows;
     this.completed=result.completed;
     this.planned=result.planned;
@@ -193,6 +200,7 @@ export class AnalysisUI {
       ...s,analysis:a
     });
     $('parameter-plan').textContent=conditions.length+'条件 × '+a.trials+'試行 = '+conditions.length*a.trials+'試行';
+    this.sensitivity.renderConfig();
   }
   stateOptions(assignmentId,nodeId){
     const s=this.getScenario(),list=$('mission-assignment'),old=assignmentId??list.value;
@@ -225,10 +233,11 @@ export class AnalysisUI {
       step:Number($('analysis-step').value),interval:Number($('analysis-step').value)
     };
     next.analysis={
-      ...next.analysis,...this.parameters.read(),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100
+      ...next.analysis,...this.parameters.read(),...this.sensitivity.read(),trials:Number($('analysis-trials').value),step:Number($('analysis-step').value),requiredRate:Number($('analysis-required').value)/100
     };
     delete next.analysis.groupId;
     delete next.analysis.counts;
+    pruneSensitivity(next);
     return validateScenario(next);
   }
   start() {
@@ -237,18 +246,20 @@ export class AnalysisUI {
       if(JSON.stringify(next)!==JSON.stringify(this.getScenario())&&!this.commit(next,'分析設定を変更しました。'))return;
       this.stop();
       this.base=clone(this.getScenario());
+      this.resultMode=this.base.analysis.mode??'comparison';
+      const conditions=this.resultMode==='sensitivity'?prepareSensitivity(this.base).conditions:analysisConditions(this.base);
       this.rows=[];
       this.running=true;
       this.highlightCount=null;
       this.completed=0;
-      this.planned=analysisConditions(this.base).length*this.base.analysis.trials;
+      this.planned=conditions.length*this.base.analysis.trials;
       this.buttons();
       this.renderResults();
       $('analysis-progress').textContent='準備中…';
       $('analysis-bar').max=this.planned;
       $('analysis-bar').value=0;
       this.worker.postMessage({
-        type:'run',runId:++this.runId,scenario:this.base
+        type:this.resultMode==='sensitivity'?'sensitivity':'run',runId:++this.runId,scenario:this.base
       });
     }catch(error){
       this.showError(error.message);
@@ -261,6 +272,9 @@ export class AnalysisUI {
     $('analysis-restore').disabled=!this.base||this.running;
   }
   renderResults() {
+    const sensitive=this.resultMode==='sensitivity'&&!!this.base;
+    $('comparison-results').hidden=sensitive;this.sensitivity.renderResults();
+    if(sensitive)return;
     const state=(this.base??this.getScenario())?.mission?.type==='state';
     $('analysis-observed-heading').textContent=state?'1つ以上状態へ到達した試行':'1つ以上探知した試行';
     $('analysis-rate-heading').textContent=state?'条件を満たした到達率':'成立率';$('analysis-time-heading').textContent=state?'初回成立時刻の中央値':'成立時刻の中央値';$('analysis-members-heading').hidden=!state;
@@ -301,7 +315,7 @@ export class AnalysisUI {
   }
   replayTrial(row,trial,seekTime,label='') {
     if(!trial)return;
-    const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.base,condition,trial.trial);
+    const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.resultMode==='sensitivity'?sensitivityTrialSource(this.base):this.base,condition,trial.trial);
     this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
     this.seek(seekTime??trial.successTime??next.mission?.deadline??next.duration);
     $('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(label?' · '+label+'未達':'')+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');
@@ -460,14 +474,15 @@ export class AnalysisUI {
     }
   }
   export() {
+    const sensitive=this.resultMode==='sensitivity';
     const payload={
-      type:'SimSim-analysis',version:5,model:RECORD_MODEL,confidence:'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
+      type:sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive?1:5,model:RECORD_MODEL,confidence:sensitive?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
     };
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{
       type:'text/plain;charset=utf-8'
     }),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;
-    a.download='SimSim-analysis.txt';
+    a.download=sensitive?'SimSim-sensitivity.txt':'SimSim-analysis.txt';
     document.body.append(a);
     a.click();
     a.remove();
