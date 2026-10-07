@@ -9,7 +9,7 @@ const server=http.createServer((req,res)=>{
  try{let source=fs.readFileSync(file,'utf8');
  if(mode.endsWith('old-worker')&&/^(?:src\/)?worker\.js$/.test(name))source="self.onmessage=({data})=>{if(data.type==='ping')self.postMessage({type:'pong'});else if(data.type==='scenario')self.postMessage({type:'error',revision:data.revision,message:'分析の種類はcomparison・sensitivityです。'});};";
  if(mode.endsWith('old-analysis')&&/^(?:src\/)?analysis-worker\.js$/.test(name))source="self.onmessage=({data})=>{if(data.type==='ping')self.postMessage({type:'pong',build:'20261007-sensitivity-22'});};";
- if(mode.endsWith('stale-hash')&&name==='worker.js')source=source.replaceAll(/20261007-worker-version-24-[a-f0-9]{12}/g,'20261007-worker-version-24-000000000000');
+ if(mode.endsWith('stale-hash')&&name==='worker.js')source=source.replaceAll(new RegExp(UI_BUILD+'-[a-f0-9]{12}','g'),UI_BUILD+'-000000000000');
  res.end(source);}catch{res.writeHead(404);res.end();}
 });await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
 try{browser=await chromium.launch({headless:true,...(process.env.SIMSIM_BROWSER_EXECUTABLE?{executablePath:process.env.SIMSIM_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
