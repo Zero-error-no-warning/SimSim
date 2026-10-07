@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-worker-version-24';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-worker-version-24';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261007-worker-version-24';
-import {trialScenario} from '../src/parameters.js?v=20261007-worker-version-24';
-import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261007-worker-version-24';
-import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261007-worker-version-24';
-import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261007-worker-version-24';
+import {clone,validateScenario} from '../src/engine.js?v=20261007-plan-switch-25';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261007-plan-switch-25';
+import {trialScenario} from '../src/parameters.js?v=20261007-plan-switch-25';
+import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261007-plan-switch-25';
+import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261007-plan-switch-25';
+import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261007-plan-switch-25';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 source.mission.deadline=2; // Additional points must execute beyond the main goal's deadline.
 source.measurements=[

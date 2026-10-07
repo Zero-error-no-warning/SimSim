@@ -1,16 +1,16 @@
-import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-worker-version-24';
-import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {measurementErrors} from './measurement-points.js?v=20261007-worker-version-24';
-import {Terrain} from './terrain.js?v=20261007-worker-version-24';
-export {Terrain} from './terrain.js?v=20261007-worker-version-24';
-import {navigationProfileErrors} from './route-planner.js?v=20261007-worker-version-24';
-import {materializeRoutes} from './route-planner.js?v=20261007-worker-version-24';
-import {stateGoalErrors} from './state-measurement.js?v=20261007-worker-version-24';
-import { readParameter } from './parameters.js?v=20261007-worker-version-24';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261007-worker-version-24';
-import { actionErrors } from './action-settings.js?v=20261007-worker-version-24';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261007-worker-version-24';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261007-worker-version-24';
+import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-plan-switch-25';
+import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {measurementErrors} from './measurement-points.js?v=20261007-plan-switch-25';
+import {Terrain} from './terrain.js?v=20261007-plan-switch-25';
+export {Terrain} from './terrain.js?v=20261007-plan-switch-25';
+import {navigationProfileErrors} from './route-planner.js?v=20261007-plan-switch-25';
+import {materializeRoutes} from './route-planner.js?v=20261007-plan-switch-25';
+import {stateGoalErrors} from './state-measurement.js?v=20261007-plan-switch-25';
+import { readParameter } from './parameters.js?v=20261007-plan-switch-25';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261007-plan-switch-25';
+import { actionErrors } from './action-settings.js?v=20261007-plan-switch-25';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261007-plan-switch-25';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261007-plan-switch-25';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -105,7 +105,7 @@ export function validateScenario(value) {
   }
   if(!errors.length)errors.push(...sensitivityConfigErrors(value));
   if(!errors.length)errors.push(...planConfigErrors(value));
-  if(!errors.length&&value.analysis?.plans)for(const plan of value.analysis.plans.items){
+  if(!errors.length&&value.analysis?.plans)for(const plan of [...value.analysis.plans.items,...(value.analysis.plans.editor?.drafts??[])]){
     try{const operational=applyPlan(value,plan);delete operational.analysis;delete operational.mission;delete operational.measurements;validateScenario(operational);}
     catch(e){errors.push('運用案「'+plan.name+'」: '+e.message);}
   }

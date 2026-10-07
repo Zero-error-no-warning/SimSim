@@ -1,10 +1,10 @@
-import {importScenario} from './scenario-import.js?v=20261007-worker-version-24';
-import {clone,validateScenario} from './engine.js?v=20261007-worker-version-24';
-import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-worker-version-24';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-worker-version-24';
-import {median} from './measurement-points.js?v=20261007-worker-version-24';
-import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {RECORD_MODEL} from './recording.js?v=20261007-worker-version-24';
+import {importScenario} from './scenario-import.js?v=20261007-plan-switch-25';
+import {clone,validateScenario} from './engine.js?v=20261007-plan-switch-25';
+import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-plan-switch-25';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-plan-switch-25';
+import {median} from './measurement-points.js?v=20261007-plan-switch-25';
+import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {RECORD_MODEL} from './recording.js?v=20261007-plan-switch-25';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;

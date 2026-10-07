@@ -1,12 +1,12 @@
-import {ContextMenu} from './context-menu.js?v=20261007-worker-version-24';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-worker-version-24';
-import {isParameterRef} from './behavior-parameters.js?v=20261007-worker-version-24';
-import {NavigationUI} from './navigation-ui.js?v=20261007-worker-version-24';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-worker-version-24';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-worker-version-24';
-import { clone,validateScenario } from './engine.js?v=20261007-worker-version-24';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-worker-version-24';
-import { requireElement } from './ui-dom.js?v=20261007-worker-version-24';
+import {ContextMenu} from './context-menu.js?v=20261007-plan-switch-25';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-plan-switch-25';
+import {isParameterRef} from './behavior-parameters.js?v=20261007-plan-switch-25';
+import {NavigationUI} from './navigation-ui.js?v=20261007-plan-switch-25';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261007-plan-switch-25';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261007-plan-switch-25';
+import { clone,validateScenario } from './engine.js?v=20261007-plan-switch-25';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261007-plan-switch-25';
+import { requireElement } from './ui-dom.js?v=20261007-plan-switch-25';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

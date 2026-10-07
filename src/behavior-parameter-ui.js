@@ -1,5 +1,5 @@
-import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261007-worker-version-24';
-import {requireElement} from './ui-dom.js?v=20261007-worker-version-24';
+import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261007-plan-switch-25';
+import {requireElement} from './ui-dom.js?v=20261007-plan-switch-25';
 const $=requireElement;
 const unitName={s:'秒',m:'m',ratio:'%'};
 const scale=p=>p.unit==='ratio'?100:1;

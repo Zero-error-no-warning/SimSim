@@ -1,5 +1,5 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261007-worker-version-24';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261007-worker-version-24';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261007-plan-switch-25';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261007-plan-switch-25';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'

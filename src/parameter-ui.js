@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261007-worker-version-24';
-import { requireElement } from './ui-dom.js?v=20261007-worker-version-24';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261007-plan-switch-25';
+import { requireElement } from './ui-dom.js?v=20261007-plan-switch-25';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

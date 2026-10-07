@@ -1,30 +1,30 @@
-import {verifiedWorker} from './worker-client.js?v=20261007-worker-version-24';
-import {PlansUI} from './plans-ui.js?v=20261007-worker-version-24';
-import {preparePlans,planTrialSource} from './plans.js?v=20261007-worker-version-24';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261007-worker-version-24';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-worker-version-24';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {HistoryUI} from './history-ui.js?v=20261007-worker-version-24';
-import {MeasurementUI} from './measurement-ui.js?v=20261007-worker-version-24';
-import {stateMembers} from './state-measurement.js?v=20261007-worker-version-24';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-worker-version-24';
-import { RECORD_MODEL } from './recording.js?v=20261007-worker-version-24';
-import { numericScale } from './chart-scale.js?v=20261007-worker-version-24';
-import { clone,validateScenario } from './engine.js?v=20261007-worker-version-24';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-worker-version-24';
-import { ParameterEditor } from './parameter-ui.js?v=20261007-worker-version-24';
-import { requireElement } from './ui-dom.js?v=20261007-worker-version-24';
+import {verifiedWorker} from './worker-client.js?v=20261007-plan-switch-25';
+import {PlansUI} from './plans-ui.js?v=20261007-plan-switch-25';
+import {preparePlans,planTrialSource} from './plans.js?v=20261007-plan-switch-25';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261007-plan-switch-25';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261007-plan-switch-25';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {HistoryUI} from './history-ui.js?v=20261007-plan-switch-25';
+import {MeasurementUI} from './measurement-ui.js?v=20261007-plan-switch-25';
+import {stateMembers} from './state-measurement.js?v=20261007-plan-switch-25';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-plan-switch-25';
+import { RECORD_MODEL } from './recording.js?v=20261007-plan-switch-25';
+import { numericScale } from './chart-scale.js?v=20261007-plan-switch-25';
+import { clone,validateScenario } from './engine.js?v=20261007-plan-switch-25';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-plan-switch-25';
+import { ParameterEditor } from './parameter-ui.js?v=20261007-plan-switch-25';
+import { requireElement } from './ui-dom.js?v=20261007-plan-switch-25';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
 export class AnalysisUI {
   constructor({
-    getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity
+    getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
   }) {
     Object.assign(this,{
-      getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity
+      getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261007-worker-version-24',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261007-plan-switch-25',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -95,7 +95,7 @@ export class AnalysisUI {
     };
     $('analysis-restore').onclick=()=>{
       if(this.base){
-        this.replay(clone(this.base),'分析元のシナリオに戻しました。');
+        this.previewing=false;this.replay(clone(this.base),'分析元のシナリオに戻しました。');
         this.highlightCount=null;
         $('replay-parameters').textContent='';
         this.renderResults();
@@ -126,7 +126,7 @@ export class AnalysisUI {
   }) {
     this.history.reset();
     if(!keepResults){
-      this.stop();
+      this.previewing=false;this.stop();
       this.rows=[];
       this.base=null;
       this.resultMode='comparison';
@@ -142,7 +142,7 @@ export class AnalysisUI {
     this.buttons();
   }
   loadResult(result) {
-    this.stop();
+    this.previewing=false;this.stop();
     this.base=clone(result.source);
     this.resultMode=result.mode??'comparison';
     this.rows=result.rows;
@@ -315,7 +315,7 @@ export class AnalysisUI {
   replayTrial(row,trial,seekTime,label='') {
     if(!trial)return;
     const condition=row.condition??analysisConditions(this.base).find(c=>c.count===row.count),{scenario:next,sampled}=trialScenario(this.resultMode==='plans'?planTrialSource(this.base,condition):this.resultMode==='sensitivity'?sensitivityTrialSource(this.base):this.base,condition,trial.trial);
-    this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
+    this.previewing=true;this.replay(next,'条件 '+condition.index+'・試行 '+trial.trial+' を再現しました。');
     this.seek(seekTime??trial.successTime??next.mission?.deadline??next.duration);
     $('replay-parameters').textContent='再現中: '+condition.label+' · 試行 '+trial.trial+(label?' · '+label+'未達':'')+(sampled.length?' · 抽出値: '+sampled.map(b=>formatBinding(this.base,b,b.value)).join(' / '):'');
     this.highlightCount=condition.id;this.renderResults();$('analysis-dialog').close();

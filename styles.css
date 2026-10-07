@@ -1500,3 +1500,13 @@ body { min-width:1100px; }
 #sensitivity-rows tr:hover,#sensitivity-rows tr:focus-visible {background:#284859;outline:2px solid #9bdfff;outline-offset:-2px}
 .unit-item.sensitivity-target {box-shadow:inset 4px 0 #64d6b1}
 #sensitivity-selection {padding:12px;border:1px solid #64d6b1;border-radius:8px;margin:12px 0}
+
+.plan-toolbar { display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--edge);background:#102638;position:relative;z-index:26; }
+.plan-toolbar>label { display:flex;align-items:center;gap:6px;min-width:0;font-size:12px; }
+.plan-toolbar select { width:clamp(120px,16vw,240px);max-width:100%;min-width:0; }
+.plan-toolbar>button,.plan-toolbar summary { padding:6px 9px;font-size:12px; }
+.plan-toolbar>output { flex:1 1 130px;min-width:0;font-size:11px;color:#a9c5da;overflow-wrap:anywhere; }
+#plan-menu { position:static; }
+#plan-menu>div { right:12px;top:calc(100% + 5px);padding:12px;width:min(440px,calc(100% - 24px));min-width:0;max-height:65vh;overflow:auto; }
+.plan-menu-actions { display:flex;flex-direction:column;gap:7px;margin-bottom:10px; }
+#plan-name-dialog { width:min(420px,90vw); }

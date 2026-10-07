@@ -1,7 +1,7 @@
-import {bindingTargetExists} from './parameters.js?v=20261007-worker-version-24';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {resolveValue} from './behavior-parameters.js?v=20261007-worker-version-24';
-import { sharedAssignment } from './shared-settings.js?v=20261007-worker-version-24';
+import {bindingTargetExists} from './parameters.js?v=20261007-plan-switch-25';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {resolveValue} from './behavior-parameters.js?v=20261007-plan-switch-25';
+import { sharedAssignment } from './shared-settings.js?v=20261007-plan-switch-25';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

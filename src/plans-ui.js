@@ -1,18 +1,35 @@
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {bindingTargetExists} from './parameters.js?v=20261007-worker-version-24';
-import {clone} from './engine.js?v=20261007-worker-version-24';
-import {capturePlan,applyPlan,planDifferences,planMetric} from './plan-settings.js?v=20261007-worker-version-24';
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {summarizePlans} from './plans.js?v=20261007-worker-version-24';
-import {requireElement as $} from './ui-dom.js?v=20261007-worker-version-24';
+import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261007-plan-switch-25';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {bindingTargetExists} from './parameters.js?v=20261007-plan-switch-25';
+import {clone} from './engine.js?v=20261007-plan-switch-25';
+import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261007-plan-switch-25';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {summarizePlans} from './plans.js?v=20261007-plan-switch-25';
+import {requireElement as $} from './ui-dom.js?v=20261007-plan-switch-25';
 const format=(n,kind,delta=false)=>n===null?'—':(delta&&n>0?'+':'')+Number((n*(kind==='rate'?100:1)).toFixed(2))+(kind==='rate'?(delta?'ポイント':'%'):'秒');
 export class PlansUI{
   constructor(owner){
     this.owner=owner;
-    $('plan-select').onchange=()=>this.renderSelection();
-    $('plan-save').onclick=()=>this.saveCurrent();
-    $('plan-load').onclick=()=>this.change(s=>{const p=s.analysis.plans.items.find(p=>p.id===$('plan-select').value);if(!p)throw Error('運用案を選択してください。');Object.assign(s,applyPlan(s,p));s.analysis.factors=(s.analysis.factors??[]).filter(b=>bindingTargetExists(s,b));pruneSensitivity(s);},true);
-    $('plan-delete').onclick=()=>this.change(s=>{const c=s.analysis.plans;c.items=c.items.filter(p=>p.id!==$('plan-select').value);if(!c.items.some(p=>p.id===c.baselineId))c.baselineId=c.items[0]?.id??'';});
+    $('plan-select').onchange=()=>this.edit(s=>{
+      Object.assign(s,switchPlan(s,$('plan-select').value));
+      s.analysis.factors=(s.analysis.factors??[]).filter(b=>bindingTargetExists(s,b));pruneSensitivity(s);
+    },'運用案を切り替えました。');
+    $('plan-save').onclick=()=>{
+      const s=this.editingSource(),p=s.analysis?.plans?.items.find(p=>p.id===planEditor(s).activeId);
+      if(p)this.edit(s=>savePlan(s,p.name),'運用案を更新しました。');else this.openName('new');
+    };
+    $('plan-new').onclick=()=>this.openName('new');
+    $('plan-rename').onclick=()=>this.openName('rename');
+    $('plan-delete').onclick=()=>this.edit(deleteActivePlan,'保存済みの運用案を削除しました。編集内容は保持しています。');
+    $('plan-name-cancel').onclick=()=>$('plan-name-dialog').close();
+    $('plan-name-form').onsubmit=e=>{
+      e.preventDefault();const name=$('plan-name').value.trim();if(!name)return;
+      const success=this.edit(s=>{
+        if(this.nameMode==='rename'){const id=planEditor(s).activeId;s.analysis.plans.items.find(p=>p.id===id).name=name;const draft=s.analysis.plans.editor?.drafts.find(d=>d.id===id);if(draft)draft.name=name;}
+        else savePlan(s,name,{create:true});
+      },this.nameMode==='rename'?'運用案の名前を変更しました。':'新しい運用案を保存しました。');
+      if(success)$('plan-name-dialog').close();
+    };
     $('plan-baseline').onchange=()=>this.change(s=>{s.analysis.plans.baselineId=$('plan-baseline').value;});
     $('plan-metric').onchange=()=>this.change(s=>{s.analysis.plans.metric=$('plan-metric').value;});
     $('plan-result-select').onchange=()=>this.renderResults();
@@ -21,28 +38,48 @@ export class PlansUI{
     };
   }
   config(s){return s.analysis?.plans??{metric:sensitivityMetrics(s)[0]?.id??'mission.rate',baselineId:'',items:[]};}
-  read(){const s=this.owner.getScenario();return s.analysis?.plans||$('analysis-mode').value==='plans'?{plans:clone(this.config(s))}:{};}
+  read(){const s=this.editingSource();return s.analysis?.plans||$('analysis-mode').value==='plans'?{plans:clone(this.config(s))}:{};}
   change(fn,close=false){
     try{const s=this.owner.readConfig();s.analysis.plans=this.config(s);fn(s);if(this.owner.commit(s,'運用案を変更しました。')&&close)$('analysis-dialog').close();}
     catch(e){this.owner.showError(e.message);this.owner.renderConfig();}
   }
-  saveCurrent(){
-    const id=$('plan-select').value,name=$('plan-name').value.trim();
-    this.change(s=>{const c=s.analysis.plans;if(!name)throw Error('運用案名を入力してください。');let p=c.items.find(p=>p.id===id);if(!p){if(c.items.length>=8)throw Error('運用案は最大8件です。');let i=1;while(c.items.some(p=>p.id==='plan-'+i))i++;p={id:'plan-'+i};c.items.push(p);c.baselineId||=p.id;}Object.assign(p,{name,operation:capturePlan(s)});this.selected=p.id;});
+  editingSource(){return this.owner.previewing&&this.owner.base?this.owner.base:this.owner.getScenario();}
+  edit(fn,message){
+    try{
+      const s=clone(this.editingSource());s.analysis??={factors:[],trials:100,step:s.recording.step,requiredRate:.95};
+      const first=!s.analysis.plans?.items.length;s.analysis.plans=this.config(s);fn(s);
+      if(first&&s.analysis.plans.items.length)s.analysis.mode='plans';
+      const success=this.owner.commit(s,message);if(success)this.owner.activatePlanEditing?.();else this.renderConfig();$('plan-menu').open=false;return success;
+    }catch(e){this.owner.showError(e.message);this.renderConfig();return false;}
+  }
+  openName(mode){
+    this.nameMode=mode;const s=this.editingSource(),c=this.config(s),p=c.items.find(p=>p.id===planEditor(s).activeId);
+    $('plan-name-title').textContent=mode==='rename'?'運用案の名前を変更':'新しい運用案として保存';
+    $('plan-name').value=mode==='rename'?p?.name??'':p?p.name.slice(0,100)+'の別案':'運用案 '+(c.items.length+1);
+    $('plan-menu').open=false;$('plan-name-dialog').showModal();$('plan-name').focus();$('plan-name').select();
   }
   renderConfig(){
-    const s=this.owner.getScenario(),c=this.config(s),select=$('plan-select'),old=this.selected??select.value;this.selected=null;
-    $('plans-editor').hidden=s.analysis?.mode!=='plans';select.replaceChildren(new Option('＋ 新しい案として保存',''),...c.items.map(p=>new Option(p.name,p.id)));if(c.items.some(p=>p.id===old))select.value=old;
+    const s=this.editingSource(),c=this.config(s),e=planEditor(s),select=$('plan-select'),p=c.items.find(p=>p.id===e.activeId),dirty=p&&planHasDraft(s,p.id),preview=!!this.owner.previewing;
+    const options=c.items.map(p=>new Option(p.name+(planHasDraft(s,p.id)?'（未更新）':''),p.id));
+    for(const d of e.drafts.filter(d=>!c.items.some(p=>p.id===d.id)))options.push(new Option(d.name+'（未保存）',d.id));
+    if(!options.some(o=>o.value===e.activeId))options.unshift(new Option('未保存の案',e.activeId));
+    select.replaceChildren(...options);select.value=e.activeId;
+    $('plan-save').textContent=p?'更新':'案として保存';$('plan-save').disabled=preview||!!p&&!dirty;
+    $('plan-new').disabled=preview||c.items.length>=8;$('plan-rename').disabled=preview||!p;$('plan-delete').disabled=preview||!p;
+    const differences=p?planDifferences(p.operation,capturePlan(s)):[];
+    $('plan-current').textContent=preview?'分析試行の再生中 · 案を選ぶと編集に戻ります':p?(dirty?'未更新：'+differences.join('、'):'保存済み'):'未保存';
+    $('plan-current').title='切替時に編集内容を保持します。分析は保存済みの案を使用します。シナリオの.txt保存には保持した編集内容も含まれます。';
+    $('plans-editor').hidden=this.owner.getScenario().analysis?.mode!=='plans';
     $('plan-baseline').replaceChildren(...c.items.map(p=>new Option(p.name,p.id)));$('plan-baseline').value=c.baselineId;$('plan-baseline').disabled=!c.items.length;
     $('plan-metric').replaceChildren(...sensitivityMetrics(s).map(m=>new Option(m.label,m.id)));$('plan-metric').value=c.metric;
     $('plan-budget').textContent=c.items.length+'案（最大8） × '+(s.analysis?.trials??100)+'試行。合計10000試行まで。';
-    this.renderSelection();
-  }
-  renderSelection(){
-    const s=this.owner.getScenario(),c=this.config(s),p=c.items.find(p=>p.id===$('plan-select').value),current=capturePlan(s);$('plan-name').value=p?.name??'運用案 '+(c.items.length+1);$('plan-save').textContent=p?'現在の設定で更新':'現在の設定を保存';$('plan-load').disabled=!p;$('plan-delete').disabled=!p;
-    const differences=p?planDifferences(p.operation,current):[];$('plan-current').textContent=p?(differences.length?'保存した案と現在の編集の違い：'+differences.join('、'):'現在の編集は保存した案と一致しています。'):'配置・経路・報告間隔・挙動・能力・担当をまとめて保存します。';
-    const base=c.items.find(p=>p.id===c.baselineId),body=$('plan-list');body.replaceChildren();
-    for(const item of c.items){const tr=document.createElement('tr');for(const v of [item.name+(item===base?'（基準）':''),base?planDifferences(base.operation,item.operation).join('、')||'基準と同じ':'—']){const td=document.createElement('td');td.textContent=v;tr.append(td);}body.append(tr);}
+    const base=c.items.find(p=>p.id===c.baselineId);
+    for(const id of ['plan-list','plan-analysis-list']){
+      const body=$(id);body.replaceChildren();
+      for(const item of c.items){const tr=document.createElement('tr');for(const v of [item.name+(item===base?'（基準）':''),base?planDifferences(base.operation,item.operation).join('、')||'基準と同じ':'—',planHasDraft(s,item.id)?'未更新の編集あり':'保存済み']){const td=document.createElement('td');td.textContent=v;tr.append(td);}body.append(tr);}
+    }
+    const pending=c.items.filter(p=>planHasDraft(s,p.id)).map(p=>p.name);
+    $('plan-analysis-note').textContent=pending.length?'未更新：'+pending.join('、')+'。分析には保存済みの設定を使用します。通常画面で選択して「更新」すると反映されます。':'保存済みの案を比較します。案の切替・保存・更新は通常画面の3D表示上部で行います。';
   }
   renderResults(){
     const o=this.owner,active=o.resultMode==='plans'&&!!o.base;$('plans-results').hidden=!active;if(!active)return;

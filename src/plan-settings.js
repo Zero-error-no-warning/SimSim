@@ -1,4 +1,4 @@
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-worker-version-24';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261007-plan-switch-25';
 export const PLAN_FIELDS=['units','groups','behaviors','behaviorAssignments','routes','destinations'];
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function capturePlan(s){return Object.fromEntries(PLAN_FIELDS.map(k=>[k,copy(s[k]??[])]));}
@@ -16,6 +16,20 @@ export function planConfigErrors(s){
     ids.add(p?.id);
     if(typeof p?.name!=='string'||!p.name.trim()||p.name.length>120)errors.push('運用案名は1～120文字にしてください。');
     if(!p?.operation||typeof p.operation!=='object'||Array.isArray(p.operation)||Object.keys(p.operation).some(k=>!PLAN_FIELDS.includes(k))||PLAN_FIELDS.some(k=>!Array.isArray(p.operation[k])))errors.push('運用案には配置・経路・挙動の配列を保存してください。');
+  }
+  const e=c.editor;
+  if(e!==undefined){
+    const validId=id=>typeof id==='string'&&(id===''||/^[A-Za-z0-9_-]{1,80}$/.test(id));
+    if(!e||typeof e!=='object'||Array.isArray(e)||!validId(e.activeId)||!Array.isArray(e.drafts)||e.drafts.length>16)errors.push('運用案の編集保持は有効な案IDと最大16件の配列にしてください。');
+    else{
+      const draftIds=new Set();
+      for(const d of e.drafts){
+        if(!d||!validId(d.id)||draftIds.has(d.id)||typeof d.name!=='string'||!d.name.trim()||d.name.length>120)errors.push('保持する運用案のID・名前が不正です。');
+        draftIds.add(d?.id);
+        if(!d?.operation||typeof d.operation!=='object'||Array.isArray(d.operation)||Object.keys(d.operation).some(k=>!PLAN_FIELDS.includes(k))||PLAN_FIELDS.some(k=>!Array.isArray(d.operation[k])))errors.push('編集中の運用案には配置・経路・挙動の配列を保持してください。');
+      }
+      if(e.activeId&&!ids.has(e.activeId)&&!draftIds.has(e.activeId))errors.push('編集中の運用案がありません。');
+    }
   }
   if(c.items.length&&!ids.has(c.baselineId))errors.push('基準となる運用案を選択してください。');
   return errors;

@@ -1,8 +1,8 @@
-import {clone} from './engine.js?v=20261007-worker-version-24';
-import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-worker-version-24';
-import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261007-worker-version-24';
-import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261007-worker-version-24';
-import {requireElement as $} from './ui-dom.js?v=20261007-worker-version-24';
+import {clone} from './engine.js?v=20261007-plan-switch-25';
+import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261007-plan-switch-25';
+import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261007-plan-switch-25';
+import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261007-plan-switch-25';
+import {requireElement as $} from './ui-dom.js?v=20261007-plan-switch-25';
 const number=n=>n===null?'—':Number(n.toFixed(3)).toString();
 export class SensitivityUI{
   constructor(owner){

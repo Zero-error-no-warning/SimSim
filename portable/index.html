@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261007-worker-version-24">
+<html lang="ja" data-simsim-build="20261007-plan-switch-25">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261007-worker-version-24-ac110c543b0d">
-<script src="main.js?v=20261007-worker-version-24-ac110c543b0d" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261007-plan-switch-25-0e9cff0967fc">
+<script src="main.js?v=20261007-plan-switch-25-0e9cff0967fc" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.07.24</span>
+<h1>SimSim <span id="app-version">v2026.10.07.25</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
@@ -66,7 +66,9 @@
 <span class="phase-badge">編集 → 計算 → 再生・分析</span>
 </div></aside>
 <div class="pane-resizer" data-pane="unit" role="separator" aria-label="ユニット一覧の幅" aria-orientation="vertical" tabindex="0"></div>
-<main class="main-panel"><div class="map-toolbar">
+<main class="main-panel"><div class="plan-toolbar" aria-label="運用案の切替と管理">
+<label>運用案 <select id="plan-select" aria-label="表示する運用案"></select></label><button id="plan-save">案として保存</button><details id="plan-menu" class="menu-popover"><summary>案の操作</summary><div><div class="plan-menu-actions"><button id="plan-new">新しい案として保存</button><button id="plan-rename">名前を変更</button><button id="plan-delete">保存済みの案を削除</button></div><p class="route-help">切替時に編集中の内容を保持します。分析は保存済みの案を使用します。</p><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th><th>編集状況</th></tr></thead><tbody id="plan-list"></tbody></table></div></div></details><output id="plan-current" role="status"></output>
+</div><div class="map-toolbar">
 <div class="view-buttons">
 <button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="view3d" class="active">3D</button><button id="viewtop">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
 </div>
@@ -280,7 +282,7 @@
 </div></details><div class="dialog-actions">
 <button id="group-remove" type="button" class="danger">群を削除</button><button id="group-cancel" type="button">取消</button><button type="submit" class="primary">適用</button>
 </div>
-</form></dialog><dialog id="analysis-dialog" class="analysis-dialog"><div class="analysis-heading">
+</form></dialog><dialog id="plan-name-dialog"><form id="plan-name-form"><h2 id="plan-name-title">新しい運用案として保存</h2><label class="field">案の名前<input id="plan-name" maxlength="120" required></label><div class="dialog-actions"><button id="plan-name-cancel" type="button">取消</button><button type="submit" class="primary" id="plan-name-submit">保存</button></div></form></dialog><dialog id="analysis-dialog" class="analysis-dialog"><div class="analysis-heading">
 <h2>ミッションとパラメータの比較</h2>
 <div><button id="analysis-close">閉じる</button></div>
 </div>
@@ -317,11 +319,9 @@
 <p id="sensitivity-empty" class="route-help" hidden>候補がありません。使用するユニット、センサー、通信、挙動を設定してください。</p>
 <div class="sensitivity-candidate-scroll"><table class="results-table"><thead><tr><th>性能</th><th>現在の基準値</th><th>小さい値</th><th>大きい値</th></tr></thead><tbody id="sensitivity-candidates"></tbody></table></div>
 <p id="sensitivity-plan" class="route-help"></p><p class="route-help">初期候補の変更幅は基準値の±10%。0は表示単位の1、個数は最低1個の差です。範囲端では片側だけを変更します。数値は編集できます。全組合せの比較値を使わず現在の設定を基準にします。ばらつきに指定した性能は候補から除外します。</p></section>
-<section id="plans-editor" hidden><h3>運用案を保存して比較</h3>
-<p class="route-help">現在の設定を保存し、分析を閉じて地図や挙動を編集したら、新しい案として保存します。保存済みの案を選ぶと更新できます。地形・成功条件・計測点・期間・シード・判定間隔・ばらつきは全案で共通です。</p>
-<label class="field">運用案<select id="plan-select"></select></label><label class="field">案の名前<input id="plan-name" maxlength="120"></label><div class="compact-actions"><button id="plan-save">現在の設定を保存</button><button id="plan-load">地図に戻して編集</button><button id="plan-delete">削除</button></div><p id="plan-current" class="route-help"></p>
-<label class="field">基準案<select id="plan-baseline"></select></label><label class="field">比較する評価指標<select id="plan-metric"></select></label><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th></tr></thead><tbody id="plan-list"></tbody></table></div><p id="plan-budget" class="route-help"></p>
-<p class="route-help">同じユニット・群・タスク・ノードのIDを保って編集すると、対応する乱数を共有できます。名称変更は対応を変えません。案の比較では数値の全組合せを使用しません。</p></section>
+<section id="plans-editor" hidden><h3>比較する運用案</h3><p id="plan-analysis-note" class="route-help"></p>
+<label class="field">基準案<select id="plan-baseline"></select></label><label class="field">比較する評価指標<select id="plan-metric"></select></label><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th><th>編集状況</th></tr></thead><tbody id="plan-analysis-list"></tbody></table></div><p id="plan-budget" class="route-help"></p>
+<p class="route-help">地形・成功条件・計測点・期間・シード・判定間隔・ばらつきは全案で共通です。同じユニット・群・タスク・ノードのIDを保って編集すると、対応する乱数を共有できます。案の比較では数値の全組合せを使用しません。</p></section>
 <h3>試行ごとのばらつき</h3>
 <div id="uncertainties-editor"></div>
 <button id="add-uncertainties" type="button">ばらつきを追加</button><p class="route-help">群のひな型への抽出値は、その試行の全個体で共通です。個体間の差は航跡のずれ・速度のばらつき・出発遅れで設定します。</p>

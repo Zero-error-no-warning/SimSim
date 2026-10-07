@@ -1,4 +1,4 @@
-import {RUNTIME_BUILD} from './ui-dom.js?v=20261007-worker-version-24';
+import {RUNTIME_BUILD} from './ui-dom.js?v=20261007-plan-switch-25';
 // Check the executable Worker, rather than trusting the requested URL or HTML.
 export function verifiedWorker(url,options){
   const worker=new Worker(url,options),post=worker.postMessage.bind(worker),queue=[];

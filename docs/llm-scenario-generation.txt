@@ -1,7 +1,7 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 1.10 / 更新日: 2026-10-07
-対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-worker-version-24
+文書版: 1.11 / 更新日: 2026-10-07
+対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-plan-switch-25
 生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
 仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
 
@@ -2100,6 +2100,9 @@ operationには units、groups、behaviors、behaviorAssignments、routes、dest
 全案で成功条件・追加計測点の参照タスク／状態と、共通のばらつき対象を有効に保つ。対象数0を表現する場合は案の担当を無効化するなど、参照先を削除せず未達として計測できる構成にする。
 共通要素のIDを保持する。名前・配置・経路・挙動の編集や案の順序ではシード・試行番号による抽出値は変わらない。新しいIDは元の要素と対応しない。
 案をJSONで直接生成する場合、operationを展開した各案が共通成功条件で検証できるか確認する。data/plans-demo.txtは完成サンプル。運用案一覧は通常のシナリオTXTに保持される。分析結果はSimSim-plans/version 1でSimSimが生成する。LLMは試行結果を捏造しない。
+UIビルド25では通常画面の3D表示上部で案を切替・保存・更新する。分析はitemsの保存済みoperationを使用し、編集途中の案を自動反映しない。
+analysis.plans.editor は任意。形式は { activeId, drafts:[{id,name,operation}] }。activeIdは現在編集している案ID、無名の案は空文字。空文字以外はitemsまたはdraftsに存在するIDにする。draftsは最大16件、idは重複不可（空文字または案IDと同じ文字・長さ制約）、nameは1～120文字、operationは同じ6配列。削除した案の編集内容はitemsにないIDのdraftとして保持できる。
+現在表示している編集内容はシナリオ直下の6配列が正であり、非表示の編集途中の内容はdraftsへ保持する。editorを省略した旧ファイルも読める。生成時は通常editorを省略し、itemsとシナリオ直下に表示したい案を定義すればよい。
 成功条件の有効／無効のUIトグルは廃止。分析画面で条件を設定すると常に使用される。missionを持たないシナリオの通常計算は従来どおり可能。
 
 

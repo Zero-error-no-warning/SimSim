@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261007-worker-version-24';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261007-plan-switch-25';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){
