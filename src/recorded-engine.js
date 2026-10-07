@@ -1,13 +1,13 @@
-import {measurePoints} from './measurement-points.js?v=20261006-patrol-cruise-19';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261006-patrol-cruise-19';
-import {resolveGraph} from './behavior-parameters.js?v=20261006-patrol-cruise-19';
-import { Simulation } from './engine.js?v=20261006-patrol-cruise-19';
-import { importScenario } from './scenario-import.js?v=20261006-patrol-cruise-19';
-import { random01, streamKey } from './random.js?v=20261006-patrol-cruise-19';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261006-patrol-cruise-19';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261006-patrol-cruise-19';
-import { graphTriggers } from './shared-settings.js?v=20261006-patrol-cruise-19';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261006-patrol-cruise-19';
+import {measurePoints} from './measurement-points.js?v=20261007-patrol-reentry-20';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261007-patrol-reentry-20';
+import {resolveGraph} from './behavior-parameters.js?v=20261007-patrol-reentry-20';
+import { Simulation } from './engine.js?v=20261007-patrol-reentry-20';
+import { importScenario } from './scenario-import.js?v=20261007-patrol-reentry-20';
+import { random01, streamKey } from './random.js?v=20261007-patrol-reentry-20';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261007-patrol-reentry-20';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261007-patrol-reentry-20';
+import { graphTriggers } from './shared-settings.js?v=20261007-patrol-reentry-20';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261007-patrol-reentry-20';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
@@ -123,7 +123,10 @@ export class RecordedSimulation extends Simulation {
         const p=pathPoint(s.path,s.progress);s.position=p.point;s.heading=p.heading;s.segment=p.segment;
       }else{
         const nearest=(s.node.joinMode??'nearest')==='nearest'?closestPathPoint(s.path,s.position):pathPoint(s.path,0);
-        s.progress=nearest.along??0;s.join=nearest.point;
+        s.progress=nearest.along??0;
+        // Re-entering patrol on the route needs no joining movement. A
+        // zero-distance join would otherwise consume a whole calculation step.
+        s.join=dist(s.position,nearest.point)>1e-7?nearest.point:null;
       }
       s.readyAt=t+(initial?s.path.delay:0);
       s.status=t<s.readyAt?'waiting':'moving';

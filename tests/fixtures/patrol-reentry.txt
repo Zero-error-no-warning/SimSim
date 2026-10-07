@@ -1,0 +1,352 @@
+{
+  "version": 3,
+  "unitsSystem": "SI",
+  "title": "報告を繰り返し受信しながら周回",
+  "duration": 60,
+  "terrain": {
+    "columns": 3,
+    "rows": 3,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "6",
+      "name": "6",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "7",
+      "name": "7",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 100,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "9",
+      "name": "9",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 600,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "8",
+      "name": "8",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 700,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "1",
+      "name": "1",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 2500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "5",
+      "name": "5",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 7500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "3",
+      "name": "3",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 10000,
+        "y": 2000,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "4",
+      "name": "4",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 10000,
+        "y": 8000,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "2",
+      "name": "2",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 2,
+      "initial": {
+        "x": 3000,
+        "y": 10000,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "sender",
+      "name": "周期報告",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": -500,
+        "y": -500,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once",
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 0,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    }
+  ],
+  "routes": [
+    {
+      "id": "r",
+      "name": "四角形",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 10000,
+          "y": 0,
+          "z": 0
+        },
+        {
+          "x": 10000,
+          "y": 10000,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "y": 10000,
+          "z": 0
+        }
+      ]
+    }
+  ],
+  "destinations": [
+    {
+      "id": "d",
+      "name": "合流地点",
+      "kind": "point",
+      "point": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "g",
+      "name": "移動と周回",
+      "initial": "patrol",
+      "nodes": [
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "d"
+        },
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "r",
+          "speedFraction": 0.7,
+          "joinMode": "nearest"
+        }
+      ],
+      "edges": [],
+      "triggers": [
+        {
+          "id": "on-message",
+          "event": "received",
+          "to": "patrol",
+          "once": false
+        }
+      ]
+    },
+    {
+      "id": "periodic-reports",
+      "name": "1秒ごとに4個体へ報告",
+      "initial": "stop",
+      "nodes": [
+        {
+          "id": "send0",
+          "kind": "report",
+          "receiverId": "6"
+        },
+        {
+          "id": "send1",
+          "kind": "report",
+          "receiverId": "7"
+        },
+        {
+          "id": "send2",
+          "kind": "report",
+          "receiverId": "9"
+        },
+        {
+          "id": "send3",
+          "kind": "report",
+          "receiverId": "8"
+        },
+        {
+          "id": "stop",
+          "kind": "stop"
+        }
+      ],
+      "edges": [
+        {
+          "from": "send0",
+          "to": "send1",
+          "when": "sent"
+        },
+        {
+          "from": "send1",
+          "to": "send2",
+          "when": "sent"
+        },
+        {
+          "from": "send2",
+          "to": "send3",
+          "when": "sent"
+        },
+        {
+          "from": "send3",
+          "to": "stop",
+          "when": "sent"
+        }
+      ],
+      "triggers": [
+        {
+          "id": "tick",
+          "event": "time",
+          "seconds": 1,
+          "to": "send0",
+          "once": false
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "a",
+      "name": "同じタスク",
+      "behaviorId": "g",
+      "targets": [
+        "unit:6",
+        "unit:7",
+        "unit:9",
+        "unit:8",
+        "unit:1",
+        "unit:5",
+        "unit:3",
+        "unit:4",
+        "unit:2"
+      ],
+      "spacing": "none",
+      "spacingDistance": 1000
+    },
+    {
+      "id": "reports",
+      "name": "周期報告",
+      "behaviorId": "periodic-reports",
+      "targets": [
+        "unit:sender"
+      ]
+    }
+  ],
+  "recording": {
+    "step": 1,
+    "interval": 1
+  }
+}

@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261006-patrol-cruise-19';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261007-patrol-reentry-20';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

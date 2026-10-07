@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone} from '../src/engine.js?v=20261006-patrol-cruise-19';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261006-patrol-cruise-19';
+import {clone} from '../src/engine.js?v=20261007-patrol-reentry-20';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-patrol-reentry-20';
 
 const point=(x,y=0)=>({x,y,z:0});
 const fixture=JSON.parse(readFileSync(new URL('fixtures/patrol-transition.txt',import.meta.url)));
@@ -79,5 +79,31 @@ for(const state of original.states){const other=changedIds.states.find(s=>s.unit
 // Disabling feedback keeps the requested cruise speed even with uneven gaps.
 const unadjusted=clone(uneven);unadjusted.behaviorAssignments[0].gain=0;
 const constant=run(unadjusted).model;
-for(const s of constant.states)near(s.distance,599*1.4);
+for(const s of constant.states)near(s.distance,600*1.4);
+
+// A repeated event that re-enters patrol must not consume every step with a
+// zero-distance join. The former control showed "moving" with distance zero.
+for(const seconds of [.5,1,5]){
+  const source=clone(uneven);source.duration=60;source.behaviorAssignments[0].spacing='none';
+  source.behaviors[0].triggers=[{id:'refresh',event:'time',seconds,once:false,to:'patrol'}];
+  const {model,result}=run(source);
+  assert.equal(result.actionEvents.filter(e=>e.type==='triggered').length,Math.floor(60/seconds)*source.units.length);
+  for(const s of model.states){assert.equal(s.join,null);near(s.distance,84);assert.equal(s.status,'moving');}
+  assert.deepEqual(restoreRecording(recordingPayload(model)).evaluate(60).units,model.evaluate(60).units);
+}
+// Positionless reports reach four of nine separated patrol members every second.
+// Repeated reception must not pin just those receivers in place.
+const messages=JSON.parse(readFileSync(new URL('fixtures/patrol-reentry.txt',import.meta.url)));
+const receivers=run(messages).model;
+assert.equal(receivers.result.actionEvents.filter(e=>e.type==='received').length,240);
+for(const s of receivers.states.filter(s=>s.unit.id!=='sender')){
+  near(s.distance,84);assert.equal(s.join,null);assert.equal(s.status,'moving');
+}
+// An irrelevant proximity condition used to split a zero-distance join at the
+// current time forever. Bound iteration so this regression fails instead of hangs.
+const proximity=clone(messages);proximity.behaviors[0].triggers.push({id:'far',event:'near',destinationId:'d',distance:0,distanceMode:'horizontal',to:'patrol'});
+proximity.destinations[0].point=point(-500,-500);
+const checked=createSimulation(proximity),steps=sharedSteps(checked,undefined,undefined,{record:true});
+let count=0,step=steps.next();while(!step.done){assert(++count<1000,'Calculation time must advance');step=steps.next();}
+near(checked.states.find(s=>s.unit.id==='6').distance,84);
 console.log('PASS: coincident arrivals/proximity -> patrol, distributed uneven spacing without stops, start/nearest entry, even/fixed spacing, continuous positions, deterministic order, summary/replay and initial departures');

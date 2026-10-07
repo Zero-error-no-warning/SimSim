@@ -1,5 +1,5 @@
-import {resolveValue} from './behavior-parameters.js?v=20261006-patrol-cruise-19';
-import { sharedAssignment } from './shared-settings.js?v=20261006-patrol-cruise-19';
+import {resolveValue} from './behavior-parameters.js?v=20261007-patrol-reentry-20';
+import { sharedAssignment } from './shared-settings.js?v=20261007-patrol-reentry-20';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

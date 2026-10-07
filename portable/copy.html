@@ -7,14 +7,14 @@ body{font-family:system-ui,sans-serif;margin:24px auto;padding:0 20px;max-width:
 <h1>SimSim 持ち込み用ファイル</h1>
 <p>下の<strong>5ファイル</strong>をコピーし、社内サーバの同じフォルダに、表示された名前でUTF-8のテキストとして保存してください。<code>index.html</code> をHTTP／HTTPSで開くと起動します。サンプルとThree.jsは組み込み済みです。</p>
 <p>「表示」で全文を開き、「全文をコピー」を押してください。コピーが使えない場合は「全文を選択」→ Ctrl+Cでもコピーできます。「TXTを保存」は内容が同じ <code>ファイル名.txt</code> をダウンロードします。保存先では末尾の <code>.txt</code> を外してください。</p>
-<p class="build">版: 20261006-patrol-cruise-19-28190652adf2</p>
+<p class="build">版: 20261007-patrol-reentry-20-1bbdc8a11d22</p>
 <table><thead><tr><th>保存する名前</th><th>サイズ</th><th>内容</th></tr></thead><tbody id="files"></tbody></table>
 <p id="status" role="status" aria-live="polite"></p>
 <section id="editor" hidden><h2 id="filename"></h2><button id="copy">全文をコピー</button><button id="select">全文を選択</button><button id="download">TXTを保存</button><textarea id="content" readonly spellcheck="false" aria-label="ファイルの全文"></textarea><p id="checksum"></p></section>
 <p><a href="index.html" target="_blank" rel="noopener">持ち込み版を試す</a> · <a href="../index.html">通常版へ戻る</a></p>
 <script>
 'use strict';
-const files=[{"name":"index.html","bytes":50043,"sha256":"43682aacd4057c52d1bf93ac12e102b9d1713e42e5f6b89f2758b665d623aaaa"},{"name":"styles.css","bytes":29257,"sha256":"f54dea82955e419f78eb75ce3038823ec9f0120571061fef06662125652dbeee"},{"name":"main.js","bytes":1062264,"sha256":"096c765f519e11a75b73ac44e5ef8c4d60e637b9c49dcb219888f6f1bbd64193"},{"name":"worker.js","bytes":87016,"sha256":"08f477482b5d03508a9fa54ab531acd496492e0153b7372201bf5ade3d8364a6"},{"name":"analysis-worker.js","bytes":83839,"sha256":"d8de48ff894d1dfd6946ea69bab8f53586b31dc1b3cc980fb46b81eff628c94f"}],build='20261006-patrol-cruise-19-28190652adf2',status=document.getElementById('status'),content=document.getElementById('content');
+const files=[{"name":"index.html","bytes":50046,"sha256":"05e514a5337963e5861b8ab2bdfd9f859f78f1170373a7188856fb3a312896b9"},{"name":"styles.css","bytes":29257,"sha256":"f54dea82955e419f78eb75ce3038823ec9f0120571061fef06662125652dbeee"},{"name":"main.js","bytes":1062300,"sha256":"91db53106722d803d47f6fdfe63b85f3d9c124dea18b746ead9dc7e371a3d20e"},{"name":"worker.js","bytes":87051,"sha256":"6154c3f127cd8efffe293b4fd03d27837e635ffd0599804da720ba7fcdaa810e"},{"name":"analysis-worker.js","bytes":83872,"sha256":"7581024d07254f16a73aa972c8c2e09b06165ffe47f72a118b4ae29390906657"}],build='20261007-patrol-reentry-20-1bbdc8a11d22',status=document.getElementById('status'),content=document.getElementById('content');
 let selected=null;
 for(const file of files){
   const row=document.createElement('tr'),name=document.createElement('td'),size=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');

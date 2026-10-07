@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261006-patrol-cruise-19';
-import {UI_VERSION} from '../src/ui-dom.js?v=20261006-patrol-cruise-19';
+import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261007-patrol-reentry-20';
+import {UI_VERSION} from '../src/ui-dom.js?v=20261007-patrol-reentry-20';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-patrol-transition-'));
 const server=http.createServer((req,res)=>{
@@ -65,6 +65,22 @@ try{
   await page.locator('#file').setInputFiles(archive);
   await page.waitForFunction(()=>!document.getElementById('play').disabled);
   assert(!await page.locator('#error-dialog').isVisible());
+  // A real sender repeatedly reports to four separated patrol members.
+  const reentry=new URL('fixtures/patrol-reentry.txt',import.meta.url);
+  await page.locator('#file').setInputFiles(fileURLToPath(reentry));
+  await page.waitForFunction(()=>document.getElementById('title').value==='報告を繰り返し受信しながら周回');
+  await page.locator('#record-run').click();
+  await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
+  const [reports]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);
+  const reportsFile=path.join(folder,'reports-record.txt');await reports.saveAs(reportsFile);
+  const reportModel=restoreRecording(JSON.parse(fs.readFileSync(reportsFile)));
+  assert.equal(reportModel.result.actionEvents.filter(e=>e.type==='received').length,240);
+  for(const u of reportModel.evaluate(60).units.filter(u=>u.id!=='sender')){
+    assert(Math.abs(u.distance-84)<1e-3);assert.equal(u.status,'moving');assert.equal(u.nodeId,'patrol');
+  }
+  await page.locator('#file').setInputFiles(reportsFile);
+  await page.waitForFunction(()=>!document.getElementById('play').disabled);
+  assert(!await page.locator('#error-dialog').isVisible());
   assert.deepEqual(errors,[]);
-  console.log('PASS: move -> arrival/proximity -> cooperative patrol, uneven placement without stops, Worker/local agreement, saved recording, seeking/reopen and visible version');
+  console.log('PASS: move -> arrival/proximity -> cooperative patrol, uneven placement without stops, repeated report reception without stalls, Worker/local agreement, saved recording, seeking/reopen and visible version');
 }finally{await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});}
