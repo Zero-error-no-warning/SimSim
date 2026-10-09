@@ -211,7 +211,7 @@ for(const input of document.querySelectorAll('[id^="unit-communication-"]'))inpu
     renderInspector();
     return;
   }
-  commit(next=>definition(next,selected).unit.communication=readCommunication('unit'),'通信能力を変更しました。');
+  commit(next=>definition(next,selected).unit.communication={...definition(next,selected).unit.communication,...readCommunication('unit')},'通信能力を変更しました。');
 };
 function renderSensor(prefix,unit) {
   const s=unit.sensor??{
@@ -716,7 +716,7 @@ $('group-form').addEventListener('submit',event=>{
   if(!source){
     showError('ひな型が見つかりません。');return;
   }
-  const template=clone(source);delete template.enabled;template.communication=readCommunication('group');template.sensor={
+  const template=clone(source);delete template.enabled;template.communication={...template.communication,...readCommunication('group')};template.sensor={
     ...template.sensor,...readSensor('group')
   };template.detectability=Number($('group-detectability').value);template.motion={
     ...template.motion

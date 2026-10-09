@@ -1,3 +1,4 @@
+import {communicationErrors} from './communication.js?v=20261007-plan-switch-25';
 import {informationErrors} from './information-settings.js?v=20261007-plan-switch-25';
 import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-plan-switch-25';
 import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plan-switch-25';
@@ -22,7 +23,7 @@ export const clone = value => JSON.parse(JSON.stringify(value));
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const pointValid = p => p && ['x','y','z'].every(k => finite(p[k]));
 export function validateScenario(value) {
-  const errors = informationErrors(value);
+  const errors = [...informationErrors(value),...communicationErrors(value??{})];
   if (!value || typeof value !== 'object') throw new Error('シナリオはオブジェクトで指定してください。');
   if (![1,2,3,4].includes(value.version)) errors.push('versionは1・2・3・4にしてください。');
   if (value.unitsSystem !== 'SI') errors.push('unitsSystemはSI（m・s）にしてください。');

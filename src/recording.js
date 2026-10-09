@@ -29,7 +29,7 @@ export function recordingPayload(model) {
   return payload;
 }
 const position = p => p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
-const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered','near','decision','commandRejected']);
+const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered','near','decision','commandRejected','deliveryFailed','operationalChanged']);
 export function restoreRecording(payload) {
   if(payload?.type!=='SimSim-recording'||payload.version!==2||!compatibleModel(payload)||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
   const model=new RecordedSimulation(payload.source),n=model.states.length;

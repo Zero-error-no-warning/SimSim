@@ -8,13 +8,15 @@ import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } fro
 import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261007-plan-switch-25';
 import { graphTriggers } from './shared-settings.js?v=20261007-plan-switch-25';
 import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261007-plan-switch-25';
+import {transmissionAttempts} from './communication.js?v=20261007-plan-switch-25';
+import {propagationVisible} from './propagation.js?v=20261007-plan-switch-25';
 import {chooseDecision} from './decision.js?v=20261007-plan-switch-25';
 export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261007-plan-switch-25';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const INFORMATION_MODEL='information-behavior-v4';
 export const recordModel=s=>s.version>=4?INFORMATION_MODEL:RECORD_MODEL;
 export const compatibleModel=p=>p?.model===recordModel(p?.source??{});
-export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing'];
+export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing','disabled'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
 const dist = (a, b) => Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z);
 const mod = (a, b) => (a % b + b) % b;
@@ -211,12 +213,13 @@ export class RecordedSimulation extends Simulation {
     if(!previous||previous.targetId!==observation.targetId||time(observation)>=time(previous))s.latestObservation=observation;
   }
   observedPosition(s,event){
+    if(event?.messageKind==='status')event=null;
     if(restrictedInformation(this.source)&&!event?.targetPosition)return selectedContact(s,s.node?.selector,this.currentTime??0)?.position??null;
     const latest=s.latestObservation??s.receivedPosition,time=o=>o.observationTime??o.sampleTime??o.time;
     // Prefer the observation causing this transition, including a first
     // detection among several simultaneous contacts. Keep newer coordinates
     // when an older report for that same target arrives afterwards.
-    const observed=event?.targetPosition&&!(latest?.targetId===event.targetId&&time(latest)>time(event))?event:latest;
+    const observed=event?.targetPosition&&!(latest&&latest.targetId===event.targetId&&time(latest)>time(event))?event:latest;
     return observed?.targetPosition??null;
   }
   destination(s,reference=s.node,positions){
@@ -280,7 +283,7 @@ export class RecordedSimulation extends Simulation {
     const units=this.states.map((s,i)=>{
       const k=i*5,x=a.values,y=b.values,node=this.nodeNames[a.nodes[i]-1],d=mod(y[k+3]-x[k+3]+Math.PI,Math.PI*2)-Math.PI;
       return {
-        ...this.stateSnapshot(s,this.replayPath(s,t)),position:{
+        ...this.stateSnapshot(s,this.replayPath(s,t)),operational:(this.source.operationalEvents??[]).filter(e=>e.unitId===s.unit.id&&e.time<=t).at(-1)?.operational??true,position:{
           x:x[k]+(y[k]-x[k])*f,y:x[k+1]+(y[k+1]-x[k+1])*f,z:x[k+2]+(y[k+2]-x[k+2])*f
         },heading:x[k+3]+d*f,distance:x[k+4]+(y[k+4]-x[k+4])*f,status:STATUS[a.status[i]],nodeId:node?.split(':')[1],error:a.status[i]===3?'記録された地形制約停止':null,actualSpeed:b.time>a.time?Math.max(0,(y[k+4]-x[k+4])/(b.time-a.time)):0
       };
@@ -368,7 +371,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     success:false,successTime:null,targetCount:mission?.type==='state'?targets.length:goalTargets.length,detectedCount:0,responderCount:responders.length,reachedCount:0,events:[],actionEvents:events,invalidUnits:states.filter(s=>s.error).length,constrainedPaths:0
   };
   if(model.source.version>=4)result.informationEvents=[];
-  let candidateChecks=0,lastRecord=0,lastContact=0;
+  let candidateChecks=0,lastRecord=0,lastContact=0,messageSequence=0;
+  const deliveredIds=new Set(),appliedOperational=new Set(),statusTimes=new Map();
   const range=Math.max(1,...states.filter(s=>s.unit.sensor?.enabled).map(s=>s.unit.sensor.range));
   const emit=(s,when,t,extra={
   })=>{
@@ -392,7 +396,11 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
           // modulo alone would turn that lap into zero and stop everyone.
           const s=members[i],next=members[(i+1)%members.length],max=s.path.actualSpeed,nominal=max*(s.node.speedFraction??.7);
           let speed=nominal;
-          if(a.spacing!=='none'&&members.length>1){
+          if(a.coordination==='reported'&&a.spacing!=='none'&&members.length>1){
+            const reports=members.filter(m=>m!==s).map(m=>s.knowledge.friendlyReports[m.unit.id]).filter(r=>r?.position&&r.reportedState==='operational'&&model.currentTime-r.observedAt<=(a.reportMaxAge??60));
+            if(!reports.length)speed=a.missingReport==='stop'?0:nominal;
+            else{const gap=Math.min(...reports.map(r=>mod(closestPathPoint(s.path,r.position).along-s.progress,s.path.length))),desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length,correction=(a.gain??.01)*(gap-desired),allowance=correction<0?nominal*.5:max-nominal;if(allowance>0)speed+=allowance*Math.tanh(correction/allowance);}
+          }else if(a.spacing!=='none'&&members.length>1){
             const gap=(next.progress/next.path.length-s.progress/s.path.length+(i===members.length-1?1:0))*s.path.length,desired=a.spacing==='fixed'?(a.spacingDistance??500):s.path.length/members.length;
             const correction=(a.gain??.01)*(gap-desired);
             // Keep cruising while correcting spacing. Bound deceleration at
@@ -409,13 +417,13 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   }
   function report(s,t) {
     const c=s.unit.communication,receiver=model.byId.get(s.node.receiverId??s.assignment.receiverId),distance=receiver?dist(s.position,receiver.position):Infinity;
-    const target=s.observation?.type==='received'&&s.observation.targetPosition?s.observation:s.latestObservation??(s.observation?.targetPosition?s.observation:null),key=streamKey(model.source,s.unit.id,'unified-report-v2')+'|'+JSON.stringify([s.node.id,target?.targetId,target?.originObserverId??target?.observerId??s.unit.id]);
+    const target=s.observation?.type==='received'&&s.observation.targetId&&s.observation.targetPosition?s.observation:s.latestObservation??(s.observation?.targetId&&s.observation?.targetPosition?s.observation:null),key=streamKey(model.source,s.unit.id,'unified-report-v2')+'|'+JSON.stringify([s.node.id,target?.targetId,target?.originObserverId??target?.observerId??s.unit.id]);
     let reason=null;
     if(!c?.enabled)reason='通信無効';
     else if(!receiver)reason='受信先不在（無効・計算対象外）';
     else if(distance>c.range)reason='通信範囲外';
-    else if(c.terrainLOS&&!terrainVisible(model.terrain,s.position,receiver.position))reason='地形遮蔽';
-    else if(random01(key)>=c.probability)reason='通信試行失敗';
+    else if(model.source.version<4&&c.terrainLOS&&!terrainVisible(model.terrain,s.position,receiver.position))reason='地形遮蔽';
+    else if(model.source.version<4&&random01(key)>=c.probability)reason='通信試行失敗';
     s.sent=true;
     const extra={
       receiverId:receiver?.unit.id,distance:Number.isFinite(distance)?distance:null,reason,targetId:target?.targetId,targetPosition:target?.targetPosition?{...target.targetPosition}:undefined,observationTime:target?.observationTime??target?.sampleTime??target?.time,originObserverId:target?.originObserverId??target?.observerId??s.unit.id,trace:[...s.trace],sourcePosition:{
@@ -427,6 +435,15 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     };
     if(s.node.messageKind==='status')Object.assign(extra,{messageKind:'status',subjectId:s.unit.id,reportedState:s.operational?'operational':'disabled',observationTime:t,targetPosition:{...s.position},targetId:undefined});
     if(s.node.messageKind==='command')Object.assign(extra,{messageKind:'command',command:s.node.command,targetId:undefined,targetPosition:undefined});
+    if(model.source.version>=4){
+      const messageId=s.unit.id+'-message-'+(++messageSequence),attempts=transmissionAttempts(model,s,receiver,t,messageId),usable=attempts.filter(a=>!a.reason);
+      extra.messageId=messageId;extra.sentAt=t;extra.links=attempts;
+      for(const a of usable)if(a.arrives)messages.push({...extra,linkId:a.linkId,type:'received',time:t+a.delay,unitId:receiver.unit.id,senderId:s.unit.id});
+      // Packet loss is an analyst event, never a sendFailed transition.
+      for(const a of usable)if(!a.arrives)events.push({type:'deliveryFailed',time:t,unitId:s.unit.id,receiverId:receiver.unit.id,messageId,linkId:a.linkId,reason:'偶発未着（送信側には未確認）'});
+      extra.reason=usable.length?null:attempts[0]?.reason;
+      return emit(s,usable.length?'sent':'sendFailed',t,extra);
+    }
     if(!reason)messages.push({
       ...extra,type:'received',time:t+c.delay,unitId:receiver.unit.id,senderId:s.unit.id
     });
@@ -459,7 +476,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     }
     if(!relevant.size)return end;
     for(const s of relevant){
-      if(s.status==='blocked')continue;
+      if(s.status==='blocked'||!s.operational)continue;
       if(s.join&&s.path.actualSpeed)end=Math.min(end,start+dist(s.position,s.join)/s.path.actualSpeed);
       if(!s.join&&(!s.graph||['follow','patrol'].includes(s.node?.kind))&&s.path.actualSpeed&&s.path.length){
         const along=s.node?.kind==='patrol'?s.progress:mod((s.routeTravel??s.distance),s.path.length);
@@ -479,6 +496,21 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     return boundary;
   }
   function immediate(t) {
+    model.currentTime=t;
+    for(const [i,e] of (model.source.operationalEvents??[]).entries())if(e.time<=t&&!appliedOperational.has(i)){
+      const s=model.byId.get(e.unitId);appliedOperational.add(i);if(!s)continue;s.operational=e.operational;
+      if(!s.operational)s.status='disabled';else if(s.node)model.enter(s,s.node.id,t);
+      events.push({type:'operationalChanged',time:t,unitId:e.unitId,operational:e.operational});
+    }
+    // Periodic self-state reports do not interrupt movement nodes.
+    for(const s of states)if(s.operational&&s.unit.statusReports){
+      const rule=s.unit.statusReports,last=statusTimes.get(s.unit.id)??-Infinity;
+      if(t-last>=rule.interval-1e-8){statusTimes.set(s.unit.id,t);for(const receiverId of rule.receiverIds){
+        const shadow={...s,graph:null,node:{id:'periodic-status',kind:'report',messageKind:'status',receiverId},trace:[]};
+        const first=events.length;report(shadow,t);
+        for(const e of events.slice(first))if(e.nodeId==='periodic-status')delete e.nodeId;
+      }}
+    }
     let changed=false;
     for(const s of states)for(let i=0;i<(s.graph?.triggers.length??0);i++){
       if(!model.activate(s,'time',t,events))break;
@@ -486,7 +518,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     }
     const settle=s=>{
       for(let depth=0;depth<64;depth++){
-        if(s.status==='blocked')return;
+        if(s.status==='blocked'||!s.operational)return;
         let next=checkNear(s,t);
         if(next){changed=true;continue;}
         const decision=chooseDecision(s,t);
@@ -504,6 +536,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       }
       throw Error('即時ノード遷移が64段を超えました。循環を見直してください。');
     };
+    if(model.source.version<4){
     for(const s of states)settle(s);
     let delivered=0;
     while(true){
@@ -511,6 +544,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       if(!messages[0]||messages[0].time>t)return changed;
       if(++delivered>100000||events.length>100000)throw Error('情報イベントが10万件を超えました。');
       const m=messages.shift(),s=model.byId.get(m.unitId);
+      if(!s?.operational||s.unit.communication?.enabled===false){events.push({type:'deliveryFailed',time:t,unitId:m.senderId,receiverId:m.unitId,messageId:m.messageId,reason:'配達時の受信装置停止'});continue;}
+      if(m.messageId&&deliveredIds.has(m.messageId))continue;if(m.messageId)deliveredIds.add(m.messageId);
       events.push(m);
       s.observation=m;
       if(result.informationEvents&&(m.messageKind!=='command'||s.unit.commandSources?.includes(m.senderId)))result.informationEvents.push({...m});
@@ -529,16 +564,45 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       }else changed=model.transition(s,'received',t,events,m)||changed;
       settle(s);
     }
+    }
+    let delivered=0;
+    while(true){
+      messages.sort((a,b)=>a.time-b.time||a.unitId.localeCompare(b.unitId)||a.senderId.localeCompare(b.senderId));
+      const ready=[];
+      while(messages[0]?.time<=t){
+        if(++delivered>100000||events.length>100000)throw Error('情報イベントが10万件を超えました。');
+        const m=messages.shift(),s=model.byId.get(m.unitId);
+        if(!s?.operational||s.unit.communication?.enabled===false){events.push({type:'deliveryFailed',time:t,unitId:m.senderId,receiverId:m.unitId,messageId:m.messageId,reason:'配達時の受信装置停止'});continue;}
+        if(deliveredIds.has(m.messageId))continue;deliveredIds.add(m.messageId);
+        events.push(m);ready.push({s,m});
+        if(m.messageKind!=='command'||s.unit.commandSources?.includes(m.senderId))result.informationEvents.push({...m});
+        rememberInformation(s.knowledge,m,t);
+        if(m.messageKind==='command'&&s.unit.commandSources?.includes(m.senderId))s.knowledge.commands.push({...m});
+        if(m.messageKind!=='status'&&m.targetPosition){
+          const old=s.receivedPosition;if(!old||old.targetId!==m.targetId||(m.observationTime??m.time)>=(old.observationTime??old.time)){s.receivedPosition={...m,targetPosition:{...m.targetPosition}};model.rememberObservation(s,s.receivedPosition);}
+        }
+      }
+      // All messages at this timestamp update knowledge before any decision.
+      for(const {s,m} of ready){s.observation=m;
+        if(m.messageKind==='command'){
+          if(s.unit.commandSources?.includes(m.senderId))changed=model.transition(s,'command',t,events,m)||changed;
+          else events.push({type:'commandRejected',time:t,unitId:s.unit.id,senderId:m.senderId});
+        }else changed=model.transition(s,'received',t,events,m)||changed;
+      }
+      for(const s of states)settle(s);
+      if(!messages.some(m=>m.time<=t))return changed;
+    }
   }
   immediate(0);
   if(stateTracker)Object.assign(result,stateTracker.update(events));
   if(record)model.record(0,frames);
   for(let start=0;start<horizon;){
     const nextContact=Math.min(horizon,(Math.floor((start+1e-8)/dt)+1)*dt,mission?.deadline>start?mission.deadline:Infinity);
-    let nextEvent=Infinity;
+    let nextEvent=Math.min(Infinity,...(model.source.operationalEvents??[]).filter(e=>e.time>start+1e-8).map(e=>e.time));
+    for(const s of states)if(s.operational&&s.unit.statusReports)nextEvent=Math.min(nextEvent,(statusTimes.get(s.unit.id)??start)+s.unit.statusReports.interval);
     for(const m of messages)if(m.time>start+1e-8)nextEvent=Math.min(nextEvent,m.time);
     for(const s of states){
-      if(s.status==='blocked')continue;
+      if(s.status==='blocked'||!s.operational)continue;
       if(s.node?.kind==='wait'&&!s.elapsed){
         const seconds=s.node.parameter==='preparation'?s.assignment.preparation??s.node.seconds:s.node.seconds;
         if(s.nodeTime+seconds>start+1e-8)nextEvent=Math.min(nextEvent,s.nodeTime+seconds);
@@ -562,7 +626,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     const positions=new Map(states.map(s=>[s.unit.id,{...s.position}])),future=new Map(states.map(s=>[s.unit.id,model.predict(s,end,speeds,positions)]));
     let changed=false;
     for(const s of states){
-      if(s.status==='blocked')continue;
+      if(s.status==='blocked'||!s.operational)continue;
       if(s.graph&&!s.node)continue;
       if(s.node?.kind==='follow'&&s.join){
         if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end-(s.path.actualSpeed?s.routeOffset/s.path.actualSpeed:0)-(s.routeOffset>0?s.path.delay:0);s.routeTravel=s.routeOffset;}
@@ -627,7 +691,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     }
     // Collect contacts from one snapshot, then apply transitions in stable order.
     if(Math.abs(end-nextContact)<1e-8){
-      const observers=states.filter(s=>s.unit.sensor?.enabled&&s.status!=='blocked'&&s.node?.kind!=='stop'&&s.node?.sensor!==false);
+      const observers=states.filter(s=>s.operational&&s.unit.sensor?.enabled&&s.status!=='blocked'&&s.node?.kind!=='stop'&&s.node?.sensor!==false);
       const index=makeIndex(observers.map(s=>({
         unit:s.unit,position:mounted(s.position,s.unit),state:s
       })),range),contacts=[];
@@ -643,7 +707,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
           const s=item.state,sensor=s.unit.sensor,pair=s.unit.id+'|'+target.unit.id;
           if(s.unit.faction===target.unit.faction||!sensor.domains.includes(target.unit.domain))continue;
           const distance=dist(item.position,p),probability=contactProbability(sensor,distance,target.unit.detectability??1,end-lastContact);
-          if(probability<=0||sensor.terrainLOS&&!terrainVisible(model.terrain,item.position,p))continue;
+          if(probability<=0||(model.source.version>=4?!propagationVisible(model.terrain,item.position,p,sensor):sensor.terrainLOS&&!terrainVisible(model.terrain,item.position,p)))continue;
           if(random01(streamKey(model.source,s.unit.id,'unified-detect-v2')+'|'+JSON.stringify([target.unit.id,lastContact,end]))<probability){
             const observed={
               type:'detected',time:end,sampleTime:end,observationTime:end,observerId:s.unit.id,unitId:s.unit.id,targetId:target.unit.id,distance,observerPosition:{

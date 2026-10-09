@@ -17,3 +17,15 @@ version 3は既存の実行・記録モデルを維持する。version 4は `inf
 報告ノードのmessageKindはobservation（既定）、status（自分の状態）、command。命令は `command:{name:"respond"}`。受信ユニットの `commandSources` にある送信元だけを受け付ける。`when:"command",commandName:"respond"` の接続は配達時刻に遷移する。送信成功の時点では遠隔ユニットを動かさない。命令そのものは位置観測を作らない。
 
 通しサンプルは `data/information-mission.txt`。探知者→中継→対処ユニットの経路で観測が届き、鮮度を条件に対処する。通信失敗や観測欠落は、対処側の既知情報を直接更新しない。
+
+## 段階B
+
+`communicationLinks` は送信元・受信先・IDと既存通信能力を持つ有向リンク。省略時は送信側の従来設定を使う。複数リンクは同じ論理メッセージを送信し、最初の受信だけを適用する。再送は別メッセージIDで独立した偶発乱数を使う。failureModelのtrialは試行全体、windowはwindowSecondsの区間内で継続する障害（outageProbability）。既存version 3の通信乱数は維持する。
+
+媒体はideal・rf・optical・acoustic・satellite。idealは従来の抽象リンク。rf/opticalは地球半径6371000mに対する球面の地平線と、地形遮蔽設定時の曲率補正を使う。earthFactorは実効半径係数（既定1）。局所平面座標・海面標高を用いる近似であり、全地球座標・屈折・電波リンクバジェットは含まない。acousticは両端が水中、他媒体は両端が海面以上の使用領域制約。伝搬速度の既定は音響1500m/s、他は光速。衛星リンクは抽象化した衛星経由で、軌道や可視衛星の計算はしない。sensor.mediumにも同じ使用領域・見通しを適用する。
+
+`communicationDisruptions` はstart/endの半開区間、medium、linkIdsを絞り、available:false、probabilityMultiplier、delayAddedを指定する。送信時にリンク状態を評価し、配達時に受信側の稼働を再確認する。伝搬中の経路変動は計算しない（instantTransmission近似）。偶発未着は解析専用deliveryFailedイベントで、送信側のsendFailed接続には漏らさない。確認応答は未実装。自動再送はなく、wait/report接続で設定する。
+
+`operationalEvents:[{unitId,time,operational:false}]` は交戦結果ではなく外部から注入する停止事象。移動・探知・送受信を止める。司令部のfriendlyReportsを直接更新しない。`unit.statusReports:{receiverIds,interval}` は移動と並行する周期状態報告。停止前の報告が最後に届いた場合、司令部はその古い「稼働」を保持する。沈黙から損害確定への自動変換はしない。
+
+協調周回はassignment.coordinationのideal/reportedで区別する。reportedは仲間の報告位置とreportMaxAgeのみを用い、情報欠落時はmissingReportのcruise/stopに従う。既存idealの間隔制御と性能は維持する。同時刻の受信は保有情報をまとめて更新してから判断する。
