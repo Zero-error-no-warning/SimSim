@@ -1,6 +1,6 @@
 import {validateMeasurements} from './measurement-points.js?v=20261007-plan-switch-25';
 import {stateSummary,validateStateResult} from './state-measurement.js?v=20261007-plan-switch-25';
-import { sharedSteps,RecordedSimulation,RECORD_MODEL } from './recorded-engine.js?v=20261007-plan-switch-25';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL,compatibleModel } from './recorded-engine.js?v=20261007-plan-switch-25';
 import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261007-plan-switch-25';
 import { clone,validateScenario } from './engine.js?v=20261007-plan-switch-25';
 import { missionErrors,analysisErrors } from './detection-settings.js?v=20261007-plan-switch-25';
@@ -8,7 +8,7 @@ export { terrainVisible,contactProbability } from './contact.js?v=20261007-plan-
 import { importScenario } from './scenario-import.js?v=20261007-plan-switch-25';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
-  if(!(model instanceof RecordedSimulation)&&model.source.version!==3&&step!==undefined){
+  if(!(model instanceof RecordedSimulation)&&model.source.version<3&&step!==undefined){
     const source=importScenario(model.source);
     source.recording={
       step,interval:step
@@ -73,7 +73,7 @@ export function summarizeRow(count,trials) {
   };
 }
 export function restoreAnalysisResult(payload) {
-  if(!payload||payload.type!=='SimSim-analysis'||payload.version!==5||payload.model!==RECORD_MODEL)throw new Error('この分析結果の形式・モデル版は読み込めません。');
+  if(!payload||payload.type!=='SimSim-analysis'||payload.version!==5||!compatibleModel(payload))throw new Error('この分析結果の形式・モデル版は読み込めません。');
   const {
     scenario,analysis,startTrial,conditions
   }
@@ -82,7 +82,7 @@ export function restoreAnalysisResult(payload) {
 }
 export function restoreAnalysisRows({scenario,analysis,startTrial,conditions},payload){
   const counts=new Set(),rows=[];
-  if(payload.source.version!==3)throw new Error('旧モデルの集計は旧版で開いてください。シナリオ定義は変換できます。');
+  if(payload.source.version<3)throw new Error('旧モデルの集計は旧版で開いてください。シナリオ定義は変換できます。');
   if(!Array.isArray(payload.rows)||payload.rows.length>conditions.length)throw new Error('分析結果の条件数が不正です。');
   for(const row of payload.rows) {
     const condition=conditions.find(c=>c.id===row?.condition?.id);

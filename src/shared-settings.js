@@ -1,5 +1,6 @@
 import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261007-plan-switch-25';
 import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261007-plan-switch-25';
+import {conditionErrors} from './decision.js?v=20261007-plan-switch-25';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
@@ -33,6 +34,8 @@ export const NODE_EVENTS = {
   signal: ['received', 'detected', 'near'], report: ['sent', 'sendFailed', 'near'],
   move: ['arrived', 'received', 'detected', 'near'], return: ['arrived', 'received', 'detected', 'near'], wait: ['elapsed', 'received', 'detected', 'near'], stop: []
 };
+EDGE_EVENTS.condition='判断条件';EDGE_EVENTS.command='命令受信';
+for(const [kind,events] of Object.entries(NODE_EVENTS))if(kind!=='stop')events.push('condition','command');
 // A query about assignments, never an engine selector.
 export const hasSharedBehaviors = s => (s.behaviorAssignments ?? []).length > 0;
 const number = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
@@ -95,6 +98,11 @@ export function sharedErrors(s, resolved=false) {
       if (t?.x!==undefined && !number(t.x,0,4000) || t?.y!==undefined && !number(t.y,0,4000)) errors.push('イベントノードの位置が不正です。');
     }
     for (const e of g.edges) {
+      if(e?.when==='condition'){
+        errors.push(...conditionErrors(e.condition));
+        if(e.priority!==undefined&&(!Number.isInteger(e.priority)||e.priority<0||e.priority>1000))errors.push('判断の優先順位は0～1000の整数です。');
+        if(e.onUnknown!==undefined&&typeof e.onUnknown!=='boolean')errors.push('不明時の判断はbooleanです。');
+      }
       const key = e?.from + '|' + (e?conditionKey(e):''), node = nodes.get(e?.from);
       if (!e || !node || !nodes.has(e.to) || !(NODE_EVENTS[node.kind] ?? []).includes(e.when) || outgoing.has(key)) errors.push('接続条件が始点ノードに対応しないか、接続が不正・重複しています。');
       if (e?.once !== undefined && typeof e.once !== 'boolean') errors.push('接続のonceはbooleanです。');
@@ -139,7 +147,7 @@ export function sharedErrors(s, resolved=false) {
   const c = s.recording ?? {
   }, step = c.step ?? s.analysis?.step ?? 10, interval = c.interval ?? step;
   if (!number(step, .1, 300) || !number(interval, .1, 300) || interval < step || Math.abs(interval / step - Math.round(interval / step)) > 1e-8 || s.duration / step > 100000) errors.push('計算刻み0.1～300秒、記録間隔は刻みの整数倍・300秒以下、最大10万ステップです。');
-  if (s.version === 3 && s.analysis && s.analysis.step !== step) errors.push('分析と記録の計算刻みを一致させてください。');
+  if (s.version >= 3 && s.analysis && s.analysis.step !== step) errors.push('分析と記録の計算刻みを一致させてください。');
   return errors;
 }
 export function patrolGraph(id = 'patrol-return', receiverId) {

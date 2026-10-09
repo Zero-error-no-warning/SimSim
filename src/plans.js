@@ -2,7 +2,7 @@ import {importScenario} from './scenario-import.js?v=20261007-plan-switch-25';
 import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-plan-switch-25';
 import {applyPlan,planMetric} from './plan-settings.js?v=20261007-plan-switch-25';
 import {summarizePaired} from './sensitivity.js?v=20261007-plan-switch-25';
-import {RECORD_MODEL} from './recording.js?v=20261007-plan-switch-25';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261007-plan-switch-25';
 export function planTrialSource(s,condition){
   const p=s.analysis.plans.items.find(p=>'plan:'+p.id===condition.id);
   if(!p)throw Error('運用案が見つかりません。');
@@ -28,7 +28,7 @@ export function summarizePlans(s,rows){
   return base&&metric?rows.filter(r=>r!==base).map(r=>({...summarizePaired(s,base.trials,r.trials,metric),condition:r.condition})):[];
 }
 export function restorePlansResult(payload){
-  if(!payload||payload.type!=='SimSim-plans'||payload.version!==1||payload.model!==RECORD_MODEL||payload.source?.version!==3)throw Error('この運用案比較結果の形式・モデル版は読み込めません。');
+  if(!payload||payload.type!=='SimSim-plans'||payload.version!==1||!compatibleModel(payload)||payload.source?.version<3)throw Error('この運用案比較結果の形式・モデル版は読み込めません。');
   const prepared=preparePlans(payload.source),rows=[],seen=new Set();
   if(!Array.isArray(payload.rows)||payload.rows.length>prepared.conditions.length)throw Error('運用案比較結果の件数が不正です。');
   for(const row of payload.rows){

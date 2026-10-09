@@ -8,7 +8,7 @@ import {HistoryUI} from './history-ui.js?v=20261007-plan-switch-25';
 import {MeasurementUI} from './measurement-ui.js?v=20261007-plan-switch-25';
 import {stateMembers} from './state-measurement.js?v=20261007-plan-switch-25';
 import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261007-plan-switch-25';
-import { RECORD_MODEL } from './recording.js?v=20261007-plan-switch-25';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261007-plan-switch-25';
 import { numericScale } from './chart-scale.js?v=20261007-plan-switch-25';
 import { clone,validateScenario } from './engine.js?v=20261007-plan-switch-25';
 import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261007-plan-switch-25';
@@ -475,7 +475,7 @@ export class AnalysisUI {
   export() {
     const sensitive=this.resultMode==='sensitivity';
     const payload={
-      type:this.resultMode==='plans'?'SimSim-plans':sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive||this.resultMode==='plans'?1:5,model:RECORD_MODEL,confidence:sensitive||this.resultMode==='plans'?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
+      type:this.resultMode==='plans'?'SimSim-plans':sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive||this.resultMode==='plans'?1:5,model:recordModel(this.base),confidence:sensitive||this.resultMode==='plans'?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
     };
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{
       type:'text/plain;charset=utf-8'

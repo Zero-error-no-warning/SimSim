@@ -3,7 +3,7 @@ import { normalizedAnalysis } from './parameters.js?v=20261007-plan-switch-25';
 // Compatibility ends here: the application and workers execute version 3 only.
 export function importScenario(value) {
   const s = validateScenario(value);
-  if (s.version === 3) return s;
+  if (s.version >= 3) return s;
   s.version = 3;
   s.behaviors ??= [];
   s.behaviorAssignments ??= [];

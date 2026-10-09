@@ -12,6 +12,8 @@ export function destinationFor(s,a,n){
 }
 export function conditionKey(c){
   const event=c.when??c.event;
+  if(event==='command')return 'command|'+(c.commandName??'');
+  if(event==='condition')return 'condition|'+JSON.stringify([c.condition,c.onUnknown??false,c.priority??0]);
   return event==='near'?[event,c.destinationId,c.distance,c.distanceMode??'absolute'].map(v=>isParameterRef(v)?JSON.stringify(v):v).join('|'):event==='time'?event+'|'+(isParameterRef(c.seconds)?JSON.stringify(c.seconds):c.seconds):event;
 }
 export const measuredDistance=(a,b,mode='absolute')=>Math.hypot(a.x-b.x,a.y-b.y,mode==='horizontal'?0:a.z-b.z);
@@ -35,6 +37,8 @@ export function navigationErrors(s){
         if(!point(item.point))errors.push('目的地の地点座標が不正です。');
       }else if(item.kind==='unit'){
         if(!s.units?.some(u=>u.id===item.unitId))errors.push('目的地のユニットがありません。');
+        if(item.access!==undefined&&!['known','truth'].includes(item.access))errors.push('ユニット位置の参照はknown・truthです。');
+        if(s.version>=4&&item.access==='truth'&&s.modelAssumptions?.information!=='legacy')errors.push('情報制約のあるシナリオでは真位置の目的地を使えません。knownにしてください。');
       }else if(item.kind!=='received')errors.push('目的地は地点・ユニット・取得した目標位置（探知・受信）を指定してください。');
     }
   }

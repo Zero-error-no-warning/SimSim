@@ -1,8 +1,8 @@
 import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261007-plan-switch-25';
 import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261007-plan-switch-25';
-export { RECORD_MODEL } from './recorded-engine.js?v=20261007-plan-switch-25';
+export { RECORD_MODEL,recordModel,compatibleModel } from './recorded-engine.js?v=20261007-plan-switch-25';
 import { clone } from './engine.js?v=20261007-plan-switch-25';
-import { RecordedSimulation, RECORD_MODEL, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261007-plan-switch-25';
+import { RecordedSimulation, RECORD_MODEL,recordModel,compatibleModel, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261007-plan-switch-25';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);
@@ -21,7 +21,7 @@ const decode = (text, Type, length) => {
 export function recordingPayload(model) {
   if(!model.frames)throw Error('計算・記録を先に実行してください。');
   const payload={
-    type:'SimSim-recording',version:2,model:RECORD_MODEL,source:clone(model.source),unitIds:model.states.map(s=>s.unit.id),nodeNames:model.nodeNames,result:model.result,frames:model.frames.map(f=>({
+    type:'SimSim-recording',version:2,model:recordModel(model.source),source:clone(model.source),unitIds:model.states.map(s=>s.unit.id),nodeNames:model.nodeNames,result:model.result,frames:model.frames.map(f=>({
       time:f.time,values:encode(f.values),nodes:encode(f.nodes),status:encode(f.status)
     }))
   };
@@ -29,11 +29,11 @@ export function recordingPayload(model) {
   return payload;
 }
 const position = p => p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
-const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered','near']);
+const types = new Set(['detected','sent','sendFailed','received','arrived','elapsed','nodeChanged','departed','preparing','initialized','triggered','near','decision','commandRejected']);
 export function restoreRecording(payload) {
-  if(payload?.type!=='SimSim-recording'||payload.version!==2||payload.model!==RECORD_MODEL||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
+  if(payload?.type!=='SimSim-recording'||payload.version!==2||!compatibleModel(payload)||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
   const model=new RecordedSimulation(payload.source),n=model.states.length;
-  if(payload.source.version!==3||JSON.stringify(payload.unitIds)!==JSON.stringify(model.states.map(s=>s.unit.id))||JSON.stringify(payload.nodeNames)!==JSON.stringify(model.nodeNames))throw Error('記録対象・ノード・シナリオ版が一致しません。');
+  if(payload.source.version<3||JSON.stringify(payload.unitIds)!==JSON.stringify(model.states.map(s=>s.unit.id))||JSON.stringify(payload.nodeNames)!==JSON.stringify(model.nodeNames))throw Error('記録対象・ノード・シナリオ版が一致しません。');
   if(payload.frames.length*(n*23+8)>MAX_RECORD_BYTES||payload.frames.length>100001)throw Error('再生記録が上限を超えています。');
   let previous=-1;
   model.frames=payload.frames.map((f,i)=>{
@@ -53,7 +53,8 @@ export function restoreRecording(payload) {
   const r=payload.result;
   if(!r||typeof r.success!=='boolean'||!Array.isArray(r.events)||!Array.isArray(r.actionEvents)||r.events.length+r.actionEvents.length>200000||r.successTime!==null&&(!Number.isFinite(r.successTime)||r.successTime<0||r.successTime>model.source.duration)||r.success!==(r.successTime!==null))throw Error('記録の評価・イベントが不正です。');
   for(const [key,min] of [['targetCount',0],['detectedCount',0],['responderCount',0],['reachedCount',0],['invalidUnits',0],['constrainedPaths',0]])if(!Number.isInteger(r[key])||r[key]<min||r[key]>2000)throw Error('記録の件数が不正です。');
-  for(const list of [r.events,r.actionEvents]) {
+  if(model.source.version>=4&&(!Array.isArray(r.informationEvents)||r.informationEvents.length>100000))throw Error('情報記録が不正です。');
+  for(const list of [r.events,r.actionEvents,...(r.informationEvents?[r.informationEvents]:[])]) {
     let time=-1;
     for(const e of list){
       if(!e||!types.has(e.type)||!Number.isFinite(e.time)||e.time<time||e.time<0||e.time>model.source.duration||!model.byId.has(e.unitId))throw Error('イベントの種類・参照・時刻が不正です。');

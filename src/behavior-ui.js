@@ -356,7 +356,7 @@ export class BehaviorUI{
   }
   open(id,newTask=false){
     this.draft=validateScenario(this.getScenario());
-    this.draft.version=3;
+    this.draft.version=Math.max(3,this.draft.version??3);
     this.draft.routes??=[];this.draft.destinations??=[];
     this.draft.behaviors??=[];
     this.draft.behaviorAssignments??=[];

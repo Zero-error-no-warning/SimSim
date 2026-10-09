@@ -1,3 +1,4 @@
+import {informationErrors} from './information-settings.js?v=20261007-plan-switch-25';
 import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-plan-switch-25';
 import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plan-switch-25';
 import {measurementErrors} from './measurement-points.js?v=20261007-plan-switch-25';
@@ -21,9 +22,9 @@ export const clone = value => JSON.parse(JSON.stringify(value));
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const pointValid = p => p && ['x','y','z'].every(k => finite(p[k]));
 export function validateScenario(value) {
-  const errors = [];
+  const errors = informationErrors(value);
   if (!value || typeof value !== 'object') throw new Error('シナリオはオブジェクトで指定してください。');
-  if (![1,2,3].includes(value.version)) errors.push('versionは1・2・3にしてください。');
+  if (![1,2,3,4].includes(value.version)) errors.push('versionは1・2・3・4にしてください。');
   if (value.unitsSystem !== 'SI') errors.push('unitsSystemはSI（m・s）にしてください。');
   if (typeof value.title !== 'string' || !value.title.trim() || value.title.length > 160) errors.push('titleは1～160文字で指定してください。');
   if (!finite(value.duration) || value.duration <= 0 || value.duration > 86400) errors.push('durationは0より大きく86400秒以下にしてください。');
@@ -67,7 +68,7 @@ export function validateScenario(value) {
       if(index<value.units.length)ids.add(u.id);
       if (typeof u.name !== 'string' || !u.name.trim() || u.name.length > 120) errors.push(prefix+': nameは1～120文字にしてください。');
       errors.push(...sensorErrors(u,prefix),...actionErrors(u,prefix,recipientIds));
-      if(value.version===3&&u.behavior)errors.push(prefix+': 旧行動ルールは読み込み時にノードへ変換してください。');
+      if(value.version>=3&&u.behavior)errors.push(prefix+': 旧行動ルールは読み込み時にノードへ変換してください。');
       if(u.navigation!==undefined)errors.push(...navigationProfileErrors(u.navigation));
       if (!DOMAINS.includes(u.domain)) errors.push(prefix+': domainが不正です。');
       if (!['friendly','hostile','neutral'].includes(u.faction)) errors.push(prefix+': factionが不正です。');
@@ -96,7 +97,7 @@ export function validateScenario(value) {
   }
   errors.push(...missionErrors(value.mission,value.duration),...analysisErrors(value.analysis,value.duration),...sharedErrors(value),...stateGoalErrors(value),...measurementErrors(value));
   if(value.mission?.type==='arrive'&&value.mission.responderIds?.some(id=>!value.units?.some(u=>u.id===id)))errors.push('到着評価の対象となる単体ユニットが見つかりません。');
-  if(value.version===3&&!errors.length)for(const b of [...(value.analysis?.factors??[]),...(value.analysis?.uncertainties??[])]){
+  if(value.version>=3&&!errors.length)for(const b of [...(value.analysis?.factors??[]),...(value.analysis?.uncertainties??[])]){
     try{
       readParameter(value,b);
     }catch(e){

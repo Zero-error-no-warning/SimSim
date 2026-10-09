@@ -14,7 +14,7 @@ import { createSimulation } from './recorded-engine.js?v=20261007-plan-switch-25
 import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261007-plan-switch-25';
 import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261007-plan-switch-25';
 import { importScenario } from './scenario-import.js?v=20261007-plan-switch-25';
-import { MAX_FILE_BYTES, RECORD_MODEL } from './recording.js?v=20261007-plan-switch-25';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261007-plan-switch-25';
 import { restoreAnalysisResult } from './detection.js?v=20261007-plan-switch-25';
 import { AnalysisUI } from './analysis-ui.js?v=20261007-plan-switch-25';
 import { MapView } from './view.js?v=20261007-plan-switch-25';
@@ -1000,7 +1000,7 @@ $('file').addEventListener('change',async()=>{
   try {
     if(file.size>MAX_FILE_BYTES)throw new Error('ファイルは256MB以下にしてください。');
     const parsed=JSON.parse(await file.text()),restored=parsed.type==='SimSim-plans'?restorePlansResult(parsed):parsed.type==='SimSim-sensitivity'?restoreSensitivityResult(parsed):parsed.type==='SimSim-analysis'?restoreAnalysisResult(parsed):null;
-    if(parsed.type==='SimSim-recording'&&(parsed.version!==2||parsed.model!==RECORD_MODEL))throw Error('旧版の記録は元の版で開いてください。');
+    if(parsed.type==='SimSim-recording'&&(parsed.version!==2||!compatibleModel(parsed)))throw Error('旧版の記録は元の版で開いてください。');
     const recording=parsed.type==='SimSim-recording'?parsed:null,next=restored?.source??importScenario(recording?.source??parsed);
     if(dirty&&!confirm('保存していない変更があります。ファイルを読み込みますか？'))return;
     setEditMode(null);applyScenario(next,{

@@ -4,7 +4,7 @@ import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters
 import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261007-plan-switch-25';
 import {median} from './measurement-points.js?v=20261007-plan-switch-25';
 import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plan-switch-25';
-import {RECORD_MODEL} from './recording.js?v=20261007-plan-switch-25';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261007-plan-switch-25';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;
@@ -63,8 +63,8 @@ export function summarizeSensitivity(s,rows){
   return entries.map(r=>({...r,rank:r.delta===null?null:keys.indexOf(bindingKey(r.condition.candidate))+1})).sort((a,b)=>(a.rank??Infinity)-(b.rank??Infinity)||a.condition.index-b.condition.index);
 }
 export function restoreSensitivityResult(payload){
-  if(!payload||payload.type!=='SimSim-sensitivity'||payload.version!==1||payload.model!==RECORD_MODEL)throw Error('この感度分析結果の形式・モデル版は読み込めません。');
-  if(payload.source?.version!==3)throw Error('感度分析の元シナリオはversion 3にしてください。');
+  if(!payload||payload.type!=='SimSim-sensitivity'||payload.version!==1||!compatibleModel(payload))throw Error('この感度分析結果の形式・モデル版は読み込めません。');
+  if(payload.source?.version<3)throw Error('感度分析の元シナリオはversion 3にしてください。');
   const prepared=prepareSensitivity(payload.source),restored=restoreAnalysisRows({...prepared,scenario:prepared.trialSource},{...payload,source:prepared.trialSource});
   if(restored.rows.length&&!restored.rows.some(r=>r.condition.id==='baseline'))throw Error('感度分析の基準試行がありません。');
   const base=restored.rows.find(r=>r.condition.id==='baseline');
