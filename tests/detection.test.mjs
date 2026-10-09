@@ -1,8 +1,8 @@
-import {importScenario} from '../src/scenario-import.js?v=20261009-configuration-contract-28';
+import {importScenario} from '../src/scenario-import.js?v=20261009-map-workspace-29';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone,validateScenario,Terrain} from '../src/engine.js?v=20261009-configuration-contract-28';
-import {terrainVisible,contactProbability,runDetection,snapshotMission,wilson,scenarioForCount,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-configuration-contract-28';
+import {Simulation,clone,validateScenario,Terrain} from '../src/engine.js?v=20261009-map-workspace-29';
+import {terrainVisible,contactProbability,runDetection,snapshotMission,wilson,scenarioForCount,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-map-workspace-29';
 const sensor={enabled:true,range:1000,probabilityPerMinute:1,domains:['surface'],terrainLOS:true,mountHeight:0};
 const unit=(id,faction,x=1000,y=1000)=>({id,name:id,domain:'surface',faction,manned:true,speed:0,initial:{x,y,z:0},route:[],routeMode:'once'});
 const scenario={version:1,unitsSystem:'SI',title:'Detection test',duration:60,seed:'detection-test',trial:0,terrain:{columns:5,rows:5,spacing:500,origin:{x:0,y:0},seaLevel:0,elevations:Array(25).fill(-500)},units:[{...unit('observer','friendly'),sensor},unit('target','hostile')],mission:{type:'detect',observerFaction:'friendly',targetFaction:'hostile',join:'any',deadline:60}};

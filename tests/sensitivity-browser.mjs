@@ -1,11 +1,12 @@
+import {clickWorkspace} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restoreSensitivityResult,summarizeSensitivity} from '../src/sensitivity.js?v=20261009-configuration-contract-28';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
+import {restoreSensitivityResult,summarizeSensitivity} from '../src/sensitivity.js?v=20261009-map-workspace-29';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-map-workspace-29';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-sensitivity-'));
 const source=JSON.parse(fs.readFileSync(new URL('fixtures/state-measurement.txt',import.meta.url)));
@@ -41,11 +42,11 @@ try{
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#analysis-export').click()]);const file=path.join(folder,'sensitivity.txt');await download.saveAs(file);const payload=JSON.parse(fs.readFileSync(file));assert.equal(payload.type,'SimSim-sensitivity');const restored=restoreSensitivityResult(payload);assert.equal(restored.completed,10);assert.equal(summarizeSensitivity(restored.source,restored.rows).find(r=>r.condition.candidate.target==='behavior:g').delta,-2);
   // Replays use the same trial number but different single-parameter settings.
   await page.locator('#sensitivity-trial').selectOption('1');await page.locator('#sensitivity-replay-changed').click();await page.waitForFunction(()=>!document.getElementById('play').disabled);
-  const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);const recordFile=path.join(folder,'record.txt');await record.saveAs(recordFile);const changed=restoreRecording(JSON.parse(fs.readFileSync(recordFile)));assert.equal(changed.source.trial,1);assert.equal(changed.result.successTime,1);
-  await page.locator('#analysis-open').click();await page.locator('#sensitivity-replay-base').click();await page.waitForFunction(()=>!document.getElementById('play').disabled);const [baseDownload]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await baseDownload.saveAs(recordFile);const base=restoreRecording(JSON.parse(fs.readFileSync(recordFile)));assert.equal(base.source.trial,1);assert.equal(base.result.successTime,3);
+  const [record]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);const recordFile=path.join(folder,'record.txt');await record.saveAs(recordFile);const changed=restoreRecording(JSON.parse(fs.readFileSync(recordFile)));assert.equal(changed.source.trial,1);assert.equal(changed.result.successTime,1);
+  await page.locator('#analysis-open').click();await page.locator('#sensitivity-replay-base').click();await page.waitForFunction(()=>!document.getElementById('play').disabled);const [baseDownload]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);await baseDownload.saveAs(recordFile);const base=restoreRecording(JSON.parse(fs.readFileSync(recordFile)));assert.equal(base.source.trial,1);assert.equal(base.result.successTime,3);
   await page.locator('#file').setInputFiles(file);await page.waitForFunction(()=>document.getElementById('analysis-dialog').open||document.getElementById('error-dialog').open);assert(!await page.locator('#error-dialog').isVisible());assert((await page.locator('#analysis-progress').textContent()).includes('再計算なし'));assert.equal(await page.locator('#sensitivity-rows tr').count(),4);
   // Group focus links all generated members; returning to the baseline preserves results.
-  await page.locator('#sensitivity-rows tr').filter({hasText:'群の個数'}).last().click();await page.locator('#sensitivity-focus').click();assert.equal(await page.locator('.unit-item.sensitivity-target').count(),2);
+  await page.locator('#sensitivity-rows tr').filter({hasText:'個数'}).last().click();await page.locator('#sensitivity-focus').click();assert.equal(await page.locator('.unit-item.sensitivity-target').count(),2);
   await page.locator('#analysis-open').click();await page.locator('#analysis-mode').selectOption('comparison');assert(await page.locator('#sensitivity-editor').isHidden());await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#analysis-rows tr').length===2);assert(await page.locator('#sensitivity-results').isHidden());
   // Cancel during baseline calculation and restore a partial archive without fabrication.
   await page.locator('#analysis-close').click();const long=structuredClone(source);long.analysis.trials=1000;fs.writeFileSync(input,JSON.stringify(long));await page.locator('#file').setInputFiles(input);await page.locator('#analysis-open').click();await page.locator('#analysis-run').click();await page.waitForFunction(()=>document.getElementById('analysis-bar').value>0);await page.locator('#analysis-cancel').click();assert((await page.locator('#analysis-progress').textContent()).includes('中止'));

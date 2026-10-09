@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {build,version as esbuildVersion} from 'esbuild';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261009-configuration-contract-28';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261009-map-workspace-29';
 
 const root=fileURLToPath(new URL('..',import.meta.url)),out=path.join(root,'portable');
 const inputFiles=['index.html','styles.css','tools/build-portable.mjs','tools/portable-copy.html',...['src','data','vendor/three'].flatMap(dir=>fs.readdirSync(path.join(root,dir)).sort().map(name=>dir+'/'+name))];

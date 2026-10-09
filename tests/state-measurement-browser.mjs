@@ -1,3 +1,4 @@
+import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -26,17 +27,17 @@ try{
 
   const input=path.join(folder,'input.txt');fs.writeFileSync(input,JSON.stringify(source));await page.locator('#file').setInputFiles(input);
   assert.equal(await page.locator('.map-toolbar #analysis-open').count(),1);assert.equal(await page.locator('header #analysis-open').count(),0);
-  const settings=async id=>{await page.locator('.unit-item[data-id="'+id+'"]').click();await page.locator('#settings-open').click();};
+  const settings=async id=>{await showNavigator(page);await page.locator('.unit-item[data-id="'+id+'"]').click();await clickWorkspace(page,'settings-open');};
   await settings('template');assert(!(await page.locator('#unit-enabled').isChecked()));await page.locator('#unit-enabled').check();await page.locator('#settings-apply').click();await page.locator('#undo').click();await settings('template');assert(!(await page.locator('#unit-enabled').isChecked()));await page.locator('#settings-back').click();
   await settings('group__1');await page.locator('[data-settings-module="group.placement"]').evaluate(e=>e.open=true);const enabled=page.locator('input[data-setting-id="group.enabled"]');assert(await enabled.isChecked());await enabled.uncheck();await page.locator('#settings-apply').click();assert((await page.locator('.unit-item[data-id="group__2"]').textContent()).includes('無効'));await page.locator('#undo').click();
-  await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
+  await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   const node=id=>page.locator('#behavior-canvas [data-node="'+id+'"] > rect:first-child');
   await node('a').click();await page.locator('#node-measure').click();assert.equal(await page.locator('#behavior-canvas [data-node="a"] .measurement-label').evaluate(e=>e.firstChild.textContent),'計測対象');
   await page.locator('#behavior-undo').click();assert.equal(await page.locator('#behavior-canvas [data-node="b"] .measurement-label').evaluate(e=>e.firstChild.textContent),'計測対象');await page.locator('#behavior-redo').click();assert.equal(await page.locator('#behavior-canvas [data-node="a"] .measurement-label').count(),1);await page.locator('#behavior-undo').click();
   // Deleting a measured state removes its stale goal; undo restores both.
   await node('b').click();await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas .measurement-label').count(),0);await page.locator('#behavior-undo').click();
   await node('b').click();await page.locator('#node-measure').click();await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();assert(await page.locator('#behavior-dialog').isHidden());
-  const save=async(name,button='save')=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#'+button).click()]);assert(download.suggestedFilename().endsWith('.txt'));const file=path.join(folder,name);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
+  const save=async(name,button='save')=>{const [download]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,button)]);assert(download.suggestedFilename().endsWith('.txt'));const file=path.join(folder,name);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
   const saved=await save('scenario.txt');assert.equal(saved.units[0].enabled,false);assert.equal(saved.mission.nodeId,'b');assert.equal(saved.groups[0].enabled,undefined);
   assert((await page.locator('#file').getAttribute('accept')).includes('.txt'));assert((await page.locator('#file').getAttribute('accept')).includes('.jsn'));fs.copyFileSync(path.join(folder,'scenario.txt'),path.join(folder,'legacy.jsn'));await page.locator('#file').setInputFiles(path.join(folder,'legacy.jsn'));
   await page.locator('#analysis-open').click();assert.equal(await page.locator('#mission-type').inputValue(),'state');assert(await page.locator('#mission-factions').isHidden());assert.equal(await page.locator('#mission-assignment').inputValue(),'t');assert.equal(await page.locator('#mission-state').inputValue(),'b');

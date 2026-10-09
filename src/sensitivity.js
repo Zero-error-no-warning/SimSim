@@ -1,11 +1,11 @@
-import {MODEL_BUILD} from './model-version.js?v=20261009-configuration-contract-28';
-import {importScenario} from './scenario-import.js?v=20261009-configuration-contract-28';
-import {clone,validateScenario} from './engine.js?v=20261009-configuration-contract-28';
-import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261009-configuration-contract-28';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261009-configuration-contract-28';
-import {median} from './measurement-points.js?v=20261009-configuration-contract-28';
-import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
-import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261009-configuration-contract-28';
+import {MODEL_BUILD} from './model-version.js?v=20261009-map-workspace-29';
+import {importScenario} from './scenario-import.js?v=20261009-map-workspace-29';
+import {clone,validateScenario} from './engine.js?v=20261009-map-workspace-29';
+import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261009-map-workspace-29';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261009-map-workspace-29';
+import {median} from './measurement-points.js?v=20261009-map-workspace-29';
+import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-map-workspace-29';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261009-map-workspace-29';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;

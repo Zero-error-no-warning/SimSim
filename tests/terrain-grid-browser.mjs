@@ -1,10 +1,11 @@
+import {clickWorkspace} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261009-configuration-contract-28';
+import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261009-map-workspace-29';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-terrain-grid-'));
 const server=http.createServer((req,res)=>{
@@ -26,7 +27,7 @@ try{
   source.terrain.elevations=source.terrain.elevations.map((_,i)=>-300+i%source.terrain.columns+10*Math.floor(i/source.terrain.columns));
   const input=path.join(folder,'input.txt');fs.writeFileSync(input,JSON.stringify(source));await page.locator('#file').setInputFiles(input);
   const save=async filename=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,filename);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
-  const open=async()=>{await page.locator('#terrain-edit').click();await page.locator('#terrain-size-panel').evaluate(e=>e.open=true);};
+  const open=async()=>{await clickWorkspace(page,'terrain-edit');await page.locator('#terrain-size-panel').evaluate(e=>e.open=true);};
   await open();assert.equal(await page.locator('#terrain-columns').inputValue(),'9');assert.equal(await page.locator('#terrain-rows').inputValue(),'7');
   assert((await page.locator('#terrain-grid-info').textContent()).includes('東西 1000 m'));assert((await page.locator('#terrain-info').textContent()).includes('地形格子数 9 × 7'));
   await page.locator('#terrain-columns').fill('17');await page.locator('#terrain-rows').fill('13');assert.equal(await page.locator('#terrain-width').inputValue(),'8');assert.equal(await page.locator('#terrain-height').inputValue(),'6');
@@ -50,11 +51,11 @@ try{
   await page.locator('#terrain-undo').click();assert.equal(await page.locator('#terrain-columns').inputValue(),'33');
   await page.setViewportSize({width:1200,height:900});assert(await page.locator('#terrain-panel').evaluate(e=>e.scrollWidth<=e.clientWidth));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   // A smaller brush can now change the newly interpolated grid.
-  await page.locator('#terrain-size-panel').evaluate(e=>e.open=false);await page.locator('#viewtop').click();await page.locator('#terrain-brush-mode').selectOption('lower');await page.locator('#terrain-brush-radius').fill('600');await page.locator('#terrain-brush-radius').press('Tab');await page.locator('#terrain-brush-amount').fill('10');await page.locator('#terrain-brush-amount').press('Tab');
+  await page.locator('#terrain-size-panel').evaluate(e=>e.open=false);await clickWorkspace(page,'viewtop');await page.locator('#terrain-brush-mode').selectOption('lower');await page.locator('#terrain-brush-radius').fill('600');await page.locator('#terrain-brush-radius').press('Tab');await page.locator('#terrain-brush-amount').fill('10');await page.locator('#terrain-brush-amount').press('Tab');
   const canvas=await page.locator('#map>canvas').boundingBox();await page.mouse.click(canvas.x+canvas.width*.5,canvas.y+canvas.height*.5);assert(await page.locator('#terrain-undo').isEnabled());
   await page.locator('#terrain-apply').click();const painted=await save('painted.txt');assert.notDeepEqual(painted.terrain.elevations,refined.terrain.elevations);assert.equal(painted.terrain.elevations.length,33*25);
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});await page.locator('#timeline').evaluate(e=>{e.value=60;e.dispatchEvent(new Event('input',{bubbles:true}));});await page.waitForFunction(()=>document.getElementById('clock').textContent==='00:01:00');
-  const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record.saveAs(path.join(folder,'record.txt'));await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
+  const [record]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);await record.saveAs(path.join(folder,'record.txt'));await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
   assert((await page.locator('#terrain-info').textContent()).includes('地形格子数 33 × 25'));assert.equal(await page.locator('#app-version').textContent(),UI_VERSION);
   if(process.env.SIMSIM_TERRAIN_GRID_SCREENSHOT){await open();await page.screenshot({path:process.env.SIMSIM_TERRAIN_GRID_SCREENSHOT});}
   assert.deepEqual(errors,[]);console.log('PASS: dated UI version, coarse sample resolution, independent terrain grid counts, preview/apply/Undo/Redo/cancel, interpolation, validation, fine brush, save/reload, Worker/record replay and compact desktop layout');

@@ -1,4 +1,4 @@
-import { getValue, optionsFor, resolvedDefault, resolvedBound, fieldErrors } from "./configuration-schema.js?v=20261009-configuration-contract-28";
+import { getValue, optionsFor, resolvedDefault, resolvedBound, fieldErrors } from "./configuration-schema.js?v=20261009-map-workspace-29";
 export const FIELD_RENDERERS = { number: true, text: true, boolean: true, select: true, reference: true, multi: true };
 const node = (tag, text) => {
   const n = document.createElement(tag);

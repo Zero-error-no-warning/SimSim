@@ -3,7 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261009-configuration-contract-28';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261009-map-workspace-29';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(fileURLToPath(new URL('..',import.meta.url))),requests=[];
 const server=http.createServer((req,res)=>{

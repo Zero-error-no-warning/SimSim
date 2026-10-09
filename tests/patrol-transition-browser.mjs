@@ -1,11 +1,12 @@
+import {clickWorkspace} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
-import {UI_VERSION} from '../src/ui-dom.js?v=20261009-configuration-contract-28';
+import {createSimulation,sharedSteps,restoreRecording} from '../src/recorded-engine.js?v=20261009-map-workspace-29';
+import {UI_VERSION} from '../src/ui-dom.js?v=20261009-map-workspace-29';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-patrol-transition-'));
 const server=http.createServer((req,res)=>{
@@ -33,7 +34,7 @@ try{
     await page.locator('#record-run').click();
     await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
     assert(!await page.locator('#error-dialog').isVisible());
-    const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);
+    const [download]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);
     const archive=path.join(folder,when+'-record.txt');await download.saveAs(archive);
     const payload=JSON.parse(fs.readFileSync(archive)),recording=restoreRecording(payload);
     assert(payload.result.actionEvents.filter(e=>e.type==='nodeChanged'&&e.nodeId==='patrol').length===3);
@@ -53,7 +54,7 @@ try{
   await page.waitForFunction(()=>document.getElementById('title').value==='不均等な配置での協調周回');
   await page.locator('#record-run').click();
   await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
-  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);
+  const [download]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);
   const archive=path.join(folder,'uneven-record.txt');await download.saveAs(archive);
   const recording=restoreRecording(JSON.parse(fs.readFileSync(archive)));
   const local=createSimulation(uneven);for(const _ of sharedSteps(local,undefined,undefined,{record:true})){}
@@ -71,7 +72,7 @@ try{
   await page.waitForFunction(()=>document.getElementById('title').value==='報告を繰り返し受信しながら周回');
   await page.locator('#record-run').click();
   await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
-  const [reports]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);
+  const [reports]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);
   const reportsFile=path.join(folder,'reports-record.txt');await reports.saveAs(reportsFile);
   const reportModel=restoreRecording(JSON.parse(fs.readFileSync(reportsFile)));
   assert.equal(reportModel.result.actionEvents.filter(e=>e.type==='received').length,240);

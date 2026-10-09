@@ -1,3 +1,4 @@
+import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -30,8 +31,8 @@ try {
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight));
   // Tasks open in the selected assignment context; graph authoring is a separate tab.
-  await page.locator('.unit-item[data-id="patrol-uuv__1"]').click();
-  await page.locator('#unit-task-open').click();
+  await showNavigator(page);await page.locator('.unit-item[data-id="patrol-uuv__1"]').click();
+  await clickWorkspace(page,'unit-task-open');
   assert.equal(await page.locator('#assignment-list').inputValue(),'island-watch');
   assert(await page.locator('#graph-editor').isHidden());
   await page.locator('#graph-edit-tab').click();
@@ -149,7 +150,7 @@ try {
   assert.equal(editedGraph.nodes.find(n=>n.id===temporaryWait).kind,'wait');
   assert.deepEqual(editedGraph.edges.map(e=>e.when),['received','detected','elapsed']);
   await page.locator('#file').setInputFiles(path.join(folder,'edited-scenario.txt'));
-  await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
+  await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
   // Entrances are placed before their kind is chosen, and have no automatic target.
   await addNode('trigger-add');
@@ -170,7 +171,7 @@ try {
   assert.equal(await page.locator('#trigger-seconds').inputValue(),'22.5');
   assert.equal(await page.locator('#trigger-once').inputValue(),'repeat');
   await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
-  await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
+  await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   await page.locator('#behavior-canvas .trigger-node rect').click();assert.equal(await page.locator('#trigger-once').inputValue(),'repeat');
   await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas .trigger-node').count(),0);
   await page.locator('#behavior-canvas [data-node="'+temporaryWait+'"] > rect:first-child').click();await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');
@@ -183,8 +184,8 @@ try {
   await page.locator('#task-edit-tab').click();
   await page.locator('#assignment-phase').fill('50');await page.locator('#assignment-phase').press('Tab');
   await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
-  await page.locator('.unit-item[data-id="transit-submarine"]').click();
-  await page.locator('#unit-task-open').click();assert.equal(await page.locator('#assignment-list').inputValue(),'');await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
+  await showNavigator(page);await page.locator('.unit-item[data-id="transit-submarine"]').click();
+  await clickWorkspace(page,'unit-task-open');assert.equal(await page.locator('#assignment-list').inputValue(),'');await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
   // Save definition and verify the task parameter, not the obsolete raw unit route.
   const save=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);
   await save[0].saveAs(path.join(folder,'scenario.txt'));
@@ -197,7 +198,7 @@ try {
     await page.waitForFunction(t=>{const seconds=document.getElementById('clock').textContent.split(':').map(Number);return seconds[0]*3600+seconds[1]*60+seconds[2]===t;},t);
   }
   assert.equal(await page.locator('#recording-info').innerText(),info);
-  const record=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record[0].saveAs(path.join(folder,'record.txt'));
+  const record=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);await record[0].saveAs(path.join(folder,'record.txt'));
   assert.equal(JSON.parse(fs.readFileSync(path.join(folder,'record.txt'))).model,'trigger-behavior-v3');
   await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);assert((await page.locator('#recording-info').innerText()).includes('記録済み'));
   // New clears graph references, and Undo restores them.
@@ -211,10 +212,10 @@ try {
   await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
   // Compact desktop layout and display controls retain their state.
   if(await page.locator('#analysis-dialog').isVisible())await page.locator('#analysis-close').click();
-  await page.locator('.map-toolbar .menu-popover summary').click();await page.locator('#show-labels').uncheck();
-  await page.locator('#viewtop').click();assert(!(await page.locator('#show-labels').isChecked()));
+  await page.locator('#display-menu > summary').click();await page.locator('#show-labels').uncheck();
+  await clickWorkspace(page,'viewtop');assert(!(await page.locator('#show-labels').isChecked()));
   await page.setViewportSize({width:1200,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.locator('.unit-item[data-id="patrol-uuv__1"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
+  await showNavigator(page);await page.locator('.unit-item[data-id="patrol-uuv__1"]').click();await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert(await page.locator('#behavior-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));
   await addNode('node-add');await page.locator('#node-kind').selectOption('wait');await page.locator('#behavior-fit').click();

@@ -1,3 +1,4 @@
+import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -23,7 +24,7 @@ try{
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
   const source={version:3,unitsSystem:'SI',title:'Route A -> B',duration:100,seed:'ui-nav',terrain:{columns:5,rows:5,spacing:10000,origin:{x:-10000,y:-10000,z:0},seaLevel:0,elevations:Array(25).fill(-500)},units:[{id:'actor',name:'行動ユニット',domain:'surface',faction:'friendly',manned:false,speed:100,initial:{x:-500,y:0,z:0},route:[{x:500,y:0,z:0}],routeMode:'once',sensor:{enabled:true,range:5000,probabilityPerMinute:1,domains:['surface'],terrainLOS:false}},{id:'target',name:'相手ユニット',domain:'surface',faction:'hostile',manned:false,speed:5,initial:{x:2500,y:0,z:0},route:[{x:5000,y:0,z:0}],routeMode:'once'}],behaviors:[{id:'g',name:'切り替え',initial:'a',triggers:[],nodes:[{id:'a',kind:'follow',x:100,y:100}],edges:[]}],behaviorAssignments:[{id:'t',name:'切り替えタスク',behaviorId:'g',targets:['unit:actor'],spacing:'none'}],recording:{step:10,interval:10}};
   fs.writeFileSync(path.join(folder,'input.txt'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.txt'));
-  await page.locator('.unit-item[data-id="actor"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();
+  await showNavigator(page);await page.locator('.unit-item[data-id="actor"]').click();await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();
   const node=id=>page.locator('#behavior-canvas [data-node="'+id+'"] > rect:first-child');
   const add=async id=>{await page.locator('#graph-add-menu summary').click();await page.locator('#'+id).click();};
   const connect=async(from,to,trigger=false)=>{await page.locator('#behavior-fit').click();await page.locator('#graph-connect').click();await (trigger?page.locator('#behavior-canvas [data-trigger="'+from+'"] > rect:first-child'):node(from)).click();await node(to).click();};
@@ -35,7 +36,7 @@ try{
   await add('node-add');await page.locator('#node-kind').selectOption('follow');const b=await page.locator('#behavior-canvas .selected').getAttribute('data-node');
   await page.locator('#node-route-new').click();await page.locator('#navigation-name').fill('航路B');await page.locator('#navigation-draw').click();
   assert(await page.locator('#behavior-dialog').isHidden());assert(await page.locator('#navigation-dialog').isHidden());
-  await page.locator('#viewtop').click();const canvas=await page.locator('#map canvas').boundingBox();
+  await clickWorkspace(page,'viewtop');const canvas=await page.locator('#map canvas').boundingBox();
   for(const [x,y] of [[.3,.4],[.5,.3],[.6,.6]])await page.mouse.click(canvas.x+canvas.width*x,canvas.y+canvas.height*y);
   await page.keyboard.press('Escape');assert(await page.locator('#navigation-dialog').isVisible());
   assert.equal((await page.locator('#navigation-points').inputValue()).split('\n').length,3);
@@ -71,12 +72,12 @@ try{
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);await download.saveAs(path.join(folder,'output.txt'));
   const saved=JSON.parse(fs.readFileSync(path.join(folder,'output.txt'))),graph=saved.behaviors[0];
   assert.equal(saved.routes.length,2);assert.equal(saved.destinations.length,2);assert.equal(graph.nodes.find(n=>n.id==='a').routeId,routeA);assert.equal(graph.nodes.find(n=>n.id===b).routeId,routeB);assert.equal(graph.nodes.find(n=>n.id===move).destinationId,target);assert.equal(graph.edges[1].distance,300);assert.equal(graph.edges[1].distanceMode,'absolute');assert.equal(graph.triggers[0].once,false);
-  await page.locator('#file').setInputFiles(path.join(folder,'output.txt'));await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();assert.equal(await page.locator('#node-destination').inputValue(),target);await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
+  await page.locator('#file').setInputFiles(path.join(folder,'output.txt'));await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();assert.equal(await page.locator('#node-destination').inputValue(),target);await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});
   await page.locator('#timeline').evaluate(el=>{el.value=100;el.dispatchEvent(new Event('input',{bubbles:true}));});
-  await page.locator('#events-open').click();assert((await page.locator('#event-list').textContent()).includes('探知'));await page.locator('#events-close').click();
-  const [record]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);await record.saveAs(path.join(folder,'record.txt'));await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
-  await page.setViewportSize({width:1200,height:900});await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();await page.locator('#node-destination-edit').click();
+  await clickWorkspace(page,'events-open');assert((await page.locator('#event-list').textContent()).includes('探知'));await page.locator('#events-close').click();
+  const [record]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);await record.saveAs(path.join(folder,'record.txt'));await page.locator('#file').setInputFiles(path.join(folder,'record.txt'));await page.waitForFunction(()=>!document.getElementById('play').disabled);
+  await page.setViewportSize({width:1200,height:900});await clickWorkspace(page,'unit-task-open');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await node(move).click();await page.locator('#node-destination-edit').click();
   assert(await page.locator('#navigation-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.equal(await page.locator('#navigation-unit').inputValue(),'target');await page.locator('#navigation-cancel').click();await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
   assert.deepEqual(errors,[]);

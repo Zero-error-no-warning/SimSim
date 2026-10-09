@@ -1599,3 +1599,52 @@ select {border-color:#627e99}
 .workspace.configuration-mode>.task-panel,.workspace.configuration-mode>[data-pane=task] {visibility:hidden;overflow:hidden}
 .workspace.configuration-specialized {grid-template-columns:0 0 var(--unit-width,230px) 6px minmax(320px,1fr) 0 0}
 .workspace.configuration-specialized>.inspector,.workspace.configuration-specialized>[data-pane=inspector] {visibility:hidden;overflow:hidden}
+
+/* One navigator, an optional inspector, and a map that keeps its height in aggregation. */
+.workspace:not(.configuration-mode) {grid-template-columns:var(--task-slot,0px) var(--task-divider,0px) var(--unit-slot,230px) var(--unit-divider,6px) minmax(320px,1fr) var(--inspector-divider,0px) var(--inspector-slot,0px)}
+.workspace:not(.configuration-mode):not(.task-visible)>.task-panel,
+.workspace:not(.configuration-mode):not(.task-visible)>[data-pane=task],
+.workspace:not(.configuration-mode):not(.unit-visible)>.unit-panel,
+.workspace:not(.configuration-mode):not(.unit-visible)>[data-pane=unit],
+.workspace:not(.configuration-mode):not(.inspector-visible)>.inspector,
+.workspace:not(.configuration-mode):not(.inspector-visible)>[data-pane=inspector] {visibility:hidden;overflow:hidden;pointer-events:none}
+.navigator-tabs {display:flex;gap:5px;padding:10px;border-bottom:1px solid var(--edge);flex-shrink:0}
+.navigator-tabs button {flex:1;font-size:12px;padding:6px}
+.map-toolbar {min-height:48px;padding:7px 10px;gap:10px;flex-wrap:wrap;justify-content:flex-start}
+.workspace-navigation,.map-actions,.view-buttons {display:flex;align-items:center;gap:5px}
+.map-actions {margin-left:auto}
+.map-mode {display:flex;align-items:center;gap:6px;font-size:12px}
+.map-toolbar button,.map-toolbar summary,.map-toolbar select {font-size:12px;padding-top:6px;padding-bottom:6px}
+.action-menu {display:flex;flex-direction:column;gap:9px;padding:12px;min-width:190px}
+.action-menu button {text-align:left}
+.action-menu label {display:flex;align-items:center;gap:8px}
+.playback {padding:7px 10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;position:relative;z-index:24}
+.transport {gap:6px;flex-shrink:0}
+.transport button,.playback-actions button,.playback-actions summary {font-size:12px;padding:6px 9px}
+#clock {font-size:13px;min-width:66px}
+#run-state {font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.timeline-row {flex:1 1 140px;margin:0;gap:7px;font-size:11px;min-width:140px}
+.playback-actions {display:flex;align-items:center;gap:5px;margin-left:auto}
+#playback-menu>div {top:auto;bottom:calc(100% + 7px)}
+.workspace-dialog {width:min(840px,92vw);max-width:92vw;max-height:85dvh;overflow:auto;padding:20px}
+.dialog-head {display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
+.dialog-head h2 {margin:0;font-size:19px}
+.calculation-fields .experiment-fields {display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.calculation-fields input {max-width:160px}
+.calculation-fields p {color:var(--muted);font-size:12px;margin:18px 0}
+#workspace-results-dialog .results-table {width:100%}
+#task-summary-panel {overflow:auto;max-height:none;margin-top:20px;padding:0}
+#mission-status,#recording-info {font-size:13px;margin:12px 0}
+.map-notice {position:absolute;bottom:44px;left:12px;max-width:min(650px,calc(100% - 24px));padding:8px 12px;border:1px solid #587a96;border-radius:6px;background:#0d2033ee;font-size:12px;z-index:10;pointer-events:none}
+.map-notice.warning {border-color:#e2a862;color:#ffe0b2}
+.aggregation-mode .map-legend,.aggregation-mode .map-instruction {display:none}
+select {appearance:none;background-color:#10243a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%23c4e5ff' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;border:1px solid #7393b0;color:#f0f7ff;cursor:pointer}
+select:hover {border-color:#b2dafa;background-color:#17324b}
+select option {background:#10243a;color:#f0f7ff}
+select:disabled {opacity:.5;cursor:default}
+@media(max-width:1300px){.playback .timeline-row {order:3;flex-basis:100%}.aggregation-mode .playback .timeline-row {order:0;flex-basis:140px}}
+@media(max-width:1000px){.aggregation-mode .playback .timeline-row {order:3;flex-basis:100%}}
+#plan-manager-dialog .plan-toolbar {padding:0;border:0;background:transparent}
+#plan-manager-dialog #plan-menu>div {position:static;width:100%;margin-top:12px;max-height:none}
+#plan-manager-dialog #plan-menu {flex-basis:100%}
+#active-plan-caption {font-size:12px;color:#ffd18b}

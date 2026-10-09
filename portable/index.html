@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261009-configuration-contract-28">
+<html lang="ja" data-simsim-build="20261009-map-workspace-29">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261009-configuration-contract-28-d9ccd105ca90">
-<script src="main.js?v=20261009-configuration-contract-28-d9ccd105ca90" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261009-map-workspace-29-65de17168d6c">
+<script src="main.js?v=20261009-map-workspace-29-65de17168d6c" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.09.28</span>
+<h1>SimSim <span id="app-version">v2026.10.09.29</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
@@ -23,7 +23,7 @@
 </div>
 <input type="file" id="file" accept=".txt,.jsn,.json,application/json,text/plain" hidden></header>
 <div class="workspace">
-<aside class="task-panel" aria-label="タスク一覧"><div class="panel-heading"><h2>タスク一覧</h2><button id="tasks-toggle" aria-controls="task-panel-content" aria-expanded="true" title="タスク一覧を折りたたむ">‹</button></div>
+<aside class="task-panel" aria-label="タスク一覧"><div class="navigator-tabs" role="group" aria-label="対象一覧の種類"><button data-browser-pane="unit" aria-pressed="true">ユニット</button><button data-browser-pane="task" aria-pressed="false">タスク</button></div><div class="panel-heading"><h2>タスク一覧</h2><button id="tasks-toggle" aria-controls="task-panel-content" aria-expanded="true" title="タスク一覧を折りたたむ">‹</button></div>
 <div id="task-panel-content"><div class="scenario-name">
 <input id="title" aria-label="シナリオ名" maxlength="160"><span id="terrain-info">地形を読み込み中</span>
 </div><section class="task-browser"><div class="section-heading">
@@ -32,7 +32,7 @@
 </div>
 <div id="task-list"></div></section><p class="pane-help">タスクを選ぶと担当ユニットを強調表示します。編集ボタンで担当と挙動を変更できます。</p></div></aside>
 <div class="pane-resizer" data-pane="task" role="separator" aria-label="タスク一覧の幅" aria-orientation="vertical" tabindex="0"></div>
-<aside class="unit-panel"><div class="panel-heading">
+<aside class="unit-panel"><div class="navigator-tabs" role="group" aria-label="対象一覧の種類"><button data-browser-pane="unit" aria-pressed="true">ユニット</button><button data-browser-pane="task" aria-pressed="false">タスク</button></div><div class="panel-heading">
 <div>
 <span class="eyebrow">SCENARIO</span><h2>ユニット一覧</h2>
 </div>
@@ -58,26 +58,22 @@
 <span class="phase-badge">編集 → 計算 → 再生・分析</span>
 </div></aside>
 <div class="pane-resizer" data-pane="unit" role="separator" aria-label="ユニット一覧の幅" aria-orientation="vertical" tabindex="0"></div>
-<main class="main-panel"><section id="settings-editor" hidden aria-label="共通設定画面"><header class="settings-heading"><div><h2 id="settings-title">設定</h2><p id="settings-scope"></p></div><button id="settings-back">地図へ戻る</button></header><label class="settings-search">設定を検索<input id="settings-search" type="search" placeholder="例: 燃料、通信、初期情報" aria-label="設定を検索"></label><div class="settings-body"><nav id="settings-categories" aria-label="設定カテゴリ"></nav><div id="settings-content"></div><div id="settings-specialized" hidden></div></div><footer class="settings-footer"><output id="settings-error" role="status"></output><div><span id="settings-dirty"></span><button id="settings-cancel">取消・戻る</button><button id="settings-apply" class="primary">適用</button></div></footer></section><div class="plan-toolbar" aria-label="運用案の切替と管理">
-<label>運用案 <select id="plan-select" aria-label="表示する運用案"></select></label><button id="plan-save">案として保存</button><details id="plan-menu" class="menu-popover"><summary>案の操作</summary><div><div class="plan-menu-actions"><button id="plan-new">新しい案として保存</button><button id="plan-rename">名前を変更</button><button id="plan-delete">保存済みの案を削除</button></div><p class="route-help">切替時に編集中の内容を保持します。分析は保存済みの案を使用します。</p><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th><th>編集状況</th></tr></thead><tbody id="plan-list"></tbody></table></div></div></details><output id="plan-current" role="status"></output>
-</div><div class="map-toolbar">
-<div class="view-buttons">
-<button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="scenario-settings-open">シナリオ設定</button><button id="view3d" class="active" aria-pressed="true">3D</button><button id="viewtop" aria-pressed="false">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
-</div>
-<details class="menu-popover"><summary>表示</summary><div><div class="map-options"><label>集約表示 <select id="task-aggregation"><option value="units">個体</option><option value="tasks">タスクの計画経路と担当数</option></select></label><label>情報視点 <select id="information-perspective"><option value="truth">解析用の真状態</option><option value="selected">選択ユニットの保有情報</option></select></label>
+<main class="main-panel"><section id="settings-editor" hidden aria-label="共通設定画面"><header class="settings-heading"><div><h2 id="settings-title">設定</h2><p id="settings-scope"></p></div><button id="settings-back">地図へ戻る</button></header><label class="settings-search">設定を検索<input id="settings-search" type="search" placeholder="例: 燃料、通信、初期情報" aria-label="設定を検索"></label><div class="settings-body"><nav id="settings-categories" aria-label="設定カテゴリ"></nav><div id="settings-content"></div><div id="settings-specialized" hidden></div></div><footer class="settings-footer"><output id="settings-error" role="status"></output><div><span id="settings-dirty"></span><button id="settings-cancel">取消・戻る</button><button id="settings-apply" class="primary">適用</button></div></footer></section><div class="map-toolbar">
+<div class="workspace-navigation"><button id="navigator-toggle" aria-pressed="true" aria-label="対象一覧を表示">対象一覧</button><button id="inspector-toggle" aria-pressed="false" aria-label="選択対象の詳細を表示">詳細</button></div>
+<label class="map-mode">盤面<select id="task-aggregation" aria-label="盤面の表示単位"><option value="units">個体</option><option value="tasks">タスク集約</option></select></label>
+<div class="map-actions"><details id="display-menu" class="menu-popover"><summary>表示</summary><div><div class="map-options"><div class="view-buttons"><button id="view3d" class="active" aria-pressed="true">3D</button><button id="viewtop" aria-pressed="false">真上</button></div><label>情報視点 <select id="information-perspective"><option value="truth">解析用の真状態</option><option value="selected">選択ユニットの保有情報</option></select></label>
 <label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>一覧との対応線</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-resources" type="checkbox" checked>資源残量</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
 <option value="4" selected>×4</option>
 <option value="8">×8</option>
 <option value="16">×16</option></select></label>
-</div></div></details>
-</div>
+</div></div></details><details id="edit-menu" class="menu-popover"><summary>編集</summary><div class="action-menu"><button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="scenario-settings-open">シナリオ設定</button><button id="plan-manager-open">運用案の管理</button></div></details><button id="analysis-open" class="primary">分析</button></div><button hidden id="focus-selection">選択へ</button><button hidden id="fit">全体</button></div>
 <section id="terrain-panel" class="terrain-panel" hidden aria-label="地形編集"><details id="terrain-size-panel"><summary>領域サイズ・地形格子数</summary><div class="terrain-size-fields"><label>東西幅（km）<input id="terrain-width" type="number" step="any"></label><label>南北幅（km）<input id="terrain-height" type="number" step="any"></label><label>地形格子数（東西）<input id="terrain-columns" type="number" min="2" max="513" step="1"></label><label>地形格子数（南北）<input id="terrain-rows" type="number" min="2" max="513" step="1"></label><button id="terrain-resize">設定をプレビュー</button></div><p id="terrain-grid-info" role="status"></p><details class="terrain-grid-help"><summary>地形格子数について</summary>地形格子数は標高点の数です。領域サイズをそのままに数を増やすと、細かく編集できます。既存の標高を補間します。数を減らすと細部が失われる場合があります。座標原点・ユニット・経路は移動しません。</details><p id="terrain-size-error" role="status" hidden></p></details><label>ブラシ<select id="terrain-brush-mode"><option value="raise">高くする</option><option value="lower">低くする</option><option value="flatten">指定標高にそろえる</option><option value="smooth">平滑化</option></select></label><label>半径（m）<input id="terrain-brush-radius" type="number" step="any" min="1" max="1000000" value="1000"></label><label><span id="terrain-brush-amount-label">一筆の変化量（m）</span><input id="terrain-brush-amount" type="number" step="any" min="0" max="10000" value="50"></label><label hidden>強度（%）<input id="terrain-brush-strength" type="number" step="any" min="0" max="100" value="50" title="1回の塗りで目標標高または近傍平均へ近づける割合。中心ほど強く、端ほど弱くなります。"></label><label>標高（m）<input id="terrain-brush-target" type="number" step="any" min="-12000" max="10000" value="0"></label><div class="compact-actions"><button id="terrain-undo">↶ 戻す</button><button id="terrain-redo">↷</button><button id="terrain-cancel">取消</button><button id="terrain-apply" class="primary">適用</button></div><small id="terrain-edit-info"></small></section>
 <div id="map" class="map">
 <div id="boot" class="boot">地形・ユニットを読み込んでいます。表示が変わらない場合は、HTTP／HTTPSで開き、main.js・worker.js・analysis-worker.jsの配信を確認してください。</div>
 <div id="labels" class="labels"></div><div id="map-data" class="map-data"></div><output id="map-display-status" class="map-display-status" role="status"></output>
 <div id="placement-hint" class="placement-hint" hidden></div>
 <div class="map-topline">
-<span class="map-title">島嶼・周辺海域</span><span id="label-summary" hidden></span><span id="view-caption">3D / 高さ表示 ×4</span>
+<span class="map-title">島嶼・周辺海域</span><span id="label-summary" hidden></span><output id="active-plan-caption" hidden></output><span id="view-caption">3D / 高さ表示 ×4</span>
 </div>
 <div class="map-legend">
 <span><i class="friendly"></i>味方</span><span><i class="hostile"></i>相手側</span><span><i class="neutral"></i>中立</span><span>格子 5 km</span><span>白破線: 計画経路</span><span>球: 最大探知範囲</span>
@@ -85,32 +81,15 @@
 <div class="compass">
 <span id="north-arrow">↑</span>N</div>
 <div id="map-instruction" class="map-instruction">クリックで選択 · Space＋ドラッグで回転（真上では移動） · 右ドラッグで移動 · ホイールで拡大</div>
-<div id="cursor-position" class="cursor-position"></div>
+<div id="cursor-position" class="cursor-position"></div><output id="notice" class="map-notice" role="status" hidden></output>
 </div>
 <p id="replay-parameters" class="replay-parameters" role="status"></p>
-<div class="mission-strip">
-<span id="mission-status">成功条件は未設定</span><button id="events-open">計算履歴</button>
-</div>
-<details class="experiment"><summary>計算設定・乱数シード</summary><div class="experiment-fields">
-<label>終了時刻 <input id="duration" type="number" min="1" max="1440" value="60"> 分</label><label>シード <input id="seed" maxlength="100" value="SimSim"></label><label>試行番号 <input id="trial" type="number" min="0" max="1000000000" value="0"></label><button id="next-trial">次の試行</button>
-</div>
-<p>同じ定義・シード・試行番号なら、同じ配置と航跡を再現します。80個を超えると経路・航跡は選択中だけ表示します。</p>
-<div class="fields-two">
-<label class="field">計算刻み（秒）<input id="record-step" type="number" min="0.1" max="300" step="any"></label><label class="field">通常の記録間隔（計算刻みの整数倍・秒）<input id="record-interval" type="number" min="0.1" max="300" step="any"></label>
-</div></details><div class="playback">
-<div class="transport">
-<button id="record-run" class="primary">計算</button><button id="record-cancel" disabled hidden="">計算中止</button><button id="record-save" disabled>記録保存</button><span id="recording-info" class="recording-info"></span><button id="play" class="primary" disabled>▶ 再生</button><button id="step" disabled title="60秒進める">＋60秒</button><button id="reset">↺ 開始位置</button><label>速度 <select id="speed"><option value="1">×1</option>
+<div class="playback"><div class="transport"><button id="record-run" class="primary">計算</button><button id="record-cancel" disabled hidden>中止</button><button id="play" class="primary" disabled>▶ 再生</button><output id="clock">00:00:00</output><output id="run-state" role="status">起動中</output></div><div class="timeline-row"><span>0</span><input id="timeline" disabled type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span></div><div class="playback-actions"><details id="playback-menu" class="menu-popover"><summary>再生操作</summary><div class="action-menu"><button id="step" disabled title="60秒進める">＋60秒</button><button id="reset">↺ 開始位置</button><label>速度 <select id="speed"><option value="1">×1</option>
 <option value="10">×10</option>
 <option value="60" selected>×60</option>
 <option value="300">×300</option>
-<option value="600">×600</option></select></label><output id="clock">00:00:00</output>
-</div>
-<div class="timeline-row">
-<span>0分</span><input id="timeline" disabled type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span>
-</div>
-</div>
-<section id="task-summary-panel" hidden><table class="results-table"><thead><tr><th>タスク</th><th>担当／稼働</th><th>現在のノード別人数</th><th>資源残量の合計</th></tr></thead><tbody id="task-summary"></tbody></table><small>線はタスクの計画経路です。表または経路をダブルクリックすると個体とノードへ展開します。</small></section><div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
-<div id="notice" class="notice" role="status">読み込み中</div></main>
+<option value="600">×600</option></select></label></div></details><button id="calculation-settings-open">計算設定</button><button id="results-open">結果</button></div></div>
+</main>
 <div class="pane-resizer" data-pane="inspector" role="separator" aria-label="ユニット編集の幅" aria-orientation="vertical" tabindex="0"></div>
 <aside class="inspector" aria-label="選択対象の確認"><div class="panel-heading"><div><span class="eyebrow">SELECTED UNIT</span><h2 id="inspector-name">選択したユニット</h2></div><button id="delete" class="danger" disabled>削除</button></div>
 <div id="empty-selection" class="empty-selection">ユニットを選択してください。</div><div id="properties" hidden><p id="inspector-scope" class="route-help"></p><button id="settings-open" class="primary full">設定を編集</button><div class="inspector-tabs" aria-label="確認する内容"><button data-inspector-tab="overview" aria-pressed="true">概要</button><button data-inspector-tab="state" aria-pressed="false">状態</button><button data-inspector-tab="knowledge" aria-pressed="false">保有情報</button></div><section data-inspector-page="overview" id="inspector-overview"></section><section data-inspector-page="state" hidden><p id="inspector-state-time"></p><dl class="telemetry">
@@ -144,6 +123,17 @@
 </div>
 </dl><h3>現在の資源残量</h3><div id="unit-resource-summary"></div><div id="unit-warning" class="unit-warning" hidden></div></section><section id="knowledge-panel" data-inspector-page="knowledge" hidden><div id="knowledge-summary"></div></section></div></aside>
 </div>
+<dialog id="plan-manager-dialog" class="workspace-dialog" aria-labelledby="plan-manager-title"><div class="dialog-head"><h2 id="plan-manager-title">運用案の管理</h2><button id="plan-manager-close">閉じる</button></div><div class="plan-toolbar" aria-label="運用案の切替と管理">
+<label>運用案 <select id="plan-select" aria-label="表示する運用案"></select></label><button id="plan-save">案として保存</button><details id="plan-menu" class="menu-popover"><summary>案の操作</summary><div><div class="plan-menu-actions"><button id="plan-new">新しい案として保存</button><button id="plan-rename">名前を変更</button><button id="plan-delete">保存済みの案を削除</button></div><p class="route-help">切替時に編集中の内容を保持します。分析は保存済みの案を使用します。</p><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th><th>編集状況</th></tr></thead><tbody id="plan-list"></tbody></table></div></div></details><output id="plan-current" role="status"></output>
+</div></dialog>
+<dialog id="calculation-settings-dialog" class="workspace-dialog" aria-labelledby="calculation-settings-title"><div class="dialog-head"><h2 id="calculation-settings-title">計算設定</h2><button id="calculation-settings-close">閉じる</button></div><section class="calculation-fields"><div class="experiment-fields">
+<label>終了時刻 <input id="duration" type="number" min="1" max="1440" value="60"> 分</label><label>シード <input id="seed" maxlength="100" value="SimSim"></label><label>試行番号 <input id="trial" type="number" min="0" max="1000000000" value="0"></label><button id="next-trial">次の試行</button>
+</div>
+<p>同じ定義・シード・試行番号なら、同じ配置と航跡を再現します。80個を超えると経路・航跡は選択中だけ表示します。</p>
+<div class="fields-two">
+<label class="field">計算刻み（秒）<input id="record-step" type="number" min="0.1" max="300" step="any"></label><label class="field">通常の記録間隔（計算刻みの整数倍・秒）<input id="record-interval" type="number" min="0.1" max="300" step="any"></label>
+</div></section></dialog>
+<dialog id="workspace-results-dialog" class="workspace-dialog" aria-labelledby="workspace-results-title"><div class="dialog-head"><h2 id="workspace-results-title">表示中の結果</h2><button id="workspace-results-close">閉じる</button></div><p id="workspace-result-time"></p><p id="mission-status">成功条件は未設定</p><p id="recording-info"></p><div class="compact-actions"><button id="events-open">計算履歴</button><button id="record-save" disabled>記録保存</button><button id="route-check-open">経路を検査</button></div><p id="route-check-status" role="status"></p><section id="task-summary-panel" hidden><table class="results-table"><thead><tr><th>タスク</th><th>担当／稼働</th><th>現在のノード別人数</th><th>資源残量の合計</th></tr></thead><tbody id="task-summary"></tbody></table><small>線はタスクの計画経路です。表を選択するか、盤面の経路をダブルクリックすると個体とノードへ展開します。</small></section></dialog>
 <dialog id="behavior-parameter-dialog"><h2>担当時に指定する値</h2><p class="route-help">挙動では名前を参照し、具体的な値は「担当・共有設定」で指定します。秒・m・速度比は表示単位で入力してください。</p><p id="behavior-parameter-error" class="validation-message" role="alert" hidden></p><label class="field">編集する値<select id="behavior-parameter-list"></select></label><label class="field">名前<input id="behavior-parameter-name" maxlength="120"></label><label class="field">種類<select id="behavior-parameter-type"><option value="number">数値</option><option value="route">経路</option><option value="destination">目的地</option><option value="unit">単体ユニット</option></select></label><label class="field">単位<select id="behavior-parameter-unit"><option value="s">秒</option><option value="m">m</option><option value="ratio">速度比（%）</option></select></label><label class="check-field"><input id="behavior-parameter-default-enabled" type="checkbox">挙動に既定値を設定する</label><label class="field">既定値<input id="behavior-parameter-number" type="number" step="any"></label><label class="field">既定値<select id="behavior-parameter-reference"></select></label><button id="behavior-parameter-delete">削除</button><div class="dialog-actions"><button id="behavior-parameter-close">閉じる</button><button id="behavior-parameter-cancel">取消</button><button id="behavior-parameter-save" class="primary">保存</button></div></dialog>
 <dialog id="navigation-dialog"><h2 id="navigation-title">経路・目的地</h2><p id="navigation-error" class="validation-message" role="alert" hidden></p><label class="field">編集する経路・目的地<select id="navigation-resource"></select></label><label class="field">名前<input id="navigation-name" maxlength="120"></label><section id="navigation-route-fields"><button id="navigation-draw">地図で経路を描く</button><label class="field">経路の繰り返し<select id="navigation-mode"><option value="once">一度だけ</option><option value="loop">周回</option><option value="pingpong">往復</option></select></label><label class="field">経路の座標（m）：一行に 東西, 南北, 高度・深度<textarea id="navigation-points" rows="7" placeholder="0, 0, 0
 1000, 0, 0"></textarea></label><p class="route-help">高さはz座標です。海面が0mの場合、水中は負の値です。地図では順にクリックし、Escで戻ります。2点以上必要です。協調して周回する経路は3点以上にしてください。</p><details id="navigation-planning"><summary>地形の検査・自動生成</summary>

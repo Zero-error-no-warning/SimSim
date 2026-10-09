@@ -1,33 +1,33 @@
-import {surveillanceTemplate} from './mission-templates.js?v=20261009-configuration-contract-28';
-import {SettingsUI} from './settings-ui.js?v=20261009-configuration-contract-28';
-import {resourceName} from './resource-ui.js?v=20261009-configuration-contract-28';
-import {taskPresentations} from './map-presentation.js?v=20261009-configuration-contract-28';
-import {planEditor} from './plan-editing.js?v=20261009-configuration-contract-28';
-import {verifiedWorker} from './worker-client.js?v=20261009-configuration-contract-28';
-import {restorePlansResult} from './plans.js?v=20261009-configuration-contract-28';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261009-configuration-contract-28';
-import {parameter} from './parameters.js?v=20261009-configuration-contract-28';
-import {WorkspaceUI} from './workspace-ui.js?v=20261009-configuration-contract-28';
-import {NavigationUI} from './navigation-ui.js?v=20261009-configuration-contract-28';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261009-configuration-contract-28';
-import {ContextMenu} from './context-menu.js?v=20261009-configuration-contract-28';
-import {TerrainUI} from './terrain-ui.js?v=20261009-configuration-contract-28';
-import { BehaviorUI } from './behavior-ui.js?v=20261009-configuration-contract-28';
-import { createSimulation } from './recorded-engine.js?v=20261009-configuration-contract-28';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261009-configuration-contract-28';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261009-configuration-contract-28';
-import { importScenario } from './scenario-import.js?v=20261009-configuration-contract-28';
-import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-configuration-contract-28';
-import { restoreAnalysisResult } from './detection.js?v=20261009-configuration-contract-28';
-import { AnalysisUI } from './analysis-ui.js?v=20261009-configuration-contract-28';
-import { MapView } from './view.js?v=20261009-configuration-contract-28';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261009-configuration-contract-28';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261009-configuration-contract-28';
+import {surveillanceTemplate} from './mission-templates.js?v=20261009-map-workspace-29';
+import {SettingsUI} from './settings-ui.js?v=20261009-map-workspace-29';
+import {resourceName} from './resource-ui.js?v=20261009-map-workspace-29';
+import {taskPresentations} from './map-presentation.js?v=20261009-map-workspace-29';
+import {planEditor} from './plan-editing.js?v=20261009-map-workspace-29';
+import {verifiedWorker} from './worker-client.js?v=20261009-map-workspace-29';
+import {restorePlansResult} from './plans.js?v=20261009-map-workspace-29';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-map-workspace-29';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261009-map-workspace-29';
+import {parameter} from './parameters.js?v=20261009-map-workspace-29';
+import {WorkspaceUI} from './workspace-ui.js?v=20261009-map-workspace-29';
+import {NavigationUI} from './navigation-ui.js?v=20261009-map-workspace-29';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261009-map-workspace-29';
+import {ContextMenu} from './context-menu.js?v=20261009-map-workspace-29';
+import {TerrainUI} from './terrain-ui.js?v=20261009-map-workspace-29';
+import { BehaviorUI } from './behavior-ui.js?v=20261009-map-workspace-29';
+import { createSimulation } from './recorded-engine.js?v=20261009-map-workspace-29';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261009-map-workspace-29';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261009-map-workspace-29';
+import { importScenario } from './scenario-import.js?v=20261009-map-workspace-29';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-map-workspace-29';
+import { restoreAnalysisResult } from './detection.js?v=20261009-map-workspace-29';
+import { AnalysisUI } from './analysis-ui.js?v=20261009-map-workspace-29';
+import { MapView } from './view.js?v=20261009-map-workspace-29';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261009-map-workspace-29';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261009-map-workspace-29';
 assertDocumentVersion();
 
 const $=requireElement;
-new WorkspaceUI();
+const workspaceUI=new WorkspaceUI();
 let settingsUI;
 let selectedTask=null,sensitivityTarget=null;
 const mapMenu=new ContextMenu($('map-menu'));
@@ -43,7 +43,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='停止・計算対象外';STATUS_NAMES.depleted='移動資源枯渇';
-const worker=verifiedWorker(new URL('./worker.js?v=20261009-configuration-contract-28',import.meta.url),{
+const worker=verifiedWorker(new URL('./worker.js?v=20261009-map-workspace-29',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 $('record-run').disabled=true;$('analysis-open').disabled=true;
@@ -76,7 +76,7 @@ worker.onmessage=({
   if(data.revision!==revision)return;
   if(data.type==='recordingHistory'){analysisUI.history.load(data.history);return;}
   if(data.type==='recordingProgress'){
-    $('recording-info').textContent='計算中 '+Math.round(data.time/data.duration*100)+'%';
+    setRecordingInfo('計算中 '+Math.round(data.time/data.duration*100)+'%');
     return;
   }
   if(data.type==='recordingExport'){
@@ -102,7 +102,7 @@ worker.onmessage=({
   $('record-cancel').disabled=!snapshot.recordingRunning;
   $('record-cancel').hidden=!snapshot.recordingRunning;
   $('record-save').disabled=!snapshot.recording;
-  $('recording-info').textContent=snapshot.recording?'記録済み · '+snapshot.recording.frames+'フレーム · '+(snapshot.recording.bytes/1048576).toFixed(2)+' MiB · 再生時の計算なし':snapshot.executionState==='failed'?'計算失敗 · '+snapshot.missionError:snapshot.executionState==='cancelled'?'計算を中止しました':snapshot.recordingPending?'未計算 · 編集後は計算してください':'';
+  setRecordingInfo(snapshot.recording?'記録済み · '+snapshot.recording.frames+'フレーム · '+(snapshot.recording.bytes/1048576).toFixed(2)+' MiB · 再生時の計算なし':snapshot.executionState==='failed'?'計算失敗 · '+snapshot.missionError:snapshot.executionState==='cancelled'?'計算を中止しました':snapshot.recordingPending?'未計算 · 編集後は計算してください':'');
   view.updateSnapshot(snapshot);
   updateTelemetry();
   updateClock();
@@ -233,7 +233,14 @@ function readSensor(prefix) {
     enabled:$(prefix+'-sensor-enabled').checked,range:Number($(prefix+'-sensor-range').value)*1000,probabilityPerMinute:Number($(prefix+'-sensor-probability').value)/100,domains:['ground','surface','subsurface','air'].filter(d=>$(prefix+'-sensor-'+d).checked),terrainLOS:$(prefix+'-sensor-los').checked,mountHeight:Number($(prefix+'-sensor-height').value)
   };
 }
+function setRecordingInfo(text){
+  $('recording-info').textContent=text;
+  $('run-state').textContent=text.includes('Worker')?'起動中':text.split(' · ')[0]||'未計算';
+}
+let noticeTimer;
 function notify(message,warning=false){
+  clearTimeout(noticeTimer);$('notice').hidden=!message;
+  if(message&&!warning)noticeTimer=setTimeout(()=>$('notice').hidden=true,6000);
   $('notice').textContent=message;
   $('notice').classList.toggle('warning',warning);
 }
@@ -249,9 +256,9 @@ function post(type='seek',extra={
   // UI initialization errors must not be reported as worker timeouts.
   if(!workerReady&&timeout===null){
     $('record-run').disabled=true;
-    $('recording-info').textContent='計算Workerを起動しています…';
+    setRecordingInfo('計算Workerを起動しています…');
     waitNotice=setTimeout(()=>{
-      if(!workerReady)$('recording-info').textContent='計算Workerの起動を待っています。最大60秒待ちます…';
+      if(!workerReady)setRecordingInfo('計算Workerの起動を待っています。最大60秒待ちます…');
     },10000);
     timeout=setTimeout(()=>{
       if(workerReady)return;
@@ -386,8 +393,8 @@ function scrollSelectedUnit(){
   const button=[...$('unit-list').children].find(b=>b.dataset.id===selected);
   if(button)button.scrollIntoView({block:'nearest',inline:'nearest'});
 }
-function expandTask(id){const u=model.scenario.units.find(u=>sharedAssignment(scenario,u.id)?.id===id);$('task-aggregation').value='units';view.taskAggregation=false;if(u)select(u.id);selectTask(id);view.updateSnapshot(snapshot);$('task-summary-panel').hidden=true;}
-$('task-aggregation').onchange=()=>{view.taskAggregation=$('task-aggregation').value==='tasks';if(view.taskAggregation){$('information-perspective').value='truth';view.knowledgeOwner=null;}$('task-summary-panel').hidden=!view.taskAggregation;view.updateSnapshot(snapshot);updateTelemetry();};
+function expandTask(id){workspaceUI.closeResults();workspaceUI.setAggregation(false);const u=model.scenario.units.find(u=>sharedAssignment(scenario,u.id)?.id===id);$('task-aggregation').value='units';view.taskAggregation=false;if(u)select(u.id);selectTask(id);view.updateSnapshot(snapshot);$('task-summary-panel').hidden=true;}
+$('task-aggregation').onchange=()=>{view.taskAggregation=$('task-aggregation').value==='tasks';workspaceUI.setAggregation(view.taskAggregation);if(view.taskAggregation){$('information-perspective').value='truth';view.knowledgeOwner=null;}$('task-summary-panel').hidden=!view.taskAggregation;view.updateSnapshot(snapshot);updateTelemetry();};
 function selectTask(id){
   sensitivityTarget=null;
   selectedTask=id;
@@ -511,6 +518,7 @@ function updateKnowledge(){
  for(const r of Object.values(k.friendlyReports))line(r.subjectId+' · 最終報告 '+r.reportedState+' · 観測から '+Math.max(0,snapshot.time-r.observedAt).toFixed(1)+'秒');
 }
 function updateTelemetry() {
+ $('workspace-result-time').textContent=snapshot?.actionsPending?'未計算 · 初期状態':'再生時刻 '+(snapshot?.time??0).toFixed(1)+'秒の状態';
  updateKnowledge();
  $('inspector-state-time').textContent=snapshot?.actionsPending?'未計算 · 初期状態':'再生時刻 '+(snapshot?.time??0).toFixed(1)+'秒';
  const summaryHost=$('task-summary');summaryHost.replaceChildren();for(const task of snapshot?taskPresentations(model.scenario,snapshot):[]){const tr=document.createElement('tr');tr.tabIndex=0;tr.setAttribute('role','button');for(const text of [task.name,task.total+' / '+task.operational,Object.entries(task.nodes).map(([id,n])=>(scenario.behaviors.find(g=>g.id===scenario.behaviorAssignments.find(a=>a.id===task.id)?.behaviorId)?.nodes.find(n=>n.id===id)?.name??id)+': '+n).join(' / '),Object.entries(task.resources).map(([id,n])=>resourceName(id)+': '+n.toFixed(1)).join(' / ')||'未設定']){const td=document.createElement('td');td.textContent=text;tr.append(td);}tr.onclick=()=>expandTask(task.id);tr.onkeydown=e=>{if(e.key==='Enter')expandTask(task.id);};summaryHost.append(tr);}
@@ -802,7 +810,7 @@ $('mission-template-apply').onclick=()=>{try{
  const result=surveillanceTemplate(scenario,{unitId:selected,receiverId:$('mission-template-receiver').value,center:missionTemplateCenter,radius:Number($('mission-template-radius').value),period:Number($('mission-template-period').value)});
  if(commit(next=>{for(const key of Object.keys(next))delete next[key];Object.assign(next,result.scenario);},'監視任務を作成しました。')){$('mission-template-dialog').close();behaviorUI.open(result.assignmentId);behaviorUI.tab('graph');}
 }catch(error){showError(error.message);}};
-$('information-perspective').onchange=()=>{view.knowledgeOwner=$('information-perspective').value==='selected'?selected:null;if(view.knowledgeOwner){view.taskAggregation=false;$('task-aggregation').value='units';$('task-summary-panel').hidden=true;setAuthoring(false);settingsUI.inspectorTab('knowledge');}view.updateSnapshot(snapshot);post();updateTelemetry();};
+$('information-perspective').onchange=()=>{view.knowledgeOwner=$('information-perspective').value==='selected'?selected:null;if(view.knowledgeOwner){workspaceUI.setAggregation(false);workspaceUI.showInspector();view.taskAggregation=false;$('task-aggregation').value='units';$('task-summary-panel').hidden=true;setAuthoring(false);settingsUI.inspectorTab('knowledge');}view.updateSnapshot(snapshot);post();updateTelemetry();};
 function closeMapMenu(){mapMenu.close();}
 function openMapMenu(context){
   if(!scenario)return;

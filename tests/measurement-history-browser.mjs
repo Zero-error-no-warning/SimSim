@@ -1,3 +1,4 @@
+import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -34,39 +35,39 @@ try{
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#analysis-export').click()]);const analysis=path.join(folder,'analysis.txt');await download.saveAs(analysis);
   await page.locator('#measurement-condition').selectOption({index:0});await page.locator('#measurement-rows tr[data-measurement="arrival"] button').click();
   await page.waitForFunction(()=>!document.getElementById('play').disabled);assert((await page.locator('#replay-parameters').textContent()).includes('到達未達'));
-  assert.equal(await page.locator('#timeline').inputValue(),'30');await page.locator('#events-open').click();assert((await page.locator('#history-note').textContent()).includes('0 / 0個'));await page.locator('#events-close').click();
+  assert.equal(await page.locator('#timeline').inputValue(),'30');await clickWorkspace(page,'events-open');assert((await page.locator('#history-note').textContent()).includes('0 / 0個'));await page.locator('#events-close').click();
   await page.locator('#file').setInputFiles(analysis);await page.waitForFunction(()=>document.getElementById('analysis-dialog').open||document.getElementById('error-dialog').open);assert.equal(await page.locator('#error-dialog').evaluate(e=>e.open),false,await page.locator('#error-text').textContent());await page.locator('#analysis-dialog').waitFor({state:'visible'});assert((await page.locator('#analysis-progress').textContent()).includes('再計算なし'));await page.locator('#measurement-condition').selectOption({index:1});assert((await page.locator('#measurement-rows').textContent()).includes('3.0秒'));await page.locator('#analysis-close').click();
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled);
-  await page.locator('#events-open').click();assert.equal(await page.locator('#history-chart svg').count(),1);assert(await page.locator('#events-dialog').evaluate(e=>e.clientWidth>1000));assert.equal(await page.locator('#history-unit option').count(),3);
+  await clickWorkspace(page,'events-open');assert.equal(await page.locator('#history-chart svg').count(),1);assert(await page.locator('#events-dialog').evaluate(e=>e.clientWidth>1000));assert.equal(await page.locator('#history-unit option').count(),3);
   // All-period history is available at t=0, including the future repeated entry.
   assert.equal(await page.locator('#timeline').inputValue(),'0');const future=page.locator('#history-chart circle[data-event="triggered"][data-time="20"]').first();await future.click();
   await page.waitForFunction(()=>document.getElementById('timeline').value==='20');const cursor20=await page.locator('#history-chart [data-cursor]').getAttribute('x1');assert(await page.locator('#event-list .event-item').count()>2);
   await page.locator('#history-unit').selectOption('group__1');assert.equal(await page.locator('#history-chart [data-node="b"]').count(),5);
-  await page.locator('#events-close').click();await page.locator('#reset').click();await page.waitForFunction(()=>document.getElementById('timeline').value==='0');await page.locator('#events-open').click();assert.notEqual(await page.locator('#history-chart [data-cursor]').getAttribute('x1'),cursor20);assert.equal(await future.count(),1);await page.locator('#events-close').click();
-  const [recordDownload]=await Promise.all([page.waitForEvent('download'),page.locator('#record-save').click()]);const record=path.join(folder,'record.txt');await recordDownload.saveAs(record);await page.locator('#file').setInputFiles(record);await page.waitForFunction(()=>!document.getElementById('play').disabled);await page.locator('#events-open').click();assert.equal(await page.locator('#history-chart circle[data-time="20"]').count()>0,true);await page.locator('#events-close').click();
-  // Four panes and linked selections replace overlapping 3D labels.
+  await page.locator('#events-close').click();await clickWorkspace(page,'reset');await page.waitForFunction(()=>document.getElementById('timeline').value==='0');await clickWorkspace(page,'events-open');assert.notEqual(await page.locator('#history-chart [data-cursor]').getAttribute('x1'),cursor20);assert.equal(await future.count(),1);await page.locator('#events-close').click();
+  const [recordDownload]=await Promise.all([page.waitForEvent('download'),clickWorkspace(page,'record-save')]);const record=path.join(folder,'record.txt');await recordDownload.saveAs(record);await page.locator('#file').setInputFiles(record);await page.waitForFunction(()=>!document.getElementById('play').disabled);await clickWorkspace(page,'events-open');assert.equal(await page.locator('#history-chart circle[data-time="20"]').count()>0,true);await page.locator('#events-close').click();
+  // A single navigator switches between tasks and units; selection stays linked.
   assert.equal(await page.locator('#labels .map-label').count(),0);
   assert.equal(await page.locator('#labels .label-rail').count(),0);
   assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));
-  const panels=await page.locator('.task-panel,.unit-panel,.main-panel,.inspector').evaluateAll(els=>els.map(e=>e.getBoundingClientRect().x));
-  assert(panels.every((x,i)=>i===0||x>panels[i-1]));
+  await showNavigator(page,'task');
+  assert(await page.locator('.unit-panel').isHidden());
   await page.locator('.task-item[data-task="t"]').click();assert.equal(await page.locator('.unit-item.related').count(),2);
   assert.equal(await page.locator('.unit-item').count(),3); // Unassigned units stay available.
   assert.equal(await page.locator('#behavior-dialog').evaluate(e=>e.open),false);
   await page.locator('.task-edit').click();assert(await page.locator('#behavior-dialog').isVisible());await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
-  await page.locator('.unit-item[data-id="group__2"]').hover();await page.waitForTimeout(100);
+  await showNavigator(page);await page.locator('.unit-item[data-id="group__2"]').hover();await page.waitForTimeout(100);
   assert(await page.locator('#labels line[data-unit="group__2"]').isVisible());
-  await page.locator('.unit-item[data-id="group__2"]').click();assert(await page.locator('.unit-item[data-id="group__2"]').evaluate(e=>e.classList.contains('selected')));
+  await showNavigator(page);await page.locator('.unit-item[data-id="group__2"]').click();assert(await page.locator('.unit-item[data-id="group__2"]').evaluate(e=>e.classList.contains('selected')));
   assert(await page.locator('.task-item[data-task="t"]').evaluate(e=>e.classList.contains('related')&&e.classList.contains('selected')));
-  await page.locator('.unit-item[data-id="template"]').click();assert.equal(await page.locator('.task-item.selected').count(),0);assert.equal(await page.locator('.unit-item.related').count(),0);
-  assert((await page.locator('.unit-item[data-id="template"] .unit-status').textContent()).includes('無効'));
+  await showNavigator(page);await page.locator('.unit-item[data-id="template"]').click();assert.equal(await page.locator('.task-item.selected').count(),0);assert.equal(await page.locator('.unit-item.related').count(),0);
+  assert((await page.locator('.unit-item[data-id="template"] .unit-status').textContent()).includes('計算対象外'));
   await page.locator('#unit-search').fill('存在しない名前');assert.equal(await page.locator('.unit-item').count(),1);assert(await page.locator('.unit-item[data-id="template"]').isVisible());await page.locator('#unit-search').fill('');
   // Picking a unit beyond the list limit reveals and scrolls to that row.
   const many=structuredClone(source);many.groups[0].count=100;many.groups[0].width=2000;many.groups[0].height=2000;
   many.units[0].initial={x:3500,y:3500,z:0};fs.writeFileSync(input,JSON.stringify(many));await page.locator('#file').setInputFiles(input);
-  await page.locator('#unit-search').fill('group__100');await page.locator('.unit-item[data-id="group__100"]').click();await page.waitForTimeout(150);
+  await page.locator('#unit-search').fill('group__100');await showNavigator(page);await page.locator('.unit-item[data-id="group__100"]').click();await page.waitForTimeout(150);
   const targetPoint=await page.locator('#labels line[data-unit="group__100"]').evaluate(e=>({x:Number(e.getAttribute('x2')),y:Number(e.getAttribute('y2'))}));
-  await page.locator('#unit-search').fill('template');await page.locator('.unit-item[data-id="template"]').click();await page.locator('#unit-search').fill('');assert.equal(await page.locator('.unit-item[data-id="group__100"]').count(),0);
+  await page.locator('#unit-search').fill('template');await showNavigator(page);await page.locator('.unit-item[data-id="template"]').click();await page.locator('#unit-search').fill('');assert.equal(await page.locator('.unit-item[data-id="group__100"]').count(),0);
   const mapBox=await page.locator('#map>canvas').boundingBox();await page.mouse.click(mapBox.x+targetPoint.x,mapBox.y+targetPoint.y);
   await page.waitForFunction(()=>document.querySelector('.unit-item[data-id="group__100"]')?.classList.contains('selected'));
   assert.equal(await page.locator('#inspector-name').textContent(),'群 100');
@@ -75,12 +76,12 @@ try{
   await page.mouse.move(box.x+3,box.y+50);await page.mouse.down();await page.mouse.move(box.x+43,box.y+50);await page.mouse.up();
   assert((await page.locator('.unit-panel').boundingBox()).width>before.width+30);
   await handle.focus();await page.keyboard.press('ArrowLeft');
-  const mapBefore=await page.locator('#map').boundingBox();await page.locator('#tasks-toggle').click();assert(await page.locator('#task-panel-content').isHidden());assert((await page.locator('#map').boundingBox()).width>mapBefore.width+100);
-  await page.reload();await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));assert(await page.locator('#task-panel-content').isHidden());await page.locator('#tasks-toggle').click();
+  const mapBefore=await page.locator('#map').boundingBox();await page.locator('#navigator-toggle').click();assert(await page.locator('.unit-panel').isHidden());assert((await page.locator('#map').boundingBox()).width>mapBefore.width+100);
+  await page.reload();await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));assert(await page.locator('.unit-panel').isHidden());await page.locator('#navigator-toggle').click();
   await page.setViewportSize({width:1200,height:900});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.locator('#viewtop').click();assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));await page.locator('#view3d').click();
+  await clickWorkspace(page,'viewtop');assert(await page.locator('#map>canvas').evaluate(e=>Math.abs(e.clientWidth-e.parentElement.clientWidth)<2));await clickWorkspace(page,'view3d');
   await page.locator('.map-options').evaluate(e=>e.closest('details').open=true);await page.locator('#show-labels').uncheck();assert(await page.locator('#labels').isHidden());await page.locator('#show-labels').check();await page.locator('.map-options').evaluate(e=>e.closest('details').open=false);
   if(process.env.SIMSIM_LABEL_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_LABEL_SCREENSHOT});
-  if(process.env.SIMSIM_HISTORY_SCREENSHOT){await page.locator('#events-open').click();await page.screenshot({path:process.env.SIMSIM_HISTORY_SCREENSHOT});}
-  assert.deepEqual(errors,[]);console.log('PASS: point editing, stage results, failed-trial replay, export/restore, all-period timeline, filtered lanes, backward seek, archived history, four panes, linked task/unit selection, hover lines, pane resizing/collapse and persistence');
+  if(process.env.SIMSIM_HISTORY_SCREENSHOT){await clickWorkspace(page,'events-open');await page.screenshot({path:process.env.SIMSIM_HISTORY_SCREENSHOT});}
+  assert.deepEqual(errors,[]);console.log('PASS: point editing, stage results, failed-trial replay, export/restore, all-period timeline, filtered lanes, backward seek, archived history, single navigator, linked task/unit selection, hover lines, pane resizing/collapse and persistence');
 }finally{await browser?.close();await new Promise(resolve=>server.close(resolve));fs.rmSync(folder,{recursive:true,force:true});}

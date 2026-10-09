@@ -1,3 +1,4 @@
+import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -22,20 +23,20 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
   await page.locator('#new-scenario').click();assert.equal(await page.locator('.unit-item').count(),0);
   // Empty projects and the last graph's deletion both have no assignment/graph.
-  await page.locator('#behaviors-open').click();await page.locator('#behavior-dialog').waitFor({state:'visible'});
+  await clickWorkspace(page,'behaviors-open');await page.locator('#behavior-dialog').waitFor({state:'visible'});
   assert(await page.locator('#assignment-name').isDisabled());assert(await page.locator('#node-measure').isDisabled());assert((await page.locator('#node-measure-note').textContent()).includes('選択してください'));
   await page.locator('#assignment-new').click();assert((await page.locator('#error-text').textContent()).includes('割り当て可能な担当がありません'));await page.locator('#close-error').click();await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
-  await page.locator('#template').selectOption('air');await page.locator('#add').click();const box=await page.locator('#map canvas').boundingBox();await page.mouse.click(box.x+box.width*.5,box.y+box.height*.5);assert.equal(await page.locator('.unit-item').count(),1);
-  await page.locator('#behaviors-open').click();await page.locator('#behavior-dialog').waitFor({state:'visible'});await page.locator('#assignment-new').click();
+  await showNavigator(page);await page.locator('#template').selectOption('air');await page.locator('#add').click();const box=await page.locator('#map canvas').boundingBox();await page.mouse.click(box.x+box.width*.5,box.y+box.height*.5);assert.equal(await page.locator('.unit-item').count(),1);
+  await clickWorkspace(page,'behaviors-open');await page.locator('#behavior-dialog').waitFor({state:'visible'});await page.locator('#assignment-new').click();
   assert(!(await page.locator('#assignment-name').isDisabled()));const task=await page.locator('#assignment-list').inputValue();assert(task);
   await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();const initial=await page.locator('#behavior-canvas .initial-label').locator('..').getAttribute('data-node');
   await page.locator('#behavior-canvas [data-node="'+initial+'"] > rect:first-child').click();assert(!(await page.locator('#node-measure').isDisabled()));assert((await page.locator('#node-measure-note').textContent()).includes(await page.locator('#assignment-name').inputValue()));
   await page.locator('#behavior-delete').click();assert.equal(await page.locator('#behavior-canvas [data-node]').count(),0);assert(await page.locator('#assignment-name').isDisabled());assert(await page.locator('#node-measure').isDisabled());
   await page.locator('#behavior-undo').click();assert.equal(await page.locator('#assignment-list option[value="'+task+'"]').count(),1);assert((await page.locator('#behavior-canvas [data-node]').count())>0);
   await page.locator('#behavior-redo').click();assert.equal(await page.locator('#behavior-canvas [data-node]').count(),0);
-  await page.locator('#task-edit-tab').click();await page.locator('#assignment-new').click();await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.locator('#behavior-dialog').waitFor({state:'hidden'});assert.equal(await page.locator('#task-list button').count(),1);
-  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,'created.txt');await download.saveAs(file);const source=JSON.parse(fs.readFileSync(file));assert.equal(source.version,3);assert.equal(source.units.length,1);assert.equal(source.behaviors.length,1);assert.equal(source.behaviorAssignments.length,1);
-  await page.locator('#new-scenario').click();await page.locator('#file').setInputFiles(file);await page.waitForFunction(()=>document.querySelectorAll('#task-list button').length===1);
+  await page.locator('#task-edit-tab').click();await page.locator('#assignment-new').click();await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.locator('#behavior-dialog').waitFor({state:'hidden'});assert.equal(await page.locator('#task-list .task-item').count(),1);
+  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,'created.txt');await download.saveAs(file);const source=JSON.parse(fs.readFileSync(file));assert.equal(source.version,4);assert.equal(source.units.length,1);assert.equal(source.behaviors.length,1);assert.equal(source.behaviorAssignments.length,1);
+  await page.locator('#new-scenario').click();await page.locator('#file').setInputFiles(file);await page.waitForFunction(()=>document.querySelectorAll('#task-list .task-item').length===1);
   await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled,{},{timeout:60000});assert(!await page.locator('#error-dialog').isVisible());
-  assert.deepEqual(errors,[]);console.log('PASS: empty new scenario, no eligible units, first-unit task creation, measurement controls, last graph deletion with Undo/Redo, task recreation/apply, version-3 save/reopen and Worker calculation');
+  assert.deepEqual(errors,[]);console.log('PASS: empty new scenario, no eligible units, first-unit task creation, measurement controls, last graph deletion with Undo/Redo, task recreation/apply, version-4 save/reopen and Worker calculation');
 }finally{await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});}

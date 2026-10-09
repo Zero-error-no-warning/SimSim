@@ -1,11 +1,11 @@
-import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261009-configuration-contract-28';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
-import {bindingTargetExists} from './parameters.js?v=20261009-configuration-contract-28';
-import {clone} from './engine.js?v=20261009-configuration-contract-28';
-import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261009-configuration-contract-28';
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
-import {summarizePlans} from './plans.js?v=20261009-configuration-contract-28';
-import {requireElement as $} from './ui-dom.js?v=20261009-configuration-contract-28';
+import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261009-map-workspace-29';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-map-workspace-29';
+import {bindingTargetExists} from './parameters.js?v=20261009-map-workspace-29';
+import {clone} from './engine.js?v=20261009-map-workspace-29';
+import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261009-map-workspace-29';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261009-map-workspace-29';
+import {summarizePlans} from './plans.js?v=20261009-map-workspace-29';
+import {requireElement as $} from './ui-dom.js?v=20261009-map-workspace-29';
 const format=(n,kind,delta=false)=>n===null?'—':(delta&&n>0?'+':'')+Number((n*(kind==='rate'?100:1)).toFixed(2))+(kind==='rate'?(delta?'ポイント':'%'):'秒');
 export class PlansUI{
   constructor(owner){
@@ -68,6 +68,7 @@ export class PlansUI{
     $('plan-new').disabled=preview||c.items.length>=8;$('plan-rename').disabled=preview||!p;$('plan-delete').disabled=preview||!p;
     const differences=p?planDifferences(p.operation,capturePlan(s)):[];
     $('plan-current').textContent=preview?'分析試行の再生中 · 案を選ぶと編集に戻ります':p?(dirty?'未更新：'+differences.join('、'):'保存済み'):'未保存';
+    $('active-plan-caption').hidden=!p;$('active-plan-caption').textContent=p?'運用案: '+p.name+(dirty?'（未更新）':''):'';
     $('plan-current').title='切替時に編集内容を保持します。分析は保存済みの案を使用します。シナリオの.txt保存には保持した編集内容も含まれます。';
     $('plans-editor').hidden=this.owner.getScenario().analysis?.mode!=='plans';
     $('plan-baseline').replaceChildren(...c.items.map(p=>new Option(p.name,p.id)));$('plan-baseline').value=c.baselineId;$('plan-baseline').disabled=!c.items.length;

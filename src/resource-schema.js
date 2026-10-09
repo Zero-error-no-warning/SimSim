@@ -1,4 +1,4 @@
-import { number, multi, reference, fieldErrors } from "./configuration-schema.js?v=20261009-configuration-contract-28";
+import { number, multi, reference, fieldErrors } from "./configuration-schema.js?v=20261009-map-workspace-29";
 export const NODE_LABELS = [["follow", "経路移動"], ["patrol", "周回"], ["move", "目的地移動"], ["wait", "時間待ち"], ["signal", "情報待ち"], ["report", "報告"], ["stop", "停止"]];
 export const RESOURCE_FIELDS = [
   number("resource.capacity", "capacity", "容量（最大量）", 1e-6, 1e12, { required: true, default: 100 }),

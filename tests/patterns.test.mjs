@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {extractPatterns,validatePatterns,binomialLower,applyPattern} from '../src/patterns.js?v=20261009-configuration-contract-28';
-import {runExperiment} from '../src/experiment.js?v=20261009-configuration-contract-28';
-import {MODEL_BUILD} from '../src/model-version.js?v=20261009-configuration-contract-28';
+import {extractPatterns,validatePatterns,binomialLower,applyPattern} from '../src/patterns.js?v=20261009-map-workspace-29';
+import {runExperiment} from '../src/experiment.js?v=20261009-map-workspace-29';
+import {MODEL_BUILD} from '../src/model-version.js?v=20261009-map-workspace-29';
 const source=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));s.experiment={candidates:16,trials:1,requiredRate:.5,designSeed:'patterns',controls:[{id:'speed',target:'unit:uav',parameter:'rate.movement.speed',min:80,max:120},{id:'period',target:'behavior:observe',parameter:'behavior.trigger.refresh.seconds',min:20,max:60}]};s.analysis.uncertainties=[];return s;};
 test('rules preserve combinations and multiple applicable patterns, include failures, and require different operating candidates',()=>{
  const s=source(),candidates=Array.from({length:64},(_,i)=>({id:'c-'+i,values:{speed:82.5+(i%8)*5,period:22.5+Math.floor(i/8)*5}})),rows=candidates.map((c,i)=>({index:i,candidateId:c.id,profileId:'baseline',trial:0,success:(c.values.speed<100)===(c.values.period<40),successTime:30,invalidUnits:0,constrainedPaths:0}));s.experiment.requiredRate=.95;

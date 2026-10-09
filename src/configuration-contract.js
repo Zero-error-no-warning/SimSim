@@ -1,5 +1,5 @@
-import { BASE_FIELDS, POSITION_FIELDS, MOVEMENT_FIELDS, MOTION_FIELDS, SENSOR_FIELDS, COMMUNICATION_FIELDS, GROUP_FIELDS, REPORT_FIELDS, COMMAND_FIELDS, LINK_FIELDS, DISRUPTION_FIELDS, OPERATIONAL_FIELDS, INITIAL_FIELDS, ASSUMPTION_FIELDS, COORDINATION_FIELDS } from "./configuration-fields.js?v=20261009-configuration-contract-28";
-import { RESOURCE_CONTRACT } from "./resource-schema.js?v=20261009-configuration-contract-28";
+import { BASE_FIELDS, POSITION_FIELDS, MOVEMENT_FIELDS, MOTION_FIELDS, SENSOR_FIELDS, COMMUNICATION_FIELDS, GROUP_FIELDS, REPORT_FIELDS, COMMAND_FIELDS, LINK_FIELDS, DISRUPTION_FIELDS, OPERATIONAL_FIELDS, INITIAL_FIELDS, ASSUMPTION_FIELDS, COORDINATION_FIELDS } from "./configuration-fields.js?v=20261009-map-workspace-29";
+import { RESOURCE_CONTRACT } from "./resource-schema.js?v=20261009-map-workspace-29";
 export const CATEGORIES = [["basic", "基本・配置"], ["capabilities", "能力・資源"], ["operation", "運用"], ["information", "情報・権限"]];
 export const SCENARIO_CATEGORIES = [["information", "初期情報"], ["communication", "通信・障害"], ["operation", "停止事象"], ["assumptions", "モデル前提"]];
 const module = (id, label, category, owner, fields, extra = {}) => ({ id, label, category, owner, fields, kind: "fields", editor: "fields", absentMeaning: extra.optionalObject ? "未搭載" : extra.kind === "array" ? "追加設定なし" : "省略した属性には既存モデルの既定値を使用", analysis: { supported: false, reason: "分析台帳で許可した項目だけを使用します。" }, ...extra });

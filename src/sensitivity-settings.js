@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261009-configuration-contract-28';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261009-map-workspace-29';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){

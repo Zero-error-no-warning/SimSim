@@ -1,7 +1,7 @@
-import {clone,validateScenario} from './engine.js?v=20261009-configuration-contract-28';
-import {NODE_KINDS} from './shared-settings.js?v=20261009-configuration-contract-28';
-import {summarizeMeasurements} from './measurement-points.js?v=20261009-configuration-contract-28';
-import {requireElement as $} from './ui-dom.js?v=20261009-configuration-contract-28';
+import {clone,validateScenario} from './engine.js?v=20261009-map-workspace-29';
+import {NODE_KINDS} from './shared-settings.js?v=20261009-map-workspace-29';
+import {summarizeMeasurements} from './measurement-points.js?v=20261009-map-workspace-29';
+import {requireElement as $} from './ui-dom.js?v=20261009-map-workspace-29';
 const pct=n=>n===null?'—':(n*100).toFixed(1)+'%';
 const time=n=>n===null?'—':n.toFixed(1)+'秒';
 export class MeasurementUI{

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261009-configuration-contract-28';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-configuration-contract-28';
-import {trialScenario} from '../src/parameters.js?v=20261009-configuration-contract-28';
-import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261009-configuration-contract-28';
-import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261009-configuration-contract-28';
-import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261009-configuration-contract-28';
+import {clone,validateScenario} from '../src/engine.js?v=20261009-map-workspace-29';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-map-workspace-29';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-map-workspace-29';
+import {trialScenario} from '../src/parameters.js?v=20261009-map-workspace-29';
+import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261009-map-workspace-29';
+import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261009-map-workspace-29';
+import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261009-map-workspace-29';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 source.mission.deadline=2; // Additional points must execute beyond the main goal's deadline.
 source.measurements=[

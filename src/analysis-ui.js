@@ -1,21 +1,21 @@
-import {MODEL_BUILD} from './model-version.js?v=20261009-configuration-contract-28';
-import {ExperimentUI} from './experiment-ui.js?v=20261009-configuration-contract-28';
-import {verifiedWorker} from './worker-client.js?v=20261009-configuration-contract-28';
-import {PlansUI} from './plans-ui.js?v=20261009-configuration-contract-28';
-import {preparePlans,planTrialSource} from './plans.js?v=20261009-configuration-contract-28';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261009-configuration-contract-28';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261009-configuration-contract-28';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
-import {HistoryUI} from './history-ui.js?v=20261009-configuration-contract-28';
-import {MeasurementUI} from './measurement-ui.js?v=20261009-configuration-contract-28';
-import {stateMembers} from './state-measurement.js?v=20261009-configuration-contract-28';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261009-configuration-contract-28';
-import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-configuration-contract-28';
-import { numericScale } from './chart-scale.js?v=20261009-configuration-contract-28';
-import { clone,validateScenario } from './engine.js?v=20261009-configuration-contract-28';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261009-configuration-contract-28';
-import { ParameterEditor } from './parameter-ui.js?v=20261009-configuration-contract-28';
-import { requireElement } from './ui-dom.js?v=20261009-configuration-contract-28';
+import {MODEL_BUILD} from './model-version.js?v=20261009-map-workspace-29';
+import {ExperimentUI} from './experiment-ui.js?v=20261009-map-workspace-29';
+import {verifiedWorker} from './worker-client.js?v=20261009-map-workspace-29';
+import {PlansUI} from './plans-ui.js?v=20261009-map-workspace-29';
+import {preparePlans,planTrialSource} from './plans.js?v=20261009-map-workspace-29';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261009-map-workspace-29';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261009-map-workspace-29';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-map-workspace-29';
+import {HistoryUI} from './history-ui.js?v=20261009-map-workspace-29';
+import {MeasurementUI} from './measurement-ui.js?v=20261009-map-workspace-29';
+import {stateMembers} from './state-measurement.js?v=20261009-map-workspace-29';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261009-map-workspace-29';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-map-workspace-29';
+import { numericScale } from './chart-scale.js?v=20261009-map-workspace-29';
+import { clone,validateScenario } from './engine.js?v=20261009-map-workspace-29';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261009-map-workspace-29';
+import { ParameterEditor } from './parameter-ui.js?v=20261009-map-workspace-29';
+import { requireElement } from './ui-dom.js?v=20261009-map-workspace-29';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -26,7 +26,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261009-configuration-contract-28',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261009-map-workspace-29',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

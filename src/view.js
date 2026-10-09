@@ -1,10 +1,10 @@
-import { editableDefinition } from './editor.js?v=20261009-configuration-contract-28';
-import { sharedAssignment } from './shared-settings.js?v=20261009-configuration-contract-28';
-import {taskPresentations} from './map-presentation.js?v=20261009-configuration-contract-28';
-import {resourceName} from './resource-ui.js?v=20261009-configuration-contract-28';
+import { editableDefinition } from './editor.js?v=20261009-map-workspace-29';
+import { sharedAssignment } from './shared-settings.js?v=20261009-map-workspace-29';
+import {taskPresentations} from './map-presentation.js?v=20261009-map-workspace-29';
+import {resourceName} from './resource-ui.js?v=20261009-map-workspace-29';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261009-configuration-contract-28';
+import { Terrain, Simulation } from './engine.js?v=20261009-map-workspace-29';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -519,9 +519,9 @@ export class MapView {
   }
   updateListLinks(width,height){
     for(const line of this.leaders.values())line.style.display='none';
-    const mapRect=this.element.getBoundingClientRect(),list=document.getElementById('unit-list'),listRect=list.getBoundingClientRect();
+    const mapRect=this.element.getBoundingClientRect(),list=document.getElementById('unit-list'),listRect=list.getBoundingClientRect(),listVisible=listRect.width>0&&getComputedStyle(list).visibility!=='hidden';
     for(const id of new Set([this.selected,this.hovered])){
-      if(!id||!this.labelsVisible||this.displayedIds&&!this.displayedIds.has(id))continue;
+      if(!listVisible||!id||!this.labelsVisible||this.displayedIds&&!this.displayedIds.has(id))continue;
       const marker=this.markers.get(id),button=[...list.children].find(b=>b.dataset.id===id);
       if(!marker||!button)continue;
       const point=this.screenPoint(marker.position),row=button.getBoundingClientRect(),center=(row.top+row.bottom)/2;

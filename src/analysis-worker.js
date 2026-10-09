@@ -1,11 +1,11 @@
-import {runExperiment} from './experiment.js?v=20261009-configuration-contract-28';
-import {validatePatterns} from './patterns.js?v=20261009-configuration-contract-28';
-import {RUNTIME_BUILD} from './ui-dom.js?v=20261009-configuration-contract-28';
-import {preparePlans} from './plans.js?v=20261009-configuration-contract-28';
-import {prepareSensitivity} from './sensitivity.js?v=20261009-configuration-contract-28';
-import { trialScenario } from './parameters.js?v=20261009-configuration-contract-28';
-import { createSimulation } from './recorded-engine.js?v=20261009-configuration-contract-28';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261009-configuration-contract-28';
+import {runExperiment} from './experiment.js?v=20261009-map-workspace-29';
+import {validatePatterns} from './patterns.js?v=20261009-map-workspace-29';
+import {RUNTIME_BUILD} from './ui-dom.js?v=20261009-map-workspace-29';
+import {preparePlans} from './plans.js?v=20261009-map-workspace-29';
+import {prepareSensitivity} from './sensitivity.js?v=20261009-map-workspace-29';
+import { trialScenario } from './parameters.js?v=20261009-map-workspace-29';
+import { createSimulation } from './recorded-engine.js?v=20261009-map-workspace-29';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261009-map-workspace-29';
 let generation=0;
 self.onmessage=({
   data

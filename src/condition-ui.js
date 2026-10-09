@@ -1,5 +1,5 @@
-import {stateField,decisionStateFields} from './state-contract.js?v=20261009-configuration-contract-28';
-import {conditionErrors} from './decision.js?v=20261009-configuration-contract-28';
+import {stateField,decisionStateFields} from './state-contract.js?v=20261009-map-workspace-29';
+import {conditionErrors} from './decision.js?v=20261009-map-workspace-29';
 
 const defaults=()=>({field:'knowledge.selectedContact.age',op:'lte',value:30});
 const operators=[['lt','より小さい'],['lte','以下'],['gt','より大きい'],['gte','以上'],['eq','と等しい'],['neq','と異なる'],['exists','情報がある']];
