@@ -1,8 +1,8 @@
 import {requireElement as $} from './ui-dom.js?v=20261007-plan-switch-25';
 import {NODE_KINDS} from './shared-settings.js?v=20261007-plan-switch-25';
 const ns='http://www.w3.org/2000/svg';
-const eventNames={detected:'探知',sent:'送信',received:'受信',sendFailed:'送信失敗',arrived:'到着',triggered:'割込み',departed:'出発',near:'接近'};
-const eventColors={detected:'#f6cc77',sent:'#82c9ff',received:'#96e2b0',sendFailed:'#ff8d93',arrived:'#c7aeff',triggered:'#ffae71',departed:'#b2d8f4',near:'#78dcdf'};
+const eventNames={decision:'判断',deliveryFailed:'未着（解析）',commandRejected:'命令拒否',operationalChanged:'稼働変更',detected:'探知',sent:'送信',received:'受信',sendFailed:'送信失敗',arrived:'到着',triggered:'割込み',departed:'出発',near:'接近'};
+const eventColors={decision:'#e5a9ff',deliveryFailed:'#ff8d93',commandRejected:'#ff8d93',operationalChanged:'#ff8d93',detected:'#f6cc77',sent:'#82c9ff',received:'#96e2b0',sendFailed:'#ff8d93',arrived:'#c7aeff',triggered:'#ffae71',departed:'#b2d8f4',near:'#78dcdf'};
 const stateColors={follow:'#377994',patrol:'#3f8e80',signal:'#62658f',wait:'#7c7151',report:'#685c8d',move:'#467eaa',stop:'#835c5c'};
 export class HistoryUI{
   constructor({getScenario,getSnapshot,seek}){

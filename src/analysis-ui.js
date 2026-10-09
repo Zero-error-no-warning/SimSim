@@ -459,13 +459,13 @@ export class AnalysisUI {
       row.className='event-item'+(event.type==='sendFailed'?' failed':'');
       const text=document.createElement('span'),button=document.createElement('button');
       const details={
-        near:name(event.unitId)+' · '+(this.getScenario().destinations?.find(d=>d.id===event.destinationId)?.name??'目的地')+'に '+Math.round(event.distance)+'mまで接近',initialized:name(event.unitId)+' · 初期状態に入る',triggered:name(event.unitId)+' · '+(TRIGGER_EVENTS[event.event]??'イベント')+'で状態遷移',detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 目的地・経路終点に到着'
+        decision:name(event.unitId)+' · 判断 '+String(event.value)+' → '+event.to,deliveryFailed:name(event.unitId)+' · 未着（解析情報） · '+event.reason,commandRejected:name(event.unitId)+' · 許可されていない命令',operationalChanged:name(event.unitId)+' · 稼働 '+String(event.operational),near:name(event.unitId)+' · '+(this.getScenario().destinations?.find(d=>d.id===event.destinationId)?.name??'目的地')+'に '+Math.round(event.distance)+'mまで接近',initialized:name(event.unitId)+' · 初期状態に入る',triggered:name(event.unitId)+' · '+(TRIGGER_EVENTS[event.event]??'イベント')+'で状態遷移',detected:name(event.unitId)+' が '+name(event.targetId)+' を探知 · '+Math.round(event.distance)+'m',sent:name(event.unitId)+' → '+name(event.receiverId)+' 送信',received:name(event.unitId)+' が '+name(event.senderId)+' から受信',sendFailed:name(event.unitId)+' → '+name(event.receiverId)+' 送信失敗 · '+event.reason,preparing:name(event.unitId)+' 出発準備',departed:name(event.unitId)+' 出発',arrived:name(event.unitId)+' 目的地・経路終点に到着'
       };
       const positionInfo=['sent','received'].includes(event.type)&&event.targetPosition?' · '+name(event.targetId)+'の観測位置（東西 '+(event.targetPosition.x/1000).toFixed(2)+'km、南北 '+(event.targetPosition.y/1000).toFixed(2)+'km、高さ '+Math.round(event.targetPosition.z)+'m） · 観測時刻 '+minutes(event.observationTime??event.time):'';
       text.textContent=minutes(event.time)+' · '+(details[event.type]??(event.type==='nodeChanged'?'挙動切替 '+name(event.unitId)+' → '+event.nodeId:event.type==='elapsed'?'待機終了 '+name(event.unitId):event.type))+positionInfo;
-      button.textContent='この時刻';
+      button.textContent=event.nodeId?'時刻・ノード':'この時刻';
       button.onclick=()=>{
-        this.seek(event.time,event.type==='detected'?event.targetId:event.unitId);
+        this.seek(event.time,event.unitId,event);
         $('events-dialog').close();
       };
       row.append(text,button);

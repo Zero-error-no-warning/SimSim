@@ -95,7 +95,8 @@ export function removeBehavior(s,id) {
   pruneReferences(s);
 }
 export function newScenario(s) {
-  s.title='新しいシナリオ';
+  s.title='新しいシナリオ';s.version=4;
+  for(const key of ['experiment','initialInformation','communicationLinks','communicationDisruptions','operationalEvents','modelAssumptions','informationMetrics'])delete s[key];
   s.units=[];
   s.groups=[];
   s.routes=[];s.destinations=[];

@@ -47,6 +47,7 @@ export class MapView {
     this.trails=new THREE.Group();
     this.sensorRangeGroup=new THREE.Group();
     this.detectionGroup=new THREE.Group();
+    this.contactGroup=new THREE.Group();this.scene.add(this.contactGroup);
     this.showSensor=true;
     this.scene.add(this.environment,this.routes,this.units,this.trails,this.sensorRangeGroup,this.detectionGroup);
     this.camera3d=new THREE.PerspectiveCamera(44,1,10,700000);
@@ -124,6 +125,7 @@ export class MapView {
     const rect=this.renderer.domElement.getBoundingClientRect();
     let closest=null,best=Infinity;
     for(const [id,m] of this.markers){
+      if(this.displayedIds&&!this.displayedIds.has(id))continue;
       const p=this.screenPoint(m.position),distance=Math.hypot(p.x-(event.clientX-rect.left),p.y-(event.clientY-rect.top));
       const radius=id===this.selected?20:this.scenario.units.length>80?10:17;
       if(p.visible&&distance<radius&&(distance<best-.1||Math.abs(distance-best)<.1&&id===this.selected)){
@@ -515,7 +517,7 @@ export class MapView {
     for(const line of this.leaders.values())line.style.display='none';
     const mapRect=this.element.getBoundingClientRect(),list=document.getElementById('unit-list'),listRect=list.getBoundingClientRect();
     for(const id of new Set([this.selected,this.hovered])){
-      if(!id||!this.labelsVisible)continue;
+      if(!id||!this.labelsVisible||this.displayedIds&&!this.displayedIds.has(id))continue;
       const marker=this.markers.get(id),button=[...list.children].find(b=>b.dataset.id===id);
       if(!marker||!button)continue;
       const point=this.screenPoint(marker.position),row=button.getBoundingClientRect(),center=(row.top+row.bottom)/2;
@@ -526,9 +528,9 @@ export class MapView {
     const info=document.getElementById('label-summary');info.hidden=true;
     let index=0;
     for(const id of new Set([...this.relatedIds,this.hovered])){
-      const marker=this.markers.get(id);if(!marker||id===this.selected)continue;
+      const marker=this.markers.get(id);if(!marker||id===this.selected||this.displayedIds&&!this.displayedIds.has(id))continue;
       const pixels=id===this.hovered?44:38,scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*marker.position.distanceTo(this.camera.position)/height*pixels;
-      this.markerScale.setScalar(Math.max(10,scale));this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);this.relatedMarkers.setMatrixAt(index++,this.matrix);
+      this.markerScale.setScalar(this.displayedIds&&!this.displayedIds.has(id)?0:Math.max(10,scale));this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);this.relatedMarkers.setMatrixAt(index++,this.matrix);
     }
     this.relatedMarkers.count=index;this.relatedMarkers.instanceMatrix.needsUpdate=true;
   }
@@ -771,7 +773,17 @@ export class MapView {
   }
   updateSnapshot(snapshot) {
     if(!snapshot||this.drag)return;
+    this.rawSnapshot=snapshot;
     this.snapshot=snapshot;
+    disposal(this.contactGroup);
+    this.displayedIds=null;
+    if(this.knowledgeOwner){
+      const k=snapshot.knowledge?.[this.knowledgeOwner],self=snapshot.units.find(u=>u.id===this.knowledgeOwner),friends=Object.values(k?.friendlyReports??{}).filter(r=>r.position).map(r=>({id:r.subjectId,position:r.position,status:r.reportedState}));
+      snapshot={...snapshot,units:[...(self?[self]:[]),...friends.filter(r=>r.id!==self?.id)],mission:undefined,actionEvents:[],trails:{}};
+      this.displayedIds=new Set(snapshot.units.map(u=>u.id));
+      for(const c of Object.values(k?.contacts??{})){const sprite=new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffd18b',depthTest:false}));sprite.position.copy(this.world(c.position,40));sprite.scale.setScalar(180);sprite.userData.trackId=c.trackId;this.contactGroup.add(sprite);}
+      this.routes.visible=false;this.handles.forEach(h=>h.mesh.visible=false);this.relatedMarkers.count=0;
+    }else this.routes.visible=this.showRoutes;
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {
       const marker=this.markers.get(state.id);
@@ -838,15 +850,16 @@ export class MapView {
     for(const [id,marker] of sorted) {
       const pixels=id===this.selected?36:this.scenario.units.length>80?15:30;
       const scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*marker.position.distanceTo(this.camera.position)/height*pixels;
-      this.markerScale.setScalar(Math.max(10,scale));
+      this.markerScale.setScalar(this.displayedIds&&!this.displayedIds.has(id)?0:Math.max(10,scale));
       this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);
       marker.mesh.setMatrixAt(marker.index,this.matrix);
       if(id===this.selected)this.selectedMarker.scale.copy(this.markerScale);
     }
+    this.selectedMarker.visible=!this.displayedIds||this.displayedIds.has(this.selected);
     this.updateListLinks(width,height);
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;
-      h.mesh.visible=h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24;
+      h.mesh.visible=!this.knowledgeOwner&&(h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24);
       const pixels=22,scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*h.mesh.position.distanceTo(this.camera.position)/height*pixels;
       h.mesh.scale.setScalar(Math.max(10,scale));
     }

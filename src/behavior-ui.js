@@ -1,3 +1,4 @@
+import {conditionErrors} from './decision.js?v=20261007-plan-switch-25';
 import {ContextMenu} from './context-menu.js?v=20261007-plan-switch-25';
 import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261007-plan-switch-25';
 import {isParameterRef} from './behavior-parameters.js?v=20261007-plan-switch-25';
@@ -194,7 +195,7 @@ export class BehaviorUI{
     };
     $('edge-condition').onchange=()=>this.readFields('edge-condition');
     for(const id of ['trigger-event','trigger-target','trigger-seconds','trigger-once','trigger-near-destination','trigger-near-distance','trigger-near-mode'])$(id).onchange=()=>this.readFields(id);
-    for(const id of ['behavior-name','node-height-mode','node-join-mode','node-kind','node-route','node-destination','edge-near-destination','edge-near-distance','edge-near-mode','node-initial','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-sensor'])$(id).onchange=()=>this.readFields(id);
+    for(const id of ['behavior-name','node-height-mode','node-join-mode','node-kind','node-route','node-destination','edge-near-destination','edge-near-distance','edge-near-mode','node-initial','node-value','node-receiver','assignment-name','assignment-behavior','assignment-targets','assignment-spacing','assignment-distance','assignment-gain','assignment-receiver','assignment-phase','assignment-preparation','node-message-kind','node-command-name','edge-expression','edge-decision-preset','edge-priority','edge-unknown','edge-command-name','node-sensor'])$(id).onchange=()=>this.readFields(id);
     $('assignment-new').onclick=()=>{
       const targets=[...this.draft.units.map(u=>['unit:'+u.id,u]),...(this.draft.groups??[]).map(g=>['group:'+g.id,g.template])].filter(([id])=>!this.draft.behaviorAssignments.some(a=>a.targets.includes(id)));
       const selected=this.getSelected(),preferred=selected?.groupId?'group:'+selected.groupId:'unit:'+selected?.id;
@@ -406,11 +407,20 @@ export class BehaviorUI{
     const g=this.graph(),n=g?.nodes.find(n=>n.id===this.selected),a=this.assignment(),t=g?.triggers.find(t=>t.id===this.selectedTrigger),edge=this.edge();
     if(id==='edge-condition'&&edge){
       const when=$('edge-condition').value;
-      if(when&&when!=='near'&&g.edges.some(e=>e!==edge&&e.from===edge.from&&e.when===when)){
+      if(when&&!['near','condition','command'].includes(when)&&g.edges.some(e=>e!==edge&&e.from===edge.from&&e.when===when)){
         this.render();$('edge-warning').hidden=false;$('edge-warning').textContent='この条件は同じ状態の別の線で使用しています。別の条件を選択してください。';return;
       }
     }
+    let expression;
+    if(id==='edge-expression'&&edge){try{expression=JSON.parse($('edge-expression').value);const errors=conditionErrors(expression);if(errors.length)throw Error(errors.join(' '));$('edge-expression-error').textContent='';}catch(error){$('edge-expression-error').textContent=error.message;return;}}
     this.remember();
+    if(id==='edge-expression'&&edge)edge.condition=expression;
+    if(id==='edge-decision-preset'&&edge){const p=$('edge-decision-preset').value;if(p==='fresh')edge.condition={field:'knowledge.selectedContact.age',op:'lte',value:30};if(p==='missing'){edge.condition={field:'knowledge.selectedContact.age',op:'lt',value:0};edge.onUnknown=true;}if(p==='energy')edge.condition={field:'self.resources.energy.fraction',op:'lte',value:.2};}
+    if(id==='edge-priority'&&edge)edge.priority=Number($('edge-priority').value);
+    if(id==='edge-unknown'&&edge)edge.onUnknown=$('edge-unknown').checked;
+    if(id==='edge-command-name'&&edge){if($('edge-command-name').value)edge.commandName=$('edge-command-name').value;else delete edge.commandName;}
+    if(id==='node-message-kind'&&n){n.messageKind=$('node-message-kind').value;this.draft.version=4;if(n.messageKind==='command')n.command??={name:'respond'};else delete n.command;}
+    if(id==='node-command-name'&&n)n.command={name:$('node-command-name').value};
     if(id==='edge-condition'&&edge){
       const value=$('edge-condition').value;
       if(value)edge.when=value;else delete edge.when;
@@ -452,7 +462,7 @@ export class BehaviorUI{
       if(kind==='wait')n.seconds??=300;else {delete n.seconds;delete n.parameter;}
       if(kind==='patrol')n.speedFraction??=.7;else delete n.speedFraction;
       if(kind==='report'){if(!n.receiverId&&!n.receiverRole)n.receiverRole='report';}
-      else {delete n.receiverId;delete n.receiverRole;}
+      else {delete n.receiverId;delete n.receiverRole;delete n.messageKind;delete n.command;}
       for(const e of g.edges.filter(e=>e.from===n.id))if(!NODE_EVENTS[kind]?.includes(e.when))delete e.when;
     }
     if(id==='node-value'&&n){
@@ -484,6 +494,9 @@ export class BehaviorUI{
     this.render();
   }
   conditionDefaults(c,event){
+    if(['condition','command'].includes(event))this.draft.version=4;
+    if(event==='condition')c.condition??={field:'knowledge.selectedContact.age',op:'lte',value:30};else{delete c.condition;delete c.priority;delete c.onUnknown;}
+    if(event!=='command')delete c.commandName;
     if(event==='near'){c.distance??=1000;c.distanceMode??='horizontal';c.destinationId??=this.draft.destinations[0]?.id;}
     else{delete c.distance;delete c.distanceMode;delete c.destinationId;}
   }
@@ -540,7 +553,7 @@ export class BehaviorUI{
     select.append(new Option('条件を選択してください',''));
     for(const k of NODE_EVENTS[kind]??[]){
       const option=new Option(EDGE_EVENTS[k],k);
-      option.disabled=k!=='near'&&this.graph().edges.some(e=>e!==edge&&e.from===edge?.from&&e.when===k);
+      option.disabled=!['near','condition','command'].includes(k)&&this.graph().edges.some(e=>e!==edge&&e.from===edge?.from&&e.when===k);
       select.append(option);
     }
     select.value=edge?.when??'';
@@ -739,7 +752,7 @@ export class BehaviorUI{
     $('node-route').disabled=routeBound;$('node-route-new').disabled=routeBound;$('node-route-edit').disabled=routeBound||!n?.routeId&&!u;
     $('node-join-mode').value=n?.joinMode??'';
     $('node-destination-fields').hidden=n?.kind!=='move';
-    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニットの現在位置）':d.kind==='received'?'（探知・受信した位置）':'（地点）')])],n?.destinationId??'');
+    select('node-destination',[['',a?.base?'担当の既存目的地':'目的地を選択してください'],...this.draft.destinations.map(d=>[d.id,d.name+(d.kind==='unit'?'（ユニットの既知位置）':d.kind==='received'?'（探知・受信した位置）':'（地点）')])],n?.destinationId??'');
     const destinationBound=this.parameters.bind('node-destination-binding',n,'destinationId','destination',null,'移動する目的');
     $('node-height-mode').value=n?.heightMode??(destinationFor(this.draft,a,n)?.kind==='point'?'target':'keep');
     $('node-destination').disabled=destinationBound;$('node-destination-new').disabled=destinationBound;$('node-destination-edit').disabled=destinationBound||!n?.destinationId&&!a?.base;
@@ -761,6 +774,8 @@ export class BehaviorUI{
     $('node-receiver-field').hidden=n?.kind!=='report';
     select('node-receiver',[['role','タスクの報告先'],...this.draft.units.map(u=>[u.id,u.name])],n?.receiverRole?'role':n?.receiverId);
     $('node-receiver').disabled=this.parameters.bind('node-receiver-binding',n,'receiverId','unit',null,'報告先');
+    $('node-message-fields').hidden=n?.kind!=='report';$('node-message-kind').value=n?.messageKind??'observation';$('node-command-field').hidden=n?.messageKind!=='command';$('node-command-name').value=n?.command?.name??'respond';
+    $('edge-decision-fields').hidden=edge?.when!=='condition';$('edge-expression').value=JSON.stringify(edge?.condition??{field:'knowledge.selectedContact.age',op:'lte',value:30},null,2);$('edge-priority').value=edge?.priority??0;$('edge-unknown').checked=edge?.onUnknown??false;$('edge-command-field').hidden=edge?.when!=='command';$('edge-command-name').value=edge?.commandName??'';
     $('node-sensor').checked=n?.sensor!==false;
     $('edge-properties').hidden=!edge;
     const source=this.graph()?.nodes.find(n=>n.id===edge?.from),target=this.graph()?.nodes.find(n=>n.id===edge?.to);

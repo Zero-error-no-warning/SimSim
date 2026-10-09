@@ -1,3 +1,4 @@
+import {surveillanceTemplate} from './mission-templates.js?v=20261007-plan-switch-25';
 import {planEditor} from './plan-editing.js?v=20261007-plan-switch-25';
 import {verifiedWorker} from './worker-client.js?v=20261007-plan-switch-25';
 import {restorePlansResult} from './plans.js?v=20261007-plan-switch-25';
@@ -141,8 +142,9 @@ const analysisUI=new AnalysisUI({
   },
   focusSensitivity:b=>focusSensitivity(b),
   activatePlanEditing:()=>{pause();setEditMode(null);setAuthoring(true);},
-  seek:(value,id)=>{
+  seek:(value,id,event)=>{
     setAuthoring(false);setEditMode(null);if(id)select(id);time=Math.max(0,Math.min(scenario.duration,value));post();
+    if(event?.nodeId){const a=sharedAssignment(scenario,id);if(a){behaviorUI.open(a.id);behaviorUI.selected=event.nodeId;behaviorUI.selectedTrigger=null;behaviorUI.selectedEdge=null;behaviorUI.render();behaviorUI.tab('graph');}}
   }
 });
 const behaviorUI=new BehaviorUI({
@@ -200,10 +202,11 @@ function renderCommunication(prefix,u){
   $(prefix+'-communication-delay').value=c.delay;
   $(prefix+'-communication-probability').value=c.probability*100;
   $(prefix+'-communication-los').checked=c.terrainLOS;
+  if(prefix==='unit')$('unit-communication-medium').value=c.medium??'ideal';
 }
 function readCommunication(prefix){
   return {
-    enabled:$(prefix+'-communication-enabled').checked,range:Number($(prefix+'-communication-range').value)*1000,delay:Number($(prefix+'-communication-delay').value),probability:Number($(prefix+'-communication-probability').value)/100,terrainLOS:$(prefix+'-communication-los').checked
+    ...(prefix==='unit'?{medium:$('unit-communication-medium').value}:{}),enabled:$(prefix+'-communication-enabled').checked,range:Number($(prefix+'-communication-range').value)*1000,delay:Number($(prefix+'-communication-delay').value),probability:Number($(prefix+'-communication-probability').value)/100,terrainLOS:$(prefix+'-communication-los').checked
   };
 }
 for(const input of document.querySelectorAll('[id^="unit-communication-"]'))input.onchange=()=>{
@@ -211,7 +214,7 @@ for(const input of document.querySelectorAll('[id^="unit-communication-"]'))inpu
     renderInspector();
     return;
   }
-  commit(next=>definition(next,selected).unit.communication={...definition(next,selected).unit.communication,...readCommunication('unit')},'通信能力を変更しました。');
+  commit(next=>{next.version=4;definition(next,selected).unit.communication={...definition(next,selected).unit.communication,...readCommunication('unit')};},'通信能力を変更しました。');
 };
 function renderSensor(prefix,unit) {
   const s=unit.sensor??{
@@ -374,6 +377,7 @@ function select(id){
   selected=id;
   setEditMode(null);
   selectedTask=sharedAssignment(scenario,id)?.id??null;
+  if($('information-perspective').value==='selected')view.knowledgeOwner=id;
   view.setSelected(id);
   post();
   renderUnits({
@@ -575,7 +579,16 @@ function updateListTelemetry() {
     if(status)status.textContent=(STATUS_NAMES[state?.status]??'—')+(node?' · '+(node.name??NODE_KINDS[node.kind]??node.id):'');
   }
 }
+function updateKnowledge(){
+ const host=$('knowledge-summary'),k=snapshot?.knowledge?.[selected];host.replaceChildren();
+ if(!k){host.textContent='計算後に、選択ユニットがこの時刻までに取得した情報を表示します。';return;}
+ const line=text=>{const p=document.createElement('p');p.textContent=text;host.append(p);};
+ line('接触 '+Object.keys(k.contacts).length+'件 / 味方状態報告 '+Object.keys(k.friendlyReports).length+'件 / 命令 '+k.commands.length+'件');
+ for(const c of Object.values(k.contacts))line(c.trackId+' · 鮮度 '+Math.max(0,snapshot.time-c.observedAt).toFixed(1)+'秒 · 受信 '+c.receivedAt.toFixed(1)+'秒 · x '+(c.position.x/1000).toFixed(2)+'km / y '+(c.position.y/1000).toFixed(2)+'km');
+ for(const r of Object.values(k.friendlyReports))line(r.subjectId+' · 最終報告 '+r.reportedState+' · 観測から '+Math.max(0,snapshot.time-r.observedAt).toFixed(1)+'秒');
+}
 function updateTelemetry() {
+ updateKnowledge();
   updateListTelemetry();
   const state=snapshot?.units.find(u=>u.id===selected);
   if(!state)return;
@@ -897,6 +910,19 @@ $('new-scenario').onclick=()=>{
   commit(next=>newScenario(next),'現在の地形を使って新しいシナリオを作成しました。右クリックからユニットを配置できます。');
   setAuthoring(true);
 };
+let missionTemplateCenter=null;
+function openMissionTemplate(center){
+ missionTemplateCenter={...center};const unit=currentUnit();if(!unit)return;
+ $('mission-template-note').textContent=unit.name+'を担当にし、現在の担当から移します。中心 x '+(center.x/1000).toFixed(2)+'km / y '+(center.y/1000).toFixed(2)+'km。';
+ $('mission-template-receiver').replaceChildren(...scenario.units.filter(u=>u.id!==selected&&u.faction==='friendly').map(u=>new Option(u.name,u.id)));
+ $('mission-template-dialog').showModal();
+}
+$('mission-template-close').onclick=()=>$('mission-template-dialog').close();
+$('mission-template-apply').onclick=()=>{try{
+ const result=surveillanceTemplate(scenario,{unitId:selected,receiverId:$('mission-template-receiver').value,center:missionTemplateCenter,radius:Number($('mission-template-radius').value),period:Number($('mission-template-period').value)});
+ if(commit(next=>{for(const key of Object.keys(next))delete next[key];Object.assign(next,result.scenario);},'監視任務を作成しました。')){$('mission-template-dialog').close();behaviorUI.open(result.assignmentId);behaviorUI.tab('graph');}
+}catch(error){showError(error.message);}};
+$('information-perspective').onchange=()=>{view.knowledgeOwner=$('information-perspective').value==='selected'?selected:null;if(view.knowledgeOwner)setAuthoring(false);view.updateSnapshot(snapshot);};
 function closeMapMenu(){mapMenu.close();}
 function openMapMenu(context){
   if(!scenario)return;
@@ -931,6 +957,7 @@ function openMapMenu(context){
     for(const [domain,label] of [['subsurface','水中ユニットを配置'],['surface','水上ユニットを配置'],['air','航空ユニットを配置'],['ground','地上ユニットを配置']])add(label,()=>beginPlacement(domain));
     separator();add('地形を編集',()=>terrainUI.open());add('挙動を編集',()=>behaviorUI.open(null,true));
   }
+  if(!terrainUI.active&&selected&&scenario.units.some(u=>u.id===selected&&u.faction==='friendly')){separator();add('この地点を中心に監視任務を作成',()=>openMissionTemplate(context.point??currentUnit().initial));}
   separator();add('全体を表示',()=>view.fit());
   if(!terrainUI.active)add(authoring?'配置編集を終了':'配置編集を開始',()=>{setEditMode(null);setAuthoring(!authoring);setEditMode(null);});
   mapMenu.open(context.x,context.y,items);
@@ -1013,7 +1040,7 @@ $('file').addEventListener('change',async()=>{
     $('file').value='';
   }
 });
-async function loadDemo(initial=false,file='island-patrol-demo.txt') {
+async function loadDemo(initial=false,file='information-mission.txt') {
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
     const response=await fetch(new URL('../data/'+file,import.meta.url),{
