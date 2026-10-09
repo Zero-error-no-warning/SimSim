@@ -1,4 +1,4 @@
-import {bindingFaction} from './experiment-settings.js';
+import {bindingFaction} from './experiment-settings.js?v=20261007-plan-switch-25';
 import {clone} from './engine.js?v=20261007-plan-switch-25';
 export function surveillanceTemplate(source,{unitId,receiverId,center,radius=1000,period=30}){
  const s=clone(source),u=s.units.find(u=>u.id===unitId),receiver=s.units.find(u=>u.id===receiverId);

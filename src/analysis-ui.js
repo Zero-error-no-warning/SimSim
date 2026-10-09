@@ -1,3 +1,4 @@
+import {ExperimentUI} from './experiment-ui.js?v=20261007-plan-switch-25';
 import {verifiedWorker} from './worker-client.js?v=20261007-plan-switch-25';
 import {PlansUI} from './plans-ui.js?v=20261007-plan-switch-25';
 import {preparePlans,planTrialSource} from './plans.js?v=20261007-plan-switch-25';
@@ -40,6 +41,7 @@ export class AnalysisUI {
     this.measurements=new MeasurementUI(this);
     this.sensitivity=new SensitivityUI(this);
     this.plans=new PlansUI(this);
+    this.experiments=new ExperimentUI(this);
     this.resultMode='comparison';
     this.runId=0;
     this.running=false;
@@ -48,6 +50,7 @@ export class AnalysisUI {
     this.worker.onmessage=({
       data
     })=>{
+      if(['experimentProgress','experimentComplete','experimentError','patternProgress','patternComplete'].includes(data.type)){this.experiments.message(data);return;}
       if(data.runId!==this.runId)return;
       if(data.type==='error'){
         this.running=false;

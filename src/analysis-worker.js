@@ -1,3 +1,5 @@
+import {runExperiment} from './experiment.js?v=20261007-plan-switch-25';
+import {validatePatterns} from './patterns.js?v=20261007-plan-switch-25';
 import {RUNTIME_BUILD} from './ui-dom.js?v=20261007-plan-switch-25';
 import {preparePlans} from './plans.js?v=20261007-plan-switch-25';
 import {prepareSensitivity} from './sensitivity.js?v=20261007-plan-switch-25';
@@ -13,6 +15,7 @@ self.onmessage=({
     generation++;
     return;
   }
+  if(['experiment','validatePatterns'].includes(data.type)){runOperations(data,++generation);return;}
   if(['run','sensitivity','plans'].includes(data.type))run(data,++generation);
 };
 async function run(data,token) {
@@ -68,4 +71,15 @@ async function run(data,token) {
       type:'error',runId:data.runId,message:error.message
     });
   }
+}
+
+async function runOperations(data,token){
+ try{let lastProgress=0;
+  if(data.type==='experiment'){
+   const result=await runExperiment(data.scenario,{checkpoint:data.checkpoint,cancelled:()=>token!==generation,onProgress:result=>{if(performance.now()-lastProgress>120){lastProgress=performance.now();self.postMessage({type:'experimentProgress',runId:data.runId,result});}}});
+   self.postMessage({type:'experimentComplete',runId:data.runId,result});
+  }else{
+   const rules=await validatePatterns(data.experiment,data.rules,{operatingPoints:data.operatingPoints,trials:data.trials,cancelled:()=>token!==generation,onProgress:progress=>self.postMessage({type:'patternProgress',runId:data.runId,...progress})});self.postMessage({type:'patternComplete',runId:data.runId,rules});
+  }
+ }catch(error){self.postMessage({type:'experimentError',runId:data.runId,message:error.message});}
 }
