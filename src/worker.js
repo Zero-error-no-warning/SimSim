@@ -1,12 +1,12 @@
-import {RUNTIME_BUILD} from './ui-dom.js?v=20261007-plan-switch-25';
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261007-plan-switch-25';
+import {RUNTIME_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261009-information-analysis-26';
 let simulation, latest, generation=0, state='idle', failure=null;
 function sendHistory(){
   if(simulation.frames)self.postMessage({type:'recordingHistory',revision:latest.revision,history:{duration:simulation.source.duration,unitIds:simulation.states.map(s=>s.unit.id),events:simulation.result.actionEvents}});
 }
 function send() {
   if(!simulation||!latest)return;
-  const snapshot=simulation.evaluate(simulation.frames?latest.time:0);
+  const snapshot=simulation.evaluate(simulation.frames?latest.time:0,{knowledgeOwners:latest.selected?[latest.selected]:[]});
   if(simulation.frames&&latest.showTrails){
     const ids=simulation.states.length<=80?simulation.states.map(s=>s.unit.id):[latest.selected];
     snapshot.trails=Object.fromEntries(ids.filter(Boolean).map(id=>[id,simulation.trailPoints(id,snapshot.time)]));

@@ -1,31 +1,23 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261007-plan-switch-25">
+<html lang="ja" data-simsim-build="20261009-information-analysis-26">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261007-plan-switch-25-0e9cff0967fc">
-<script src="main.js?v=20261007-plan-switch-25-0e9cff0967fc" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261009-information-analysis-26-f68e44ba2b3e">
+<script src="main.js?v=20261009-information-analysis-26-f68e44ba2b3e" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.07.25</span>
+<h1>SimSim <span id="app-version">v2026.10.09.26</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
-<option value="measurement-history-demo.txt">段階別計測・通信履歴</option><option value="plans-demo.txt">運用案比較・配置／経路／報告周期</option><option value="sensitivity-demo.txt">感度分析：通信・移動・報告周期</option>
-<option value="route-planning-demo.txt">島を避ける経路の自動生成</option>
-<option value="island-patrol-demo.txt">島間通過・周回UUV</option>
-<option value="shared-demo.txt">協調監視・報告・帰投</option>
-<option value="response-demo.txt">探知・中継・出発</option><option value="assignment-demo.txt">担当値を変えて挙動を再利用</option><option value="navigation-demo.txt">航路切替・目標への接近</option><option value="received-position-demo.txt">受信した観測位置へ移動</option>
-<option value="demo.txt">4領域の移動</option>
-<option value="group-demo.txt">1000個の群</option>
-<option value="parameter-demo.txt">多変数の比較</option>
-<option value="detection-demo.txt">個数0を含む比較</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
+<option value="information-mission.txt">情報制約・監視から対処まで</option><option value="sustainment-mission.txt">資源・帰投・補給と監視交代</option><option value="island-patrol-demo.txt">島間通過・周回UUV</option><option value="route-planning-demo.txt">島を避ける経路の自動生成</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
 <span>保存・読込は上部、分析・配置・地形編集は地図の上部から操作できます。</span>
 </div></details>
 </div>
@@ -72,7 +64,7 @@
 <div class="view-buttons">
 <button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="view3d" class="active">3D</button><button id="viewtop">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
 </div>
-<details class="menu-popover"><summary>表示</summary><div><div class="map-options">
+<details class="menu-popover"><summary>表示</summary><div><div class="map-options"><label>集約表示 <select id="task-aggregation"><option value="units">個体</option><option value="tasks">タスクの計画経路と担当数</option></select></label><label>情報視点 <select id="information-perspective"><option value="truth">解析用の真状態</option><option value="selected">選択ユニットの保有情報</option></select></label>
 <label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>一覧との対応線</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
 <option value="4" selected>×4</option>
 <option value="8">×8</option>
@@ -117,7 +109,7 @@
 <span>0分</span><input id="timeline" disabled type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span>
 </div>
 </div>
-<div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
+<section id="task-summary-panel" hidden><table class="results-table"><thead><tr><th>タスク</th><th>担当／稼働</th><th>現在のノード別人数</th><th>資源残量の合計</th></tr></thead><tbody id="task-summary"></tbody></table><small>線はタスクの計画経路です。表または経路をダブルクリックすると個体とノードへ展開します。</small></section><div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
 <div id="notice" class="notice" role="status">読み込み中</div></main>
 <div class="pane-resizer" data-pane="inspector" role="separator" aria-label="ユニット編集の幅" aria-orientation="vertical" tabindex="0"></div>
 <aside class="inspector" aria-label="ユニット編集"><div class="panel-heading">
@@ -183,13 +175,13 @@
 </div>
 <p class="route-help">水平ずれは平面内の全方向。上下のずれは空中・水中に適用。往復・周回では同じ生成経路を繰り返します。</p>
 </div></details><details class="property-section"><summary>通信能力</summary><div>
-<label class="check-field"><input id="unit-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
+<label class="field">媒体<select id="unit-communication-medium"><option value="ideal">抽象リンク</option><option value="rf">無線（地球曲率を考慮）</option><option value="optical">光学</option><option value="acoustic">音響</option><option value="satellite">衛星経由（抽象）</option></select></label><label class="field">通信アンテナ・端末の取付高（m）<input id="unit-communication-height" type="number" min="0" max="10000" step="any"></label><label class="check-field"><input id="unit-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
 <label class="field">最大距離（km）<input id="unit-communication-range" type="number" min="0.000001" max="100" step="any"></label><label class="field">遅延（秒）<input id="unit-communication-delay" type="number" min="0" max="86400" step="any"></label>
 </div>
 <label class="field">1回の成功確率（%）<input id="unit-communication-probability" type="number" min="0" max="100" step="any"></label><label class="check-field"><input id="unit-communication-los" type="checkbox">地形遮蔽を判定</label><p class="route-help">報告の動作はタスクのノードで設定します。</p>
 </div></details>
 </fieldset>
-<details class="property-section"><summary>再生中の状態</summary><div>
+<details class="property-section" id="knowledge-panel"><summary>保有情報</summary><div id="knowledge-summary"></div></details><details class="property-section"><summary>再生中の状態</summary><div>
 <div class="section-label">現在の状態</div>
 <dl class="telemetry">
 <div>
@@ -307,7 +299,7 @@
 <label class="field">到達条件<select id="measurement-join"><option value="any">担当のうち一つ</option><option value="all">担当すべて</option><option value="count">指定人数</option></select></label><label class="field" id="measurement-count-field" hidden>必要人数<input id="measurement-count" type="number" min="1" max="2000" step="1"></label>
 <label class="field">期限（開始から秒）<input id="measurement-deadline" type="number" min="0.000001" step="any"></label><label class="field">所要時間の起点<select id="measurement-previous"></select></label>
 </section></details>
-<h3>モンテカルロ</h3>
+<h3>モンテカルロ</h3><button id="experiment-open">組合せ実験・定石を調べる</button>
 <label class="field">分析の種類<select id="analysis-mode"><option value="comparison">比較値の全組合せ</option><option value="plans">運用案の比較（配置・経路・挙動）</option><option value="sensitivity">感度分析（一項目ずつ変更）</option></select></label>
 <section id="comparison-editor"><h3>比較変数</h3>
 <div id="factors-editor"></div>
@@ -413,11 +405,13 @@
 <section id="trigger-near-fields" hidden><div class="field"><label for="trigger-near-destination">近づく目的</label><select id="trigger-near-destination"></select><select id="trigger-near-destination-binding" aria-label="目的地の指定方法"></select></div><button id="trigger-near-new">＋ 新規目的地</button><div class="field"><label for="trigger-near-distance">この距離まで近づく（m）</label><input id="trigger-near-distance" type="number" min="0" max="1000000" step="any" value="1000"><select id="trigger-near-distance-binding" aria-label="距離の指定方法"></select></div><label class="field">距離の種類<select id="trigger-near-mode"><option value="horizontal">水平距離</option><option value="absolute">絶対距離（3次元）</option></select></label></section><label class="field">遷移先の状態<select id="trigger-target"></select></label>
 <label class="field">発火回数<select id="trigger-once"><option value="once">一度だけ</option><option value="repeat">繰り返し</option></select></label><p class="route-help">イベントが発生すると、現在の処理を中断して指定の状態へ移ります。状態間の遷移線より優先します。</p><button hidden id="trigger-delete">イベントノードを削除</button></section><section id="node-properties" hidden><h3 id="node-selected"></h3>
 <label class="field">状態の種類<select id="node-kind"></select></label><button id="node-measure">この状態への到達を計測</button><p id="node-measure-note" class="route-help"></p><label class="check-field"><input id="node-initial" type="checkbox">初期状態（シーン開始時にこの状態へ入る）</label>
-<section id="node-route-fields" hidden><div class="field"><label for="node-route">使用する経路</label><select id="node-route"></select><select id="node-route-binding" aria-label="経路の指定方法"></select></div><div class="compact-actions"><button id="node-route-new">＋ 新規経路</button><button id="node-route-edit">経路を編集</button></div><label class="field">経路への入り方<select id="node-join-mode"><option value="">既存の出発設定</option><option value="start">最初から</option><option value="nearest">最短地点から</option></select></label><p class="route-help">最短地点は現在位置から3次元の直線距離が最も近い経路上の点です。</p></section><section id="node-destination-fields" hidden><div class="field"><label for="node-destination">目的</label><select id="node-destination"></select><select id="node-destination-binding" aria-label="目的の指定方法"></select></div><div class="compact-actions"><button id="node-destination-new">＋ 新規目的地</button><button id="node-destination-edit">目的地を編集</button></div><label class="field">移動中の高度・深度<select id="node-height-mode"><option value="keep">移動開始時の高度・深度を維持する</option><option value="target">目的地の高さに合わせる</option></select></label><p class="route-help">受信位置・ユニットを目的にする場合は高度・深度を維持します。地上・海上のユニットは地形・海面に沿って移動します。</p></section><div id="node-value-field" class="field"><label for="node-value" id="node-value-label"></label><input id="node-value" type="number" min="0" step="any"><select id="node-value-binding" aria-label="数値の指定方法"></select></div><div id="node-receiver-field" class="field"><label for="node-receiver">報告先</label><select id="node-receiver"></select><select id="node-receiver-binding" aria-label="報告先の指定方法"></select></div><button hidden id="node-delete">ノードを削除</button><label class="check-field"><input id="node-sensor" type="checkbox" checked>この動作中にセンサーを使用</label></section><section id="edge-properties" hidden><h3>遷移線</h3><p id="edge-summary" class="route-help"></p><label class="field">遷移する条件<select id="edge-condition"></select></label><section id="edge-near-fields" hidden><div class="field"><label for="edge-near-destination">近づく目的</label><select id="edge-near-destination"></select><select id="edge-near-destination-binding" aria-label="目的地の指定方法"></select></div><button id="edge-near-new">＋ 新規目的地</button><div class="field"><label for="edge-near-distance">この距離まで近づく（m）</label><input id="edge-near-distance" type="number" min="0" max="1000000" step="any" value="1000"><select id="edge-near-distance-binding" aria-label="距離の指定方法"></select></div><label class="field">距離の種類<select id="edge-near-mode"><option value="horizontal">水平距離</option><option value="absolute">絶対距離（3次元）</option></select></label></section><p id="edge-warning" class="route-help" hidden></p><button hidden id="edge-delete">線を削除</button></section></aside>
+<section id="node-route-fields" hidden><div class="field"><label for="node-route">使用する経路</label><select id="node-route"></select><select id="node-route-binding" aria-label="経路の指定方法"></select></div><div class="compact-actions"><button id="node-route-new">＋ 新規経路</button><button id="node-route-edit">経路を編集</button></div><label class="field">経路への入り方<select id="node-join-mode"><option value="">既存の出発設定</option><option value="start">最初から</option><option value="nearest">最短地点から</option></select></label><p class="route-help">最短地点は現在位置から3次元の直線距離が最も近い経路上の点です。</p></section><section id="node-destination-fields" hidden><div class="field"><label for="node-destination">目的</label><select id="node-destination"></select><select id="node-destination-binding" aria-label="目的の指定方法"></select></div><div class="compact-actions"><button id="node-destination-new">＋ 新規目的地</button><button id="node-destination-edit">目的地を編集</button></div><label class="field">移動中の高度・深度<select id="node-height-mode"><option value="keep">移動開始時の高度・深度を維持する</option><option value="target">目的地の高さに合わせる</option></select></label><p class="route-help">受信位置・ユニットを目的にする場合は高度・深度を維持します。地上・海上のユニットは地形・海面に沿って移動します。</p></section><div id="node-value-field" class="field"><label for="node-value" id="node-value-label"></label><input id="node-value" type="number" min="0" step="any"><select id="node-value-binding" aria-label="数値の指定方法"></select></div><div id="node-receiver-field" class="field"><label for="node-receiver">報告先</label><select id="node-receiver"></select><select id="node-receiver-binding" aria-label="報告先の指定方法"></select></div><section id="node-message-fields" hidden><label class="field">送信内容<select id="node-message-kind"><option value="observation">観測報告</option><option value="status">自分の状態報告</option><option value="command">命令</option></select></label><label class="field" id="node-command-field">命令名<input id="node-command-name" maxlength="80"></label></section><button hidden id="node-delete">ノードを削除</button><label class="check-field"><input id="node-sensor" type="checkbox" checked>この動作中にセンサーを使用</label></section><section id="edge-properties" hidden><h3>遷移線</h3><p id="edge-summary" class="route-help"></p><label class="field">遷移する条件<select id="edge-condition"></select></label><section id="edge-near-fields" hidden><div class="field"><label for="edge-near-destination">近づく目的</label><select id="edge-near-destination"></select><select id="edge-near-destination-binding" aria-label="目的地の指定方法"></select></div><button id="edge-near-new">＋ 新規目的地</button><div class="field"><label for="edge-near-distance">この距離まで近づく（m）</label><input id="edge-near-distance" type="number" min="0" max="1000000" step="any" value="1000"><select id="edge-near-distance-binding" aria-label="距離の指定方法"></select></div><label class="field">距離の種類<select id="edge-near-mode"><option value="horizontal">水平距離</option><option value="absolute">絶対距離（3次元）</option></select></label></section><section id="edge-decision-fields" hidden><label class="field">判断のひな型<select id="edge-decision-preset"><option value="">式を直接編集</option><option value="fresh">接触情報が30秒以内</option><option value="missing">接触情報がない</option><option value="energy">エネルギー残量が20%以下</option></select></label><label class="field">判断式（all/any、field/op/value）<textarea id="edge-expression" rows="5" aria-label="判断式 JSON"></textarea></label><label class="field">優先順位<input id="edge-priority" type="number" min="0" max="1000" step="1"></label><label class="check-field"><input id="edge-unknown" type="checkbox">情報が不明なときにこの接続を使う</label><output id="edge-expression-error" role="status"></output></section><label id="edge-command-field" class="field" hidden>命令名（空欄は全命令）<input id="edge-command-name" maxlength="80"></label><p id="edge-warning" class="route-help" hidden></p><button hidden id="edge-delete">線を削除</button></section></aside>
 </div>
 </section><p class="route-help">ノード切替と経路の曲がり角は通常の間隔以外にも記録します。間隔維持は経路上の距離に対する速度調整で、速度上限に従って徐々に調整します。目的地は地点またはユニットを指定できます。絶対距離は高度・深度差を含む3次元の直線距離です。</p>
 <div class="dialog-actions">
 <button id="behavior-cancel">取消</button><button id="behavior-apply" class="primary">適用</button>
 </div></dialog>
+<dialog id="mission-template-dialog"><div class="dialog-head"><h2>地図から監視任務を作成</h2><button id="mission-template-close">閉じる</button></div><p id="mission-template-note"></p><label class="field">監視半径（m）<input id="mission-template-radius" type="number" min="1" max="100000" value="1000"></label><label class="field">定期報告の間隔（秒）<input id="mission-template-period" type="number" min="0.1" max="86400" value="30"></label><label class="field">報告先<select id="mission-template-receiver"></select></label><p>監視円・周回・探知報告・定期報告を通常の経路とノードへ展開します。適用後に担当とノードを編集できます。</p><button id="mission-template-apply" class="primary">タスクを作成して編集</button></dialog>
+<dialog id="experiment-dialog" class="analysis-dialog"><div class="dialog-head"><h2>組合せ実験・定石</h2><button id="experiment-close">閉じる</button></div><p>運用変数を組み合わせ、同じ状況乱数と敵想定で比較します。成立しやすい範囲を候補として抽出し、未試行の運用値と別乱数で検証します。</p><div id="experiment-controls"></div><div class="compact-actions"><select id="experiment-binding" aria-label="味方の運用変数"></select><button id="experiment-add">運用変数を追加</button></div><div class="fields-two"><label class="field">運用候補数<input id="experiment-candidates" type="number" min="1" max="64"></label><label class="field">各想定の試行数<input id="experiment-trials" type="number" min="1" max="2000"></label><label class="field">要求成立率（0～1）<input id="experiment-required" type="number" min="0" max="1" step=".01"></label></div><p id="experiment-budget"></p><p id="experiment-stale"></p><div class="compact-actions"><button id="experiment-run" class="primary">探索を実行</button><button id="experiment-resume">続きを実行</button><button id="experiment-cancel">中断</button><button id="experiment-save">実験を保存</button><button id="experiment-load">保存した実験を開く</button></div><input id="experiment-file" type="file" accept=".txt,.json" hidden><output id="experiment-progress" role="status"></output><div class="results-scroll"><table class="results-table"><thead><tr><th>候補</th><th>運用値（SI）</th><th>成立率</th><th>件数</th><th>再現</th></tr></thead><tbody id="experiment-results"></tbody></table></div><h3>定石候補</h3><div class="compact-actions"><button id="experiment-extract">候補を抽出</button><label>未試行の運用値数<input id="pattern-points" type="number" min="1" max="16" value="8"></label><label>検証試行数<input id="pattern-trials" type="number" min="1" max="2000" value="64"></label><button id="experiment-validate">独立検証</button><button id="pattern-save">定石を保存</button></div><div id="pattern-results"></div><p>表示範囲の全点を保証するものではありません。想定別・検証した運用値別の下限も確認し、基準未達は候補のまま残します。</p></dialog><dialog id="pattern-apply-dialog"><div class="dialog-head"><h2>定石の適用</h2><button id="pattern-preview-close">閉じる</button></div><div id="pattern-preview"></div><button id="pattern-apply" class="primary">この運用値を適用</button></dialog>
 </body>
 </html>

@@ -1,11 +1,14 @@
-import {validateMeasurements} from './measurement-points.js?v=20261007-plan-switch-25';
-import {stateSummary,validateStateResult} from './state-measurement.js?v=20261007-plan-switch-25';
-import { sharedSteps,RecordedSimulation,RECORD_MODEL,compatibleModel } from './recorded-engine.js?v=20261007-plan-switch-25';
-import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261007-plan-switch-25';
-import { clone,validateScenario } from './engine.js?v=20261007-plan-switch-25';
-import { missionErrors,analysisErrors } from './detection-settings.js?v=20261007-plan-switch-25';
-export { terrainVisible,contactProbability } from './contact.js?v=20261007-plan-switch-25';
-import { importScenario } from './scenario-import.js?v=20261007-plan-switch-25';
+import {expandGroups} from './random.js?v=20261009-information-analysis-26';
+import {validateInformationMetrics} from './information-metrics.js?v=20261009-information-analysis-26';
+import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
+import {validateMeasurements} from './measurement-points.js?v=20261009-information-analysis-26';
+import {stateSummary,validateStateResult} from './state-measurement.js?v=20261009-information-analysis-26';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL,compatibleModel } from './recorded-engine.js?v=20261009-information-analysis-26';
+import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261009-information-analysis-26';
+import { clone,validateScenario } from './engine.js?v=20261009-information-analysis-26';
+import { missionErrors,analysisErrors } from './detection-settings.js?v=20261009-information-analysis-26';
+export { terrainVisible,contactProbability } from './contact.js?v=20261009-information-analysis-26';
+import { importScenario } from './scenario-import.js?v=20261009-information-analysis-26';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
   if(!(model instanceof RecordedSimulation)&&model.source.version<3&&step!==undefined){
@@ -73,6 +76,7 @@ export function summarizeRow(count,trials) {
   };
 }
 export function restoreAnalysisResult(payload) {
+  if(payload?.source?.version>=4&&payload.implementation!==UI_BUILD)throw Error('分析の実装版が一致しません。');
   if(!payload||payload.type!=='SimSim-analysis'||payload.version!==5||!compatibleModel(payload))throw new Error('この分析結果の形式・モデル版は読み込めません。');
   const {
     scenario,analysis,startTrial,conditions
@@ -100,9 +104,10 @@ export function restoreAnalysisRows({scenario,analysis,startTrial,conditions},pa
       if(t.success?!(Number.isFinite(t.successTime)&&t.successTime>=0&&t.successTime<=generated.scenario.mission.deadline):t.successTime!==null)throw new Error('分析結果の成立時刻が不正です。');
       if(scenario.mission.type==='state')validateStateResult(generated.scenario,t);
       validateMeasurements(generated.scenario,t.measurements);
+      validateInformationMetrics(generated.scenario,t.informationMetrics,expandGroups(generated.scenario).filter(u=>u.enabled!==false).map(u=>u.id));
       if(scenario.mission.type==='arrive'&&(!Number.isInteger(t.reachedCount)||t.reachedCount<0||t.reachedCount>generated.scenario.mission.responderIds.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length||t.success!==(scenario.mission.join==='any'?t.reachedCount>0:t.reachedCount>0&&t.reachedCount===generated.scenario.mission.responderIds.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length)))throw new Error('到着数と成否が一致していません。');
       trials.push({
-        ...(generated.scenario.measurements?.length?{measurements:t.measurements}:{}),        ...(scenario.mission.type==='state'?{stateEntries:t.stateEntries,stateTargetCount:t.stateTargetCount,stateReachedCount:t.stateReachedCount}:{}),reachedCount:t.reachedCount??0,responderCount:generated.scenario.mission.responderIds?.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length??0,trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled
+        ...(t.informationMetrics?{informationMetrics:clone(t.informationMetrics)}:{}),...(generated.scenario.measurements?.length?{measurements:t.measurements}:{}),        ...(scenario.mission.type==='state'?{stateEntries:t.stateEntries,stateTargetCount:t.stateTargetCount,stateReachedCount:t.stateReachedCount}:{}),reachedCount:t.reachedCount??0,responderCount:generated.scenario.mission.responderIds?.filter(id=>generated.scenario.units.some(u=>u.id===id&&u.enabled!==false)).length??0,trial:t.trial,success:t.success,successTime:t.successTime,targetCount:t.targetCount,detectedCount:t.detectedCount,invalidUnits:t.invalidUnits,constrainedPaths:t.constrainedPaths,sampled:generated.sampled
       });
     }
     trials.sort((a,b)=>a.trial-b.trial);

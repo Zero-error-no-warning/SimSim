@@ -1,19 +1,20 @@
-import {experimentErrors} from './experiment-settings.js?v=20261007-plan-switch-25';
-import {communicationErrors} from './communication.js?v=20261007-plan-switch-25';
-import {informationErrors} from './information-settings.js?v=20261007-plan-switch-25';
-import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-plan-switch-25';
-import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261007-plan-switch-25';
-import {measurementErrors} from './measurement-points.js?v=20261007-plan-switch-25';
-import {Terrain} from './terrain.js?v=20261007-plan-switch-25';
-export {Terrain} from './terrain.js?v=20261007-plan-switch-25';
-import {navigationProfileErrors} from './route-planner.js?v=20261007-plan-switch-25';
-import {materializeRoutes} from './route-planner.js?v=20261007-plan-switch-25';
-import {stateGoalErrors} from './state-measurement.js?v=20261007-plan-switch-25';
-import { readParameter } from './parameters.js?v=20261007-plan-switch-25';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261007-plan-switch-25';
-import { actionErrors } from './action-settings.js?v=20261007-plan-switch-25';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261007-plan-switch-25';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261007-plan-switch-25';
+import {resourceErrors} from './resources.js?v=20261009-information-analysis-26';
+import {experimentErrors} from './experiment-settings.js?v=20261009-information-analysis-26';
+import {communicationErrors} from './communication.js?v=20261009-information-analysis-26';
+import {informationErrors} from './information-settings.js?v=20261009-information-analysis-26';
+import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261009-information-analysis-26';
+import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-information-analysis-26';
+import {measurementErrors} from './measurement-points.js?v=20261009-information-analysis-26';
+import {Terrain} from './terrain.js?v=20261009-information-analysis-26';
+export {Terrain} from './terrain.js?v=20261009-information-analysis-26';
+import {navigationProfileErrors} from './route-planner.js?v=20261009-information-analysis-26';
+import {materializeRoutes} from './route-planner.js?v=20261009-information-analysis-26';
+import {stateGoalErrors} from './state-measurement.js?v=20261009-information-analysis-26';
+import { readParameter } from './parameters.js?v=20261009-information-analysis-26';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261009-information-analysis-26';
+import { actionErrors } from './action-settings.js?v=20261009-information-analysis-26';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261009-information-analysis-26';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261009-information-analysis-26';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -24,7 +25,7 @@ export const clone = value => JSON.parse(JSON.stringify(value));
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const pointValid = p => p && ['x','y','z'].every(k => finite(p[k]));
 export function validateScenario(value) {
-  const errors = [...informationErrors(value),...communicationErrors(value??{})];
+  const errors = [...informationErrors(value),...communicationErrors(value??{}),...resourceErrors(value??{})];
   if (!value || typeof value !== 'object') throw new Error('シナリオはオブジェクトで指定してください。');
   if (![1,2,3,4].includes(value.version)) errors.push('versionは1・2・3・4にしてください。');
   if (value.unitsSystem !== 'SI') errors.push('unitsSystemはSI（m・s）にしてください。');
@@ -110,7 +111,7 @@ export function validateScenario(value) {
   if(!errors.length)errors.push(...sensitivityConfigErrors(value));
   if(!errors.length)errors.push(...planConfigErrors(value));
   if(!errors.length&&value.analysis?.plans)for(const plan of [...value.analysis.plans.items,...(value.analysis.plans.editor?.drafts??[])]){
-    try{const operational=applyPlan(value,plan);delete operational.analysis;delete operational.mission;delete operational.measurements;validateScenario(operational);}
+    try{const operational=applyPlan(value,plan);delete operational.experiment;delete operational.analysis;delete operational.mission;delete operational.measurements;validateScenario(operational);}
     catch(e){errors.push('運用案「'+plan.name+'」: '+e.message);}
   }
   if (errors.length) throw new Error(errors.slice(0,30).join('\n'));

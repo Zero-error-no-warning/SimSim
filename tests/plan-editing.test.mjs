@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-plan-switch-25';
-import {capturePlan} from '../src/plan-settings.js?v=20261007-plan-switch-25';
-import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from '../src/plan-editing.js?v=20261007-plan-switch-25';
-import {preparePlans} from '../src/plans.js?v=20261007-plan-switch-25';
+import {clone,validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
+import {capturePlan} from '../src/plan-settings.js?v=20261009-information-analysis-26';
+import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from '../src/plan-editing.js?v=20261009-information-analysis-26';
+import {preparePlans} from '../src/plans.js?v=20261009-information-analysis-26';
 const source=JSON.parse(fs.readFileSync(new URL('fixtures/state-measurement.txt',import.meta.url)));source.analysis.factors=[];source.analysis.mode='plans';source.analysis.plans={metric:'mission.time',baselineId:'',items:[]};
 let s=clone(source);savePlan(s,'A');assert.equal(planEditor(s).activeId,'plan-1');savePlan(s,'B',{create:true});assert.equal(planEditor(s).activeId,'plan-2');
 // B receives an extra independent entity, while A remains the original operation.

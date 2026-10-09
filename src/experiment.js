@@ -1,10 +1,10 @@
-import {clone,validateScenario} from './engine.js?v=20261007-plan-switch-25';
-import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261007-plan-switch-25';
-import {random01} from './random.js?v=20261007-plan-switch-25';
-import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261007-plan-switch-25';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261007-plan-switch-25';
-import {wilson} from './detection.js?v=20261007-plan-switch-25';
-import {UI_BUILD} from './ui-dom.js?v=20261007-plan-switch-25';
+import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
+import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261009-information-analysis-26';
+import {random01} from './random.js?v=20261009-information-analysis-26';
+import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-information-analysis-26';
+import {wilson} from './detection.js?v=20261009-information-analysis-26';
+import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
 export function controlValues(e,index,phase='explore',bounds={}){
  const values={};for(const c of e.controls){const [min,max]=bounds[c.id]??[c.min,c.max],u=random01((e.designSeed??'SimSim-design')+'|'+phase+'|'+index+'|'+c.id);let value=min+u*(max-min);if(parameter(c.parameter).integer)value=Math.round(value);values[c.id]=value;}return values;
 }
@@ -16,7 +16,7 @@ export function experimentCandidates(s){
  if(items.length<(e.candidates??32))throw Error('制約を満たす異なる運用値を必要数生成できません。候補数・範囲・制約を見直してください。');return items;
 }
 export function experimentSample(source,candidate,profile,trial,phase='explore'){
- const base=clone(source);base.seed=(source.seed??'SimSim')+'|'+phase;delete base.experiment;
+ const base=clone(source);base.seed=(source.seed??'SimSim')+'|'+phase;delete base.experiment;base.analysis.factors=[];
  for(const b of profile.changes)writeParameter(base,b,b.value);
  const settings=source.experiment.controls.map(c=>({...c,value:candidate.values[c.id]}));
  const {scenario,sampled}=trialScenario(base,{settings},trial);validateScenario(scenario);return {scenario,sampled};

@@ -1,3 +1,5 @@
+> version 4の追加仕様は[information-model.md](information-model.md)。以下は共通操作と互換version 3の仕様。
+
 # SimSim 0.8 — 現在の操作と設計
 
 2026-10-05。対象は `feat/shared-behavior-replay`。0.7の全体レビューに基づく改修版です。旧資料はこのページへ案内を統一しています。

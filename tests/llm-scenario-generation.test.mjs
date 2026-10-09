@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Terrain} from '../src/engine.js?v=20261007-plan-switch-25';
-import {importScenario} from '../src/scenario-import.js?v=20261007-plan-switch-25';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
-import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261007-plan-switch-25';
-import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261007-plan-switch-25';
+import {Terrain} from '../src/engine.js?v=20261009-information-analysis-26';
+import {importScenario} from '../src/scenario-import.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
+import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261009-information-analysis-26';
+import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261009-information-analysis-26';
 const text=fs.readFileSync(new URL('../docs/llm-scenario-generation.txt',import.meta.url),'utf8');
 assert(!/__MINIMAL__|__RECEIVED__|__GROUP__|__PARAMETERS__/.test(text));
-const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,13);
+const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,14);
+const modern=blocks.filter(b=>b.version===4);assert.equal(modern.length,1);for(const raw of modern){const m=createSimulation(raw);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:raw.duration})){}assert.equal(m.result.invalidUnits,0);assert(m.result.success);assert.deepEqual(restoreRecording(recordingPayload(m)).evaluate(raw.duration).knowledge,m.evaluate(raw.duration).knowledge);}
 const scenarios=blocks.filter(b=>b.version===3);assert.equal(scenarios.length,5);
 const evidence=[];
 for(const raw of scenarios){

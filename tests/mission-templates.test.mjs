@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {surveillanceTemplate} from '../src/mission-templates.js?v=20261007-plan-switch-25';
-import {validateScenario} from '../src/engine.js?v=20261007-plan-switch-25';
-import {createSimulation,sharedSteps} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
+import {surveillanceTemplate} from '../src/mission-templates.js?v=20261009-information-analysis-26';
+import {validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
 const run=s=>{const m=createSimulation(s);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:s.duration})){}return m;};
 test('map template expands into ordinary editable graph; JSON reload runs the identical mission',()=>{
  const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));delete s.experiment;

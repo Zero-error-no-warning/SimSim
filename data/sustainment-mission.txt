@@ -1,9 +1,9 @@
 {
   "version": 4,
   "unitsSystem": "SI",
-  "title": "情報制約下の監視・中継・対処",
-  "duration": 180,
-  "seed": "information-mission",
+  "title": "資源・帰投・補給を伴う監視交代",
+  "duration": 600,
+  "seed": "sustainment",
   "terrain": {
     "columns": 5,
     "rows": 5,
@@ -49,7 +49,7 @@
       "domain": "air",
       "faction": "friendly",
       "manned": false,
-      "speed": 0,
+      "speed": 40,
       "initial": {
         "x": 0,
         "y": 0,
@@ -72,7 +72,35 @@
         "delay": 7,
         "probability": 1,
         "terrainLOS": false
-      }
+      },
+      "resources": {
+        "energy": {
+          "capacity": 100,
+          "perSecond": 0.2,
+          "byNodeKind": {
+            "patrol": 0.8
+          },
+          "replenish": {
+            "destinationId": "base",
+            "rate": 4
+          }
+        }
+      },
+      "statusReports": {
+        "receiverIds": [
+          "relay"
+        ],
+        "interval": 15
+      },
+      "periodicReports": [
+        {
+          "messageKind": "observation",
+          "receiverIds": [
+            "relay"
+          ],
+          "interval": 30
+        }
+      ]
     },
     {
       "id": "relay",
@@ -131,6 +159,66 @@
         }
       ],
       "routeMode": "once"
+    },
+    {
+      "id": "backup",
+      "name": "交代監視機",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 40,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 100000,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "subsurface"
+        ],
+        "terrainLOS": false
+      },
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 7,
+        "probability": 1,
+        "terrainLOS": false
+      },
+      "resources": {
+        "energy": {
+          "capacity": 100,
+          "perSecond": 0.2,
+          "byNodeKind": {
+            "patrol": 0.8
+          },
+          "replenish": {
+            "destinationId": "base",
+            "rate": 4
+          },
+          "initial": 60
+        }
+      },
+      "statusReports": {
+        "receiverIds": [
+          "relay"
+        ],
+        "interval": 15
+      },
+      "periodicReports": [
+        {
+          "messageKind": "observation",
+          "receiverIds": [
+            "relay"
+          ],
+          "interval": 30
+        }
+      ]
     }
   ],
   "destinations": [
@@ -138,6 +226,16 @@
       "id": "received",
       "name": "受信した目標位置",
       "kind": "received"
+    },
+    {
+      "id": "base",
+      "name": "補給基地",
+      "kind": "point",
+      "point": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      }
     }
   ],
   "routes": [
@@ -168,46 +266,77 @@
     {
       "id": "observe",
       "name": "位置を探知して報告",
-      "initial": "listen",
-      "triggers": [
-        {
-          "id": "detect",
-          "event": "detected",
-          "to": "report"
-        },
-        {
-          "id": "refresh",
-          "event": "time",
-          "seconds": 30,
-          "once": false,
-          "to": "report"
-        }
-      ],
+      "initial": "patrol",
+      "triggers": [],
       "nodes": [
         {
-          "id": "listen",
-          "kind": "signal",
-          "x": 140,
-          "y": 70
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "patrol",
+          "joinMode": "nearest",
+          "speedFraction": 0.7
         },
         {
           "id": "report",
           "kind": "report",
-          "receiverId": "relay",
-          "x": 430,
-          "y": 70
+          "receiverId": "relay"
+        },
+        {
+          "id": "return",
+          "kind": "move",
+          "destinationId": "base",
+          "heightMode": "target",
+          "sensor": false
+        },
+        {
+          "id": "service",
+          "kind": "wait",
+          "seconds": 600,
+          "sensor": false
         }
       ],
       "edges": [
         {
-          "to": "listen",
-          "when": "sent",
-          "from": "report"
+          "from": "patrol",
+          "to": "return",
+          "when": "condition",
+          "condition": {
+            "field": "self.resources.energy.fraction",
+            "op": "lte",
+            "value": 0.35
+          },
+          "priority": 100
         },
         {
-          "to": "listen",
-          "when": "sendFailed",
-          "from": "report"
+          "from": "patrol",
+          "to": "report",
+          "when": "detected",
+          "once": false
+        },
+        {
+          "from": "report",
+          "to": "patrol",
+          "when": "sent"
+        },
+        {
+          "from": "report",
+          "to": "patrol",
+          "when": "sendFailed"
+        },
+        {
+          "from": "return",
+          "to": "service",
+          "when": "arrived"
+        },
+        {
+          "from": "service",
+          "to": "patrol",
+          "when": "condition",
+          "condition": {
+            "field": "self.resources.energy.fraction",
+            "op": "gte",
+            "value": 0.99
+          }
         }
       ]
     },
@@ -326,6 +455,16 @@
         "unit:uav"
       ],
       "spacing": "none"
+    },
+    {
+      "id": "backup-monitor",
+      "name": "交代監視",
+      "behaviorId": "observe",
+      "targets": [
+        "unit:backup"
+      ],
+      "spacing": "none",
+      "coordination": "reported"
     }
   ],
   "recording": {
@@ -342,85 +481,34 @@
     "assignmentId": "respond",
     "nodeId": "done",
     "join": "any",
-    "deadline": 180
+    "deadline": 600
   },
   "analysis": {
     "trials": 64,
     "step": 10,
     "requiredRate": 0.8,
     "factors": [],
-    "uncertainties": [
-      {
-        "target": "unit:observer",
-        "parameter": "interaction.communication.probability",
-        "distribution": "uniform",
-        "min": 0.4,
-        "max": 0.95
-      }
-    ]
+    "uncertainties": []
   },
-  "measurements": [
-    {
-      "id": "dispatched",
-      "name": "対処開始",
-      "type": "state",
-      "assignmentId": "respond",
-      "nodeId": "move",
-      "join": "any",
-      "deadline": 180
-    },
-    {
-      "id": "arrived",
-      "name": "観測位置に到着",
-      "type": "state",
-      "assignmentId": "respond",
-      "nodeId": "done",
-      "join": "any",
-      "deadline": 180,
-      "previousId": "dispatched"
-    }
-  ],
+  "measurements": [],
   "experiment": {
     "designSeed": "information-controls",
-    "candidates": 16,
-    "trials": 32,
+    "candidates": 8,
+    "trials": 8,
     "requiredRate": 0.8,
     "controls": [
       {
-        "id": "reportPeriod",
-        "target": "behavior:observe",
-        "parameter": "behavior.trigger.refresh.seconds",
-        "min": 15,
-        "max": 60
-      },
-      {
-        "id": "responseSpeed",
-        "target": "unit:uav",
+        "id": "monitorSpeed",
+        "target": "unit:observer",
         "parameter": "rate.movement.speed",
         "min": 20,
-        "max": 120
+        "max": 60
       }
     ],
     "enemyProfiles": [
       {
-        "id": "slow",
-        "changes": [
-          {
-            "target": "unit:uuv",
-            "parameter": "rate.movement.speed",
-            "value": 5
-          }
-        ]
-      },
-      {
-        "id": "fast",
-        "changes": [
-          {
-            "target": "unit:uuv",
-            "parameter": "rate.movement.speed",
-            "value": 15
-          }
-        ]
+        "id": "baseline",
+        "changes": []
       }
     ]
   }

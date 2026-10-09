@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261007-plan-switch-25';
-import {constraintsSatisfied} from './experiment-settings.js?v=20261007-plan-switch-25';
-import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261007-plan-switch-25';
-import {readParameter,writeParameter} from './parameters.js?v=20261007-plan-switch-25';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261007-plan-switch-25';
-import {UI_BUILD} from './ui-dom.js?v=20261007-plan-switch-25';
+import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
+import {constraintsSatisfied} from './experiment-settings.js?v=20261009-information-analysis-26';
+import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261009-information-analysis-26';
+import {readParameter,writeParameter} from './parameters.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-information-analysis-26';
+import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
 const contains=(values,bounds)=>Object.entries(bounds).every(([id,[lo,hi]])=>values[id]>=lo&&values[id]<=hi);
 export function extractPatterns(experiment,{maxRules=4,minCandidates=4}={}){
  if(experiment.status!=='complete'||experiment.completed!==experiment.planned)throw Error('定石の抽出には探索の完了が必要です。');
@@ -57,8 +57,9 @@ export async function validatePatterns(experiment,rules,{operatingPoints=8,trial
  onProgress({completed,planned:results.length*operatingPoints*trials*experiment.profiles.length});return results;
 }
 export function patternContext(source){
- const s=clone(source);for(const c of s.experiment?.controls??[])writeParameter(s,c,c.min);
- for(const key of ['title','seed','trial','analysis','experiment'])delete s[key];return s;
+ const s=clone(validateScenario(source));for(const c of s.experiment?.controls??[])writeParameter(s,c,c.min);
+ s.analysis={uncertainties:s.analysis?.uncertainties??[]};s.patternEnvironment={enemyProfiles:s.experiment?.enemyProfiles??[{id:'baseline',changes:[]}],constraints:s.experiment?.constraints??[]};
+ for(const key of ['title','seed','trial','experiment'])delete s[key];return s;
 }
 export function patternPayload(experiment,rules){return {type:'SimSim-patterns',version:1,...experimentIdentity(experiment.source),experiment:clone(experiment),rules:clone(rules)};}
 export function applyPattern(source,rule,values,{allowCandidate=false}={}){

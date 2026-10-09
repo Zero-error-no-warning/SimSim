@@ -1,8 +1,8 @@
-import { editableDefinition } from './editor.js?v=20261007-plan-switch-25';
-import { sharedAssignment } from './shared-settings.js?v=20261007-plan-switch-25';
+import { editableDefinition } from './editor.js?v=20261009-information-analysis-26';
+import { sharedAssignment } from './shared-settings.js?v=20261009-information-analysis-26';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261007-plan-switch-25';
+import { Terrain, Simulation } from './engine.js?v=20261009-information-analysis-26';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -19,10 +19,10 @@ const disposal = group => {
 };
 export class MapView {
   constructor(element,{
-    onSelect,onMapClick,onHover,onEdit,onContext,onDragState
+    onSelect,onSelectTask,onMapClick,onHover,onEdit,onContext,onDragState
   }) {
     this.element=element;
-    this.onSelect=onSelect;
+    this.onSelect=onSelect;this.onSelectTask=onSelectTask;
     this.onMapClick=onMapClick;
     this.onHover=onHover;
     this.onEdit=onEdit;
@@ -47,7 +47,7 @@ export class MapView {
     this.trails=new THREE.Group();
     this.sensorRangeGroup=new THREE.Group();
     this.detectionGroup=new THREE.Group();
-    this.contactGroup=new THREE.Group();this.scene.add(this.contactGroup);
+    this.contactGroup=new THREE.Group();this.taskPlanGroup=new THREE.Group();this.scene.add(this.contactGroup,this.taskPlanGroup);
     this.showSensor=true;
     this.scene.add(this.environment,this.routes,this.units,this.trails,this.sensorRangeGroup,this.detectionGroup);
     this.camera3d=new THREE.PerspectiveCamera(44,1,10,700000);
@@ -75,6 +75,7 @@ export class MapView {
     this.resizeObserver.observe(element);
     this.resize();
     const canvas=this.renderer.domElement;
+    canvas.addEventListener('dblclick',event=>{if(!this.taskAggregation||this.knowledgeOwner)return;const r=canvas.getBoundingClientRect();this.pointer.set((event.clientX-r.left)/r.width*2-1,-(event.clientY-r.top)/r.height*2+1);this.raycaster.setFromCamera(this.pointer,this.camera);this.raycaster.params.Line.threshold=200;const hit=this.raycaster.intersectObjects(this.taskPlanGroup.children,true)[0];if(hit?.object.userData.taskId)this.onSelectTask?.(hit.object.userData.taskId);});
     canvas.tabIndex=0;
     canvas.setAttribute('aria-label','シナリオの地図・直接編集');
     window.addEventListener('keydown',event=>{
@@ -775,7 +776,7 @@ export class MapView {
     if(!snapshot||this.drag)return;
     this.rawSnapshot=snapshot;
     this.snapshot=snapshot;
-    disposal(this.contactGroup);
+    disposal(this.contactGroup);disposal(this.taskPlanGroup);
     this.displayedIds=null;
     if(this.knowledgeOwner){
       const k=snapshot.knowledge?.[this.knowledgeOwner],self=snapshot.units.find(u=>u.id===this.knowledgeOwner),friends=Object.values(k?.friendlyReports??{}).filter(r=>r.position).map(r=>({id:r.subjectId,position:r.position,status:r.reportedState}));
@@ -783,6 +784,15 @@ export class MapView {
       this.displayedIds=new Set(snapshot.units.map(u=>u.id));
       for(const c of Object.values(k?.contacts??{})){const sprite=new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffd18b',depthTest:false}));sprite.position.copy(this.world(c.position,40));sprite.scale.setScalar(180);sprite.userData.trackId=c.trackId;this.contactGroup.add(sprite);}
       this.routes.visible=false;this.handles.forEach(h=>h.mesh.visible=false);this.relatedMarkers.count=0;
+    }else if(this.taskAggregation){
+      this.displayedIds=new Set(this.selected?[this.selected]:[]);this.routes.visible=false;
+      for(const task of snapshot.taskSummary??[]){
+        const a=this.scenario.behaviorAssignments.find(a=>a.id===task.id),g=this.scenario.behaviors.find(g=>g.id===a?.behaviorId),routeIds=[...new Set(g?.nodes.filter(n=>['patrol','follow'].includes(n.kind)&&typeof n.routeId==='string').map(n=>n.routeId)??[])];
+        const routes=routeIds.map(id=>this.scenario.routes?.find(r=>r.id===id)).filter(Boolean);if(!routes.length&&a?.route?.length)routes.push({points:a.route});
+        for(const route of routes){const points=route.points.map(p=>this.world(p,45)),line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#75dce7',depthTest:false}));line.userData.taskId=task.id;this.taskPlanGroup.add(line);
+          if(points.length>1){const delta=points[1].clone().sub(points[0]),length=delta.length();if(length){const arrow=new THREE.ArrowHelper(delta.normalize(),points[0],length,'#75dce7',Math.min(length/3,100+30*Math.sqrt(task.total)),Math.min(length/4,50+15*Math.sqrt(task.total)));for(const child of arrow.children)child.userData.taskId=task.id;this.taskPlanGroup.add(arrow);}}
+        }
+      }
     }else this.routes.visible=this.showRoutes;
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {

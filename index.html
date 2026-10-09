@@ -1,31 +1,23 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261007-plan-switch-25">
+<html lang="ja" data-simsim-build="20261009-information-analysis-26">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261007-plan-switch-25">
-<script src="src/bootstrap.js?v=20261007-plan-switch-25" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261009-information-analysis-26">
+<script src="src/bootstrap.js?v=20261009-information-analysis-26" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.07.25</span>
+<h1>SimSim <span id="app-version">v2026.10.09.26</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
-<option value="information-mission.txt">情報制約・監視から対処まで</option><option value="measurement-history-demo.txt">段階別計測・通信履歴</option><option value="plans-demo.txt">運用案比較・配置／経路／報告周期</option><option value="sensitivity-demo.txt">感度分析：通信・移動・報告周期</option>
-<option value="route-planning-demo.txt">島を避ける経路の自動生成</option>
-<option value="island-patrol-demo.txt">島間通過・周回UUV</option>
-<option value="shared-demo.txt">協調監視・報告・帰投</option>
-<option value="response-demo.txt">探知・中継・出発</option><option value="assignment-demo.txt">担当値を変えて挙動を再利用</option><option value="navigation-demo.txt">航路切替・目標への接近</option><option value="received-position-demo.txt">受信した観測位置へ移動</option>
-<option value="demo.txt">4領域の移動</option>
-<option value="group-demo.txt">1000個の群</option>
-<option value="parameter-demo.txt">多変数の比較</option>
-<option value="detection-demo.txt">個数0を含む比較</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
+<option value="information-mission.txt">情報制約・監視から対処まで</option><option value="sustainment-mission.txt">資源・帰投・補給と監視交代</option><option value="island-patrol-demo.txt">島間通過・周回UUV</option><option value="route-planning-demo.txt">島を避ける経路の自動生成</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
 <a href="environment-check/check.html" target="_blank" rel="noopener">動作環境の確認</a><a href="docs/workspace-v3.md" target="_blank">操作とモデルの仕様</a><a href="portable/copy.html" target="_blank" rel="noopener">社内持ち込み用ファイル</a>
 </div></details>
 </div>
@@ -72,7 +64,7 @@
 <div class="view-buttons">
 <button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="view3d" class="active">3D</button><button id="viewtop">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
 </div>
-<details class="menu-popover"><summary>表示</summary><div><div class="map-options"><label>情報視点 <select id="information-perspective"><option value="truth">解析用の真状態</option><option value="selected">選択ユニットの保有情報</option></select></label>
+<details class="menu-popover"><summary>表示</summary><div><div class="map-options"><label>集約表示 <select id="task-aggregation"><option value="units">個体</option><option value="tasks">タスクの計画経路と担当数</option></select></label><label>情報視点 <select id="information-perspective"><option value="truth">解析用の真状態</option><option value="selected">選択ユニットの保有情報</option></select></label>
 <label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>一覧との対応線</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
 <option value="4" selected>×4</option>
 <option value="8">×8</option>
@@ -117,7 +109,7 @@
 <span>0分</span><input id="timeline" disabled type="range" min="0" max="3600" step="1" value="0" aria-label="シミュレーション時刻"><span id="duration-label">60分</span>
 </div>
 </div>
-<div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
+<section id="task-summary-panel" hidden><table class="results-table"><thead><tr><th>タスク</th><th>担当／稼働</th><th>現在のノード別人数</th><th>資源残量の合計</th></tr></thead><tbody id="task-summary"></tbody></table><small>線はタスクの計画経路です。表または経路をダブルクリックすると個体とノードへ展開します。</small></section><div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
 <div id="notice" class="notice" role="status">読み込み中</div></main>
 <div class="pane-resizer" data-pane="inspector" role="separator" aria-label="ユニット編集の幅" aria-orientation="vertical" tabindex="0"></div>
 <aside class="inspector" aria-label="ユニット編集"><div class="panel-heading">
@@ -183,7 +175,7 @@
 </div>
 <p class="route-help">水平ずれは平面内の全方向。上下のずれは空中・水中に適用。往復・周回では同じ生成経路を繰り返します。</p>
 </div></details><details class="property-section"><summary>通信能力</summary><div>
-<label class="field">媒体<select id="unit-communication-medium"><option value="ideal">抽象リンク</option><option value="rf">無線（地球曲率を考慮）</option><option value="optical">光学</option><option value="acoustic">音響</option><option value="satellite">衛星経由（抽象）</option></select></label><label class="check-field"><input id="unit-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
+<label class="field">媒体<select id="unit-communication-medium"><option value="ideal">抽象リンク</option><option value="rf">無線（地球曲率を考慮）</option><option value="optical">光学</option><option value="acoustic">音響</option><option value="satellite">衛星経由（抽象）</option></select></label><label class="field">通信アンテナ・端末の取付高（m）<input id="unit-communication-height" type="number" min="0" max="10000" step="any"></label><label class="check-field"><input id="unit-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
 <label class="field">最大距離（km）<input id="unit-communication-range" type="number" min="0.000001" max="100" step="any"></label><label class="field">遅延（秒）<input id="unit-communication-delay" type="number" min="0" max="86400" step="any"></label>
 </div>
 <label class="field">1回の成功確率（%）<input id="unit-communication-probability" type="number" min="0" max="100" step="any"></label><label class="check-field"><input id="unit-communication-los" type="checkbox">地形遮蔽を判定</label><p class="route-help">報告の動作はタスクのノードで設定します。</p>

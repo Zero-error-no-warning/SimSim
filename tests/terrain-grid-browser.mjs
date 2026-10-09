@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261007-plan-switch-25';
+import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261009-information-analysis-26';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-terrain-grid-'));
 const server=http.createServer((req,res)=>{
@@ -22,7 +22,7 @@ try{
   page.on('pageerror',e=>errors.push(e.message));page.on('console',e=>{if(e.type()==='error')errors.push(e.text());});page.on('dialog',async d=>{await d.accept().catch(()=>{});});
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
   assert.equal(await page.locator('#app-version').textContent(),UI_VERSION);assert.equal(await page.locator('html').getAttribute('data-simsim-build'),UI_BUILD);
-  const source=JSON.parse(fs.readFileSync(new URL('../data/navigation-demo.txt',import.meta.url)));
+  const source=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/navigation-demo.txt',import.meta.url)));
   source.terrain.elevations=source.terrain.elevations.map((_,i)=>-300+i%source.terrain.columns+10*Math.floor(i/source.terrain.columns));
   const input=path.join(folder,'input.txt');fs.writeFileSync(input,JSON.stringify(source));await page.locator('#file').setInputFiles(input);
   const save=async filename=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,filename);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};

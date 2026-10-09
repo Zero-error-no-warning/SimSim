@@ -1,23 +1,24 @@
-import {InformationMetrics} from './information-metrics.js?v=20261007-plan-switch-25';
-import {measurePoints} from './measurement-points.js?v=20261007-plan-switch-25';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261007-plan-switch-25';
-import {resolveGraph} from './behavior-parameters.js?v=20261007-plan-switch-25';
-import { Simulation } from './engine.js?v=20261007-plan-switch-25';
-import { importScenario } from './scenario-import.js?v=20261007-plan-switch-25';
-import { random01, streamKey } from './random.js?v=20261007-plan-switch-25';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261007-plan-switch-25';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261007-plan-switch-25';
-import { graphTriggers } from './shared-settings.js?v=20261007-plan-switch-25';
-import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261007-plan-switch-25';
-import {transmissionAttempts} from './communication.js?v=20261007-plan-switch-25';
-import {propagationVisible} from './propagation.js?v=20261007-plan-switch-25';
-import {chooseDecision} from './decision.js?v=20261007-plan-switch-25';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261007-plan-switch-25';
+import {createResources,hasResource,resourceBoundary,updateResources,chargeMessage,aggregateTasks} from './resources.js?v=20261009-information-analysis-26';
+import {InformationMetrics} from './information-metrics.js?v=20261009-information-analysis-26';
+import {measurePoints} from './measurement-points.js?v=20261009-information-analysis-26';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261009-information-analysis-26';
+import {resolveGraph} from './behavior-parameters.js?v=20261009-information-analysis-26';
+import { Simulation } from './engine.js?v=20261009-information-analysis-26';
+import { importScenario } from './scenario-import.js?v=20261009-information-analysis-26';
+import { random01, streamKey } from './random.js?v=20261009-information-analysis-26';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261009-information-analysis-26';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261009-information-analysis-26';
+import { graphTriggers } from './shared-settings.js?v=20261009-information-analysis-26';
+import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261009-information-analysis-26';
+import {transmissionAttempts,periodicReports} from './communication.js?v=20261009-information-analysis-26';
+import {propagationVisible} from './propagation.js?v=20261009-information-analysis-26';
+import {chooseDecision} from './decision.js?v=20261009-information-analysis-26';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261009-information-analysis-26';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const INFORMATION_MODEL='information-behavior-v4';
 export const recordModel=s=>s.version>=4?INFORMATION_MODEL:RECORD_MODEL;
 export const compatibleModel=p=>p?.model===recordModel(p?.source??{});
-export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing','disabled'];
+export const STATUS = ['idle', 'moving', 'arrived', 'blocked', 'waiting', 'standby', 'preparing','disabled','depleted'];
 export const MAX_RECORD_BYTES = 128 * 1048576;
 const dist = (a, b) => Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z);
 const mod = (a, b) => (a % b + b) % b;
@@ -55,7 +56,7 @@ export class RecordedSimulation extends Simulation {
     this.frames=null;
     this.result=null;
     this.computeCount=0;
-    this.nodeNames=[];
+    this.nodeNames=[];this.resourceNames=[];this.resourceIndices=new Map();
     this.assignments=this.source.behaviorAssignments;
     this.initialEvents=[];
     const graphs=new Map(this.source.behaviors.map(g=>[g.id,g]));
@@ -78,7 +79,7 @@ export class RecordedSimulation extends Simulation {
       };
       if(initialNode?.joinMode==='nearest'){const departure=this.terrain.project(u.initial,u.domain);s.position=departure.point;if(departure.error)s.error=departure.error;}
       this.states.push(s);
-      s.knowledge=createKnowledge(u,this.source);s.operational=true;
+      s.knowledge=createKnowledge(u,this.source);s.operational=true;s.resources=createResources(u);s.resourceConfigured=Object.keys(s.resources).length>0;this.resourceIndices.set(u.id,Object.keys(s.resources).map(id=>[id,this.resourceNames.push(u.id+':'+id)-1]));
       this.byId.set(u.id,s);
       for (const n of graph?.nodes??[]) if (!this.nodeNames.includes(graph.id+':'+n.id)) this.nodeNames.push(graph.id+':'+n.id);
     }
@@ -209,7 +210,7 @@ export class RecordedSimulation extends Simulation {
     return true;
   }
   rememberObservation(s,observation){
-    rememberInformation(s.knowledge,observation,observation.time??0);
+    if(this.source.version>=4)rememberInformation(s.knowledge,observation,observation.time??0);
     const previous=s.latestObservation,time=o=>o.observationTime??o.sampleTime??o.time;
     if(!previous||previous.targetId!==observation.targetId||time(observation)>=time(previous))s.latestObservation=observation;
   }
@@ -269,7 +270,7 @@ export class RecordedSimulation extends Simulation {
       },heading:s.heading,status:s.status,distance:s.distance,routeDistance:path.length,error:s.error,errorAt:path.errorAt,actualSpeed:path.actualSpeed,startDelay:path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null
     };
   }
-  evaluate(time) {
+  evaluate(time,{knowledgeOwners}={}) {
     const t=Math.max(0,Math.min(this.source.duration,Number(time)||0));
     if (!this.frames) return {
       time:0,units:[...this.states.map(s=>this.stateSnapshot(s)),...this.inactiveUnits],actionsPending:true,recordingPending:true
@@ -284,20 +285,24 @@ export class RecordedSimulation extends Simulation {
     const units=this.states.map((s,i)=>{
       const k=i*5,x=a.values,y=b.values,node=this.nodeNames[a.nodes[i]-1],d=mod(y[k+3]-x[k+3]+Math.PI,Math.PI*2)-Math.PI;
       return {
-        ...this.stateSnapshot(s,this.replayPath(s,t)),operational:(this.source.operationalEvents??[]).filter(e=>e.unitId===s.unit.id&&e.time<=t).at(-1)?.operational??true,position:{
+        ...this.stateSnapshot(s,this.replayPath(s,t)),resources:Object.fromEntries((this.resourceIndices.get(s.unit.id)??[]).map(([id,index])=>{const r=s.resources[id],remaining=a.resources[index]+(b.resources[index]-a.resources[index])*f;return [id,{capacity:r.capacity,remaining}];})),operational:(this.source.operationalEvents??[]).filter(e=>e.unitId===s.unit.id&&e.time<=t).at(-1)?.operational??true,position:{
           x:x[k]+(y[k]-x[k])*f,y:x[k+1]+(y[k+1]-x[k+1])*f,z:x[k+2]+(y[k+2]-x[k+2])*f
         },heading:x[k+3]+d*f,distance:x[k+4]+(y[k+4]-x[k+4])*f,status:STATUS[a.status[i]],nodeId:node?.split(':')[1],error:a.status[i]===3?'記録された地形制約停止':null,actualSpeed:b.time>a.time?Math.max(0,(y[k+4]-x[k+4])/(b.time-a.time)):0
       };
     });
     const result=this.result,events=result.events.filter(e=>e.time<=t),mission=this.source.mission;
     return {
-      time:t,units:[...units,...this.inactiveUnits],actionEvents:result.actionEvents.filter(e=>e.time<=t),mission:mission?{
+      time:t,units:[...units,...this.inactiveUnits],taskSummary:aggregateTasks(this.source,units.map(u=>({...u,assignment:this.byId.get(u.id).assignment,node:this.byId.get(u.id).graph?.nodes.find(n=>n.id===u.nodeId)}))),actionEvents:result.actionEvents.filter(e=>e.time<=t),mission:mission?{
         ...(mission.type==='state'?stateSummary(result.stateEntries,mission,result.stateTargetCount,t):{}),events,detectedCount:new Set(events.map(e=>e.targetId)).size,targetCount:result.targetCount,reachedCount:new Set(result.actionEvents.filter(e=>e.type==='arrived'&&e.time<=t&&mission.responderIds?.includes(e.unitId)).map(e=>e.unitId)).size,responderCount:result.responderCount,status:result.successTime!==null&&result.successTime<=t?'success':t>=mission.deadline?'failure':'pending',deadline:mission.deadline
       }
-      :undefined,knowledge:Object.fromEntries(this.states.map(s=>[s.unit.id,knowledgeAt(this.source,s.unit.id,result.informationEvents,t)])),recording:{
+      :undefined,knowledge:this.replayKnowledge(t,knowledgeOwners),recording:{
         frames:this.frames.length,bytes:this.recordBytes,computeCount:this.computeCount,step:this.source.recording.step,interval:this.source.recording.interval
       },actionsPending:false
     };
+  }
+  replayKnowledge(time,owners){
+    if(!this.informationByOwner){this.informationByOwner=new Map();for(const e of this.result.informationEvents??[]){if(!this.informationByOwner.has(e.unitId))this.informationByOwner.set(e.unitId,[]);this.informationByOwner.get(e.unitId).push(e);}}
+    return Object.fromEntries(this.states.filter(s=>!owners||owners.includes(s.unit.id)).map(s=>[s.unit.id,knowledgeAt(this.source,s.unit.id,this.informationByOwner.get(s.unit.id),time)]));
   }
   // Playback trails are a function of recorded time, not of frames previously displayed.
   trailPoints(id,time,maxPoints=1000) {
@@ -324,12 +329,12 @@ export class RecordedSimulation extends Simulation {
       values.set([s.position.x,s.position.y,s.position.z,s.heading,s.distance],i*5);nodes[i]=s.node?this.nodeNames.indexOf(s.graph.id+':'+s.node.id)+1:0;status[i]=STATUS.indexOf(s.status);
     });
     frames.push({
-      time:t,values,nodes,status
+      time:t,values,nodes,status,...(this.source.version>=4?{resources:Float32Array.from(this.resourceNames.map(key=>{const [unitId,id]=key.split(':');return this.byId.get(unitId).resources[id].remaining;}))}:{})
     });
-    if(frames.length>100001||frames.length*(n*23+8)>MAX_RECORD_BYTES)throw Error('再生記録が128MiBを超えました。期間・個数・記録間隔を調整してください。');
+    if(frames.length>100001||frames.length*(n*23+8+this.resourceNames.length*4)>MAX_RECORD_BYTES)throw Error('再生記録が128MiBを超えました。期間・個数・記録間隔を調整してください。');
   }
   get recordBytes(){
-    return this.frames?.reduce((n,f)=>n+8+f.values.byteLength+f.nodes.byteLength+f.status.byteLength,0)??0;
+    return this.frames?.reduce((n,f)=>n+8+f.values.byteLength+f.nodes.byteLength+f.status.byteLength+(f.resources?.byteLength??0),0)??0;
   }
 }
 function moveTo(model,s,destination,speed,dt) {
@@ -358,11 +363,12 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
 }) {
   const model=input instanceof RecordedSimulation?input:new RecordedSimulation(input.source);
   const horizon=options.horizon??(model.source.measurements?.length?model.source.duration:mission?.deadline??model.source.duration),record=options.record??false;
-  const dt=model.source.recording.step,interval=model.source.recording.interval;
+  const dt=model.source.recording.step,interval=model.source.recording.interval,storage=record?'replay':options.storage??'events',summary=storage==='summary';
+  if(!['summary','events','replay'].includes(storage))throw Error('保存ポリシーはsummary/events/replayです。');
   if(!Number.isFinite(horizon)||horizon<0||horizon>model.source.duration)throw Error('計算終了時刻が不正です。');
   if(model.computeCount)throw Error('計算済みです。新しい試行を作成してください。');
   model.computeCount++;
-  const states=model.states,events=[...model.initialEvents],detected=new Map(),pairs=new Set(),messages=[],frames=record?[]:null;
+  const states=model.states,resourceStates=states.filter(s=>s.resourceConfigured),reportingStates=states.filter(s=>s.unit.statusReports||s.unit.periodicReports?.length),events=[...model.initialEvents],detected=new Map(),pairs=new Set(),messages=[],frames=record?[]:null;
   const targets=states.filter(s=>s.unit.faction!=='neutral'),goalTargets=mission?.type==='state'?[]:mission?.targetIds?mission.targetIds.map(id=>model.byId.get(id)).filter(Boolean):states.filter(s=>mission?s.unit.faction===mission.targetFaction:s.unit.faction!=='neutral');
   if(mission&&mission.type!=='state'&&mission.targetIds?.some(id=>!model.scenario.units.some(u=>u.id===id&&u.faction===mission.targetFaction)))throw Error('成功条件に合う対象がありません。');
   if(mission?.type==='detect'&&!model.scenario.units.some(u=>u.faction===mission.targetFaction))throw Error('成功条件に合う対象がありません。');
@@ -371,10 +377,12 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
   const result={
     success:false,successTime:null,targetCount:mission?.type==='state'?targets.length:goalTargets.length,detectedCount:0,responderCount:responders.length,reachedCount:0,events:[],actionEvents:events,invalidUnits:states.filter(s=>s.error).length,constrainedPaths:0
   };
-  if(model.source.version>=4)result.informationEvents=[];
+  if(model.source.version>=4&&!summary)result.informationEvents=[];
   const metrics=model.source.version>=4?new InformationMetrics(states,model.source.informationMetrics?.maxContactAge??30):null;
-  let metricCursor=0;
-  let candidateChecks=0,lastRecord=0,lastContact=0,messageSequence=0;
+  for(const item of model.source.initialInformation??[])metrics?.observe({...item.observation,type:'initial',time:0,unitId:item.ownerId});
+  let metricCursor=0,totalEvents=0,maxBufferedEvents=events.length,informationCount=0;
+  const reachedIds=new Set(),measurementTrackers=(model.source.measurements??[]).map(m=>({id:m.id,tracker:new StateTracker({...m,deadline:Math.min(m.deadline,horizon)},states.filter(s=>s.assignment?.id===m.assignmentId).map(s=>s.unit.id))}));
+  let candidateChecks=0,lastRecord=0,lastContact=0;const messageSequences=new Map();
   const deliveredIds=new Set(),appliedOperational=new Set(),statusTimes=new Map();
   const range=Math.max(1,...states.filter(s=>s.unit.sensor?.enabled).map(s=>s.unit.sensor.range));
   const emit=(s,when,t,extra={
@@ -422,7 +430,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     const c=s.unit.communication,receiver=model.byId.get(s.node.receiverId??s.assignment.receiverId),distance=receiver?dist(s.position,receiver.position):Infinity;
     const target=s.observation?.type==='received'&&s.observation.targetId&&s.observation.targetPosition?s.observation:s.latestObservation??(s.observation?.targetId&&s.observation?.targetPosition?s.observation:null),key=streamKey(model.source,s.unit.id,'unified-report-v2')+'|'+JSON.stringify([s.node.id,target?.targetId,target?.originObserverId??target?.observerId??s.unit.id]);
     let reason=null;
-    if(!c?.enabled)reason='通信無効';
+    if(s.resourceConfigured&&!hasResource(s,'communication'))reason='通信資源枯渇';
+    else if(!c?.enabled)reason='通信無効';
     else if(!receiver)reason='受信先不在（無効・計算対象外）';
     else if(distance>c.range)reason='通信範囲外';
     else if(model.source.version<4&&c.terrainLOS&&!terrainVisible(model.terrain,s.position,receiver.position))reason='地形遮蔽';
@@ -439,11 +448,14 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     if(s.node.messageKind==='status')Object.assign(extra,{messageKind:'status',subjectId:s.unit.id,reportedState:s.operational?'operational':'disabled',observationTime:t,targetPosition:{...s.position},targetId:undefined});
     if(s.node.messageKind==='command')Object.assign(extra,{messageKind:'command',command:s.node.command,targetId:undefined,targetPosition:undefined});
     if(model.source.version>=4){
-      const messageId=s.unit.id+'-message-'+(++messageSequence),attempts=transmissionAttempts(model,s,receiver,t,messageId),usable=attempts.filter(a=>!a.reason);
+      if(s.resourceConfigured&&(!hasResource(s,'communication')||Object.entries(s.resources).some(([id,r])=>r.remaining<(s.unit.resources[id].perMessage??0))))return emit(s,'sendFailed',t,{...extra,reason:'通信資源枯渇'});
+      chargeMessage(s,t,events);
+      const messageId=s.unit.id+'-'+s.node.id+'-message-'+((messageSequences.get(s.unit.id+'|'+s.node.id)??0)+1),attempts=transmissionAttempts(model,s,receiver,t,messageId),usable=attempts.filter(a=>!a.reason);
+      messageSequences.set(s.unit.id+'|'+s.node.id,(messageSequences.get(s.unit.id+'|'+s.node.id)??0)+1);
       extra.messageId=messageId;extra.sentAt=t;extra.links=attempts;
       for(const a of usable)if(a.arrives)messages.push({...extra,linkId:a.linkId,type:'received',time:t+a.delay,unitId:receiver.unit.id,senderId:s.unit.id});
-      // Packet loss is an analyst event, never a sendFailed transition.
-      for(const a of usable)if(!a.arrives)events.push({type:'deliveryFailed',time:t,unitId:s.unit.id,receiverId:receiver.unit.id,messageId,linkId:a.linkId,reason:'偶発未着（送信側には未確認）'});
+      // Remote failure is an analyst event, never a sendFailed transition.
+      for(const a of usable)if(!a.arrives)events.push({type:'deliveryFailed',time:t,unitId:s.unit.id,receiverId:receiver.unit.id,messageId,linkId:a.linkId,reason:(a.deliveryReason??'偶発未着')+'（送信側には未確認）'});
       extra.reason=usable.length?null:attempts[0]?.reason;
       return emit(s,usable.length?'sent':'sendFailed',t,extra);
     }
@@ -506,12 +518,12 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       events.push({type:'operationalChanged',time:t,unitId:e.unitId,operational:e.operational});
     }
     // Periodic self-state reports do not interrupt movement nodes.
-    for(const s of states)if(s.operational&&s.unit.statusReports){
-      const rule=s.unit.statusReports,last=statusTimes.get(s.unit.id)??-Infinity;
-      if(t-last>=rule.interval-1e-8){statusTimes.set(s.unit.id,t);for(const receiverId of rule.receiverIds){
-        const shadow={...s,graph:null,node:{id:'periodic-status',kind:'report',messageKind:'status',receiverId},trace:[]};
+    for(const s of reportingStates)if(s.operational)for(const [i,rule] of periodicReports(s.unit).entries()){
+      const key=s.unit.id+':'+i,last=statusTimes.get(key)??-Infinity;
+      if(t-last>=rule.interval-1e-8){statusTimes.set(key,t);for(const receiverId of rule.receiverIds){
+        const shadow={...s,graph:null,node:{id:'periodic-'+i,kind:'report',messageKind:rule.messageKind,receiverId},trace:[]};
         const first=events.length;report(shadow,t);
-        for(const e of events.slice(first))if(e.nodeId==='periodic-status')delete e.nodeId;
+        for(const e of events.slice(first))if(e.nodeId?.startsWith('periodic-'))delete e.nodeId;
       }}
     }
     let changed=false;
@@ -540,7 +552,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       throw Error('即時ノード遷移が64段を超えました。循環を見直してください。');
     };
     if(model.source.version<4){
-    for(const s of states)settle(s);
+    for(const s of states){settle(s);if(s.operational&&s.resourceConfigured&&!hasResource(s,'movement')&&['follow','move','patrol'].includes(s.node?.kind))s.status='depleted';}
     let delivered=0;
     while(true){
       messages.sort((a,b)=>a.time-b.time||a.unitId.localeCompare(b.unitId));
@@ -551,7 +563,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       if(m.messageId&&deliveredIds.has(m.messageId))continue;if(m.messageId)deliveredIds.add(m.messageId);
       events.push(m);
       s.observation=m;
-      if(result.informationEvents&&(m.messageKind!=='command'||s.unit.commandSources?.includes(m.senderId)))result.informationEvents.push({...m});
+      if(result.informationEvents&&(m.messageKind!=='command'||s.unit.commandSources?.includes(m.senderId)))result.informationEvents?.push({...m});informationCount++;
       rememberInformation(s.knowledge,m,t);
       if(m.targetPosition&&['x','y','z'].every(k=>Number.isFinite(m.targetPosition[k]))){
         const previous=s.receivedPosition;
@@ -578,7 +590,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         if(!s?.operational||s.unit.communication?.enabled===false){events.push({type:'deliveryFailed',time:t,unitId:m.senderId,receiverId:m.unitId,messageId:m.messageId,reason:'配達時の受信装置停止'});continue;}
         if(deliveredIds.has(m.messageId))continue;deliveredIds.add(m.messageId);
         events.push(m);ready.push({s,m});
-        if(m.messageKind!=='command'||s.unit.commandSources?.includes(m.senderId))result.informationEvents.push({...m});
+        if(m.messageKind!=='command'||s.unit.commandSources?.includes(m.senderId))result.informationEvents?.push({...m});informationCount++;
         rememberInformation(s.knowledge,m,t);
         if(m.messageKind==='command'&&s.unit.commandSources?.includes(m.senderId))s.knowledge.commands.push({...m});
         if(m.messageKind!=='status'&&m.targetPosition){
@@ -592,18 +604,20 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
           else events.push({type:'commandRejected',time:t,unitId:s.unit.id,senderId:m.senderId});
         }else changed=model.transition(s,'received',t,events,m)||changed;
       }
-      for(const s of states)settle(s);
+      for(const s of states){settle(s);if(s.operational&&s.resourceConfigured&&!hasResource(s,'movement')&&['follow','move','patrol'].includes(s.node?.kind))s.status='depleted';}
       if(!messages.some(m=>m.time<=t))return changed;
     }
   }
   immediate(0);
   if(metrics)while(metricCursor<events.length)metrics.observe(events[metricCursor++]);
   if(stateTracker)Object.assign(result,stateTracker.update(events));
+  for(const m of measurementTrackers)m.tracker.update(events);
+  if(summary){totalEvents+=events.length;events.length=0;metricCursor=0;if(stateTracker)stateTracker.cursor=0;for(const m of measurementTrackers)m.tracker.cursor=0;}
   if(record)model.record(0,frames);
   for(let start=0;start<horizon;){
     const nextContact=Math.min(horizon,(Math.floor((start+1e-8)/dt)+1)*dt,mission?.deadline>start?mission.deadline:Infinity);
     let nextEvent=Math.min(Infinity,...(model.source.operationalEvents??[]).filter(e=>e.time>start+1e-8).map(e=>e.time));
-    for(const s of states)if(s.operational&&s.unit.statusReports)nextEvent=Math.min(nextEvent,(statusTimes.get(s.unit.id)??start)+s.unit.statusReports.interval);
+    for(const s of reportingStates)if(s.operational)for(const [i,r] of periodicReports(s.unit).entries())nextEvent=Math.min(nextEvent,(statusTimes.get(s.unit.id+':'+i)??start)+r.interval);
     for(const m of messages)if(m.time>start+1e-8)nextEvent=Math.min(nextEvent,m.time);
     for(const s of states){
       if(s.status==='blocked'||!s.operational)continue;
@@ -626,11 +640,13 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       }
     }
     model.currentTime=start;
-    const speeds=controls(),end=proximityBoundary(start,Math.min(nextContact,nextEvent),speeds),step=end-start;
+    const speeds=controls();
+    for(const s of resourceStates)if(s.operational){const speed=!hasResource(s,'movement')?0:['move','follow','patrol'].includes(s.node?.kind)||!s.graph?(speeds.get(s.unit.id)??s.path.actualSpeed):0;nextEvent=Math.min(nextEvent,resourceBoundary(s,start,speed,model.source));}
+    const end=proximityBoundary(start,Math.min(nextContact,nextEvent),speeds),step=end-start,previousDistances=new Map(resourceStates.map(s=>[s.unit.id,s.distance]));
     const positions=new Map(states.map(s=>[s.unit.id,{...s.position}])),future=new Map(states.map(s=>[s.unit.id,model.predict(s,end,speeds,positions)]));
     let changed=false;
     for(const s of states){
-      if(s.status==='blocked'||!s.operational)continue;
+      if(s.status==='blocked'||!s.operational||s.resourceConfigured&&!hasResource(s,'movement'))continue;
       if(s.graph&&!s.node)continue;
       if(s.node?.kind==='follow'&&s.join){
         if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end-(s.path.actualSpeed?s.routeOffset/s.path.actualSpeed:0)-(s.routeOffset>0?s.path.delay:0);s.routeTravel=s.routeOffset;}
@@ -693,9 +709,10 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         }
       }
     }
+    for(const s of resourceStates)if(s.operational)updateResources(s,start,end,s.distance-previousDistances.get(s.unit.id),model.source,events);
     // Collect contacts from one snapshot, then apply transitions in stable order.
     if(Math.abs(end-nextContact)<1e-8){
-      const observers=states.filter(s=>s.operational&&s.unit.sensor?.enabled&&s.status!=='blocked'&&s.node?.kind!=='stop'&&s.node?.sensor!==false);
+      const observers=states.filter(s=>s.operational&&(!s.resourceConfigured||hasResource(s,'sensor'))&&s.unit.sensor?.enabled&&s.status!=='blocked'&&s.node?.kind!=='stop'&&s.node?.sensor!==false);
       const index=makeIndex(observers.map(s=>({
         unit:s.unit,position:mounted(s.position,s.unit),state:s
       })),range),contacts=[];
@@ -721,7 +738,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
               },trace:[]
             };
             model.rememberObservation(s,observed);
-            if(result.informationEvents)result.informationEvents.push({...observed});
+            if(result.informationEvents){if(result.informationEvents.length>=100000)throw Error('情報記録が10万件を超えました。要約保存で実験するか記録する期間・個数を減らしてください。');result.informationEvents.push({...observed});}informationCount++;
             metrics?.observe(observed);
             if(!pairs.has(pair)||s.graph?.triggers.some(t=>t.event==='detected'&&t.once===false))contacts.push(observed);
             pairs.add(pair);
@@ -744,7 +761,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     if(metrics)while(metricCursor<events.length){const e=events[metricCursor++];if(e.type!=='detected')metrics.observe(e);}
     if(events.length+messages.length>100000)throw Error('行動イベントが10万件を超えました。');
     result.detectedCount=result.events.filter(e=>!mission||e.time<=mission.deadline).length;
-    result.reachedCount=new Set(events.filter(e=>e.type==='arrived'&&responders.includes(e.unitId)&&(!mission||e.time<=mission.deadline)).map(e=>e.unitId)).size;
+    for(const e of events)if(e.type==='arrived'&&responders.includes(e.unitId)&&(!mission||e.time<=mission.deadline))reachedIds.add(e.unitId);result.reachedCount=reachedIds.size;
     if(stateTracker)Object.assign(result,stateTracker.update(events));
     const successes=mission?.type==='arrive'?result.reachedCount:result.detectedCount,needed=mission?.join==='all'?(mission.type==='arrive'?responders.length:goalTargets.length):1;
     if(mission&&mission.type!=='state'&&needed>0&&end<=mission.deadline&&successes>=needed&&result.successTime===null){
@@ -755,14 +772,20 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       model.record(end,frames);
       lastRecord=end;
     }
+    for(const m of measurementTrackers)m.tracker.update(events);
+    maxBufferedEvents=Math.max(maxBufferedEvents,events.length);
+    if(summary){totalEvents+=events.length;events.length=0;metricCursor=0;if(stateTracker)stateTracker.cursor=0;for(const m of measurementTrackers)m.tracker.cursor=0;}
     start=end;
     yield {
       time:end,result
     };
     if(!model.source.measurements?.length&&!record&&!states.some(s=>s.graph)&&mission?.type==='detect'&&result.detectedCount===goalTargets.length)break;
   }
-  if(model.source.measurements?.length)result.measurements=measurePoints(model.source,events,horizon);
+  if(model.source.measurements?.length)result.measurements=measurementTrackers.map(m=>({id:m.id,...m.tracker.update(events)}));
   if(metrics)result.informationMetrics=metrics.finish(horizon);
+  if(model.source.version>=4){result.resources=Object.fromEntries(states.map(s=>[s.unit.id,s.resources]));result.taskSummary=aggregateTasks(model.source,states);}
+  if(model.source.version>=4){result.storage=storage;result.storageStats={eventCount:summary?totalEvents:events.length,informationCount,maxBufferedEvents:summary?maxBufferedEvents:events.length};}
+  if(summary)result.events=[];
   result.constrainedPaths=states.filter(s=>s.status==='blocked').length;
   if(record){
     model.frames=frames;

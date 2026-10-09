@@ -22,6 +22,8 @@ try {
   page.on('console',e=>{if(e.type()==='error')errors.push(e.text());});
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForSelector('#boot[hidden]',{state:'attached'});
+  await page.locator('#sample-picker').selectOption('island-patrol-demo.txt');
+  await page.waitForFunction(()=>document.getElementById('title').value.includes('島間'));
   assert(await page.locator('#play').isDisabled());
   assert.equal(await page.locator('#actions-open').count(),0);
   await page.waitForFunction(()=>document.getElementById('mission-status').textContent.includes('未計算'));

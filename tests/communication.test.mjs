@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
-import {propagationVisible} from '../src/propagation.js?v=20261007-plan-switch-25';
-import {Terrain} from '../src/terrain.js?v=20261007-plan-switch-25';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
+import {propagationVisible} from '../src/propagation.js?v=20261009-information-analysis-26';
+import {Terrain} from '../src/terrain.js?v=20261009-information-analysis-26';
 const base=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));delete s.experiment;s.analysis.uncertainties=[];return s;};
 const run=s=>{const m=createSimulation(s);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:s.duration})){}return m;};
 test('RF/optical spherical horizon, elevated horizon and acoustic medium boundary',()=>{
@@ -22,6 +22,12 @@ test('packet loss is not a sendFailed decision signal; retries use separate mess
  const s=base();s.units[0].communication.probability=.5;s.duration=180;
  const m=run(s),attempts=m.result.actionEvents.filter(e=>e.unitId==='observer'&&e.type==='sent');assert(attempts.length>3);assert(new Set(attempts.map(e=>e.messageId)).size===attempts.length);assert(m.result.actionEvents.some(e=>e.type==='deliveryFailed'));assert(!m.result.actionEvents.some(e=>e.type==='sendFailed'&&e.unitId==='observer'));
  assert.deepEqual(run(s).result,m.result);
+});
+test('remote receiver loss and path outages do not reveal truth through sendFailed decisions',()=>{
+ for(const cause of ['receiver','path']){
+  const s=base();if(cause==='receiver')s.operationalEvents=[{unitId:'relay',time:0,operational:false}];else s.communicationDisruptions=[{start:0,end:s.duration,available:false}];
+  const m=run(s),sender=m.result.actionEvents.filter(e=>e.unitId==='observer');assert(sender.some(e=>e.type==='sent'));assert(sender.some(e=>e.type==='deliveryFailed'));assert(!sender.some(e=>e.type==='sendFailed'));assert(!m.evaluate(s.duration).knowledge.relay.contacts.uuv);
+ }
 });
 test('redundant links deliver once; media/time-specific outage does not disable the other link',()=>{
  const s=base();s.communicationLinks=[{id:'sat',senderId:'observer',receiverId:'relay',enabled:true,range:100000,delay:7,probability:1,terrainLOS:false,medium:'satellite'},{id:'backup',senderId:'observer',receiverId:'relay',enabled:true,range:100000,delay:7,probability:1,terrainLOS:false,medium:'ideal'},{id:'down',senderId:'relay',receiverId:'uav',enabled:true,range:100000,delay:3,probability:1,terrainLOS:false}];s.communicationDisruptions=[{start:0,end:180,medium:'satellite',available:false}];

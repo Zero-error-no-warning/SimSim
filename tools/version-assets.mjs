@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js';
+import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261009-information-analysis-26';
 // Run before publishing after changing UI_BUILD. Version the entire module graph,
 // including worker entry points; versioning only bootstrap leaves stale imports.
 const root=new URL('../',import.meta.url);
@@ -9,8 +9,8 @@ for(const file of fs.readdirSync(new URL('src/',root)).filter(f=>f.endsWith('.js
 }
 // Node also keys modules by URL. Test entry imports must use the same URL as
 // transitive imports so instanceof checks exercise the actual shared instance.
-for(const file of fs.readdirSync(new URL('tests/',root)).filter(f=>f.endsWith('.mjs'))){
-  const url=new URL('tests/'+file,root),source=fs.readFileSync(url,'utf8');
+for(const dir of ['tests','tools'])for(const file of fs.readdirSync(new URL(dir+'/',root)).filter(f=>f.endsWith('.mjs'))){
+  const url=new URL(dir+'/'+file,root),source=fs.readFileSync(url,'utf8');
   fs.writeFileSync(url,source.replace(/(['"])(\.\.\/src\/[^'"]+\.js)(?:\?v=[^'"]*)?\1/g,(_,quote,path)=>quote+path+'?v='+UI_BUILD+quote));
 }
 const index=new URL('index.html',root);

@@ -1,3 +1,5 @@
+> version 4の追加仕様は[information-model.md](information-model.md)。以下は共通操作と互換version 3の仕様。
+
 # 保存形式と旧版からの移行
 
 0.8の現行説明は [現在の操作と設計 — 保存形式と旧版からの移行](workspace-v3.md#保存形式と旧版からの移行) に統合しました。旧UI名・旧実行モデルの手順を現行の手順として使わないでください。

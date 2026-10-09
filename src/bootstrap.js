@@ -1,4 +1,4 @@
-import('./app.js?v=20261007-plan-switch-25').catch(error => {
+import('./app.js?v=20261009-information-analysis-26').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

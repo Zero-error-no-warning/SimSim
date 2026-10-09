@@ -1,4 +1,4 @@
-import {parameter,bindingKey,readParameter} from './parameters.js?v=20261007-plan-switch-25';
+import {parameter,bindingKey,readParameter} from './parameters.js?v=20261009-information-analysis-26';
 export function bindingFaction(s,b){
  const [kind,id]=b.target.split(':');
  if(kind==='unit')return s.units.find(u=>u.id===id)?.faction;
@@ -17,7 +17,7 @@ export function experimentErrors(s){
  if(!s.mission||!s.analysis)errors.push('実験には任務目標とanalysisを指定してください。');
  for(const c of e.controls){const p=parameter(c?.parameter);if(!c||!p||typeof c.id!=='string'||!c.id.match(/^[A-Za-z0-9_-]{1,64}$/)||ids.has(c.id)||!number(c.min,p.min,p.max)||!number(c.max,p.min,p.max)||c.min>c.max||p.integer&&(!Number.isInteger(c.min)||!Number.isInteger(c.max))){errors.push('運用変数のID・範囲が不正です。');continue;}
   ids.add(c.id);try{readParameter(s,c);if(bindingFaction(s,c)!=='friendly')errors.push('運用変数は味方の対象に限定してください。');}catch(err){errors.push(err.message);}
-  const key=bindingKey(c);if(seen.has(key)||s.analysis?.uncertainties?.some(u=>bindingKey(u)===key)||s.analysis?.factors?.some(u=>bindingKey(u)===key))errors.push('運用変数・比較変数・状況変数の同じ属性を重複指定できません。');seen.add(key);
+  const key=bindingKey(c);if(seen.has(key)||s.analysis?.uncertainties?.some(u=>bindingKey(u)===key))errors.push('運用変数・状況変数の同じ属性を重複指定できません。');seen.add(key);
  }
  const profiles=e.enemyProfiles??[{id:'baseline',changes:[]}];
  if(!Array.isArray(profiles)||!profiles.length||profiles.length>8)errors.push('敵想定は1～8件です。');else{const used=new Set();for(const profile of profiles){if(!profile||typeof profile.id!=='string'||used.has(profile.id)||!Array.isArray(profile.changes)||profile.changes.length>16){errors.push('敵想定のID・変更値が不正です。');continue;}used.add(profile.id);for(const b of profile.changes){try{const p=parameter(b.parameter);if(!p||!number(b.value,p.min,p.max)||p.integer&&!Number.isInteger(b.value)||bindingFaction(s,b)!=='hostile')errors.push('敵想定の変更は敵の登録属性・範囲に限定してください。');else readParameter(s,b);if(s.analysis?.uncertainties?.some(u=>bindingKey(u)===bindingKey(b)))errors.push('敵想定値を状況変数で上書きできません。');}catch(err){errors.push(err.message);}}}}

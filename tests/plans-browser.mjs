@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restorePlansResult,summarizePlans} from '../src/plans.js?v=20261007-plan-switch-25';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
+import {restorePlansResult,summarizePlans} from '../src/plans.js?v=20261009-information-analysis-26';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-sensitivity-'));
 const server=http.createServer((req,res)=>{
@@ -48,6 +48,6 @@ try{
   await page.locator('#file').setInputFiles(file);await page.waitForFunction(()=>document.getElementById('analysis-dialog').open||document.getElementById('error-dialog').open);assert(!await page.locator('#error-dialog').isVisible());assert((await page.locator('#analysis-progress').textContent()).includes('再計算なし'));await page.locator('#plan-baseline').selectOption('plan-2');await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#plan-result-rows tr').length===1);assert((await page.locator('#plan-result-rows').textContent()).includes('+2秒'));await page.locator('#analysis-close').click();
   await page.setViewportSize({width:1200,height:900});await page.locator('#plan-menu > summary').click();const popup=await page.locator('#plan-menu > div').boundingBox(),panel=await page.locator('.main-panel').boundingBox();assert(popup.x>=panel.x&&popup.x+popup.width<=panel.x+panel.width);await page.locator('#plan-menu > summary').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
   if(process.env.SIMSIM_PLAN_SWITCH_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_PLAN_SWITCH_SCREENSHOT});
-  await page.locator('#sample-picker').selectOption('plans-demo.txt');await page.waitForFunction(()=>document.getElementById('title').value==='運用案比較：配置・経路・報告周期');assert.equal(await page.locator('#plan-select').inputValue(),'base');await page.locator('#plan-select').selectOption('deployment');assert(!await page.locator('#analysis-dialog').isVisible());await page.locator('#analysis-open').click();await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#plan-result-rows tr').length===2);
+  await page.locator('#file').setInputFiles(path.resolve(new URL('fixtures/legacy/plans-demo.txt',import.meta.url).pathname));await page.waitForFunction(()=>document.getElementById('title').value==='運用案比較：配置・経路・報告周期');assert.equal(await page.locator('#plan-select').inputValue(),'base');await page.locator('#plan-select').selectOption('deployment');assert(!await page.locator('#analysis-dialog').isVisible());await page.locator('#analysis-open').click();await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#plan-result-rows tr').length===2);
   console.log('PASS: normal-screen plan save/switch/update/rename/delete/Undo, isolated additional unit, per-plan deferred editing and file round-trip, saved-only paired analysis, replay safety and return to editing, archives, sample and 1200px layout');
 }finally{await browser?.close();await new Promise(r=>server.close(r));fs.rmSync(folder,{recursive:true,force:true});}

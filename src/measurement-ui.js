@@ -1,7 +1,7 @@
-import {clone,validateScenario} from './engine.js?v=20261007-plan-switch-25';
-import {NODE_KINDS} from './shared-settings.js?v=20261007-plan-switch-25';
-import {summarizeMeasurements} from './measurement-points.js?v=20261007-plan-switch-25';
-import {requireElement as $} from './ui-dom.js?v=20261007-plan-switch-25';
+import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
+import {NODE_KINDS} from './shared-settings.js?v=20261009-information-analysis-26';
+import {summarizeMeasurements} from './measurement-points.js?v=20261009-information-analysis-26';
+import {requireElement as $} from './ui-dom.js?v=20261009-information-analysis-26';
 const pct=n=>n===null?'—':(n*100).toFixed(1)+'%';
 const time=n=>n===null?'—':n.toFixed(1)+'秒';
 export class MeasurementUI{

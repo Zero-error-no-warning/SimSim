@@ -1,6 +1,6 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261007-plan-switch-25';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261007-plan-switch-25';
-import {conditionErrors} from './decision.js?v=20261007-plan-switch-25';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261009-information-analysis-26';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261009-information-analysis-26';
+import {conditionErrors} from './decision.js?v=20261009-information-analysis-26';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
@@ -16,6 +16,7 @@ export function graphTriggers(g) {
   return (g.triggers ?? []).filter(t=>t?.event!=='scenarioStart');
 }
 export function migrateTriggers(s) {
+  if(s.version>=4){s.modelAssumptions={information:'restricted',identityMatching:'perfect',positionObservation:'exact',communicationTransmission:'instant',geometry:'local-plane-spherical-horizon',...s.modelAssumptions};for(const a of s.behaviorAssignments??[])a.coordination??='ideal';}
   for (const g of s.behaviors ?? []) {
     const initial=graphInitial(g);
     if(initial!==undefined)g.initial=initial;

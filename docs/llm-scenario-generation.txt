@@ -1,9 +1,9 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 1.11 / 更新日: 2026-10-07
-対象: SimSim、feat/shared-behavior-replay、UIビルド 20261007-plan-switch-25
-生成するシナリオ: version 3、SI単位、UTF-8の .txt ファイル（中身はJSON）
-仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay
+文書版: 2.0 / 更新日: 2026-10-09
+対象: SimSim、feat/information-aware-analysis、UIビルド 20261009-information-analysis-26
+生成するシナリオ: version 4（旧例はversion 3互換性用）、SI単位、UTF-8の .txt ファイル（中身はJSON）
+仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/information-aware-analysis
 
 ## 0. 人がこのファイルを使う方法
 
@@ -24,7 +24,449 @@
 
 --- 以下はシナリオを生成するAIへの指示 ---
 
-## 1. あなたの役割・成果物
+## 0.1 version 4の生成規則（後の旧version 3例より優先）
+
+LLMの役割はシナリオファイルと判断ノードの設計。実行中にLLMを呼ぶ条件や追加JSを生成しない。新規の情報・通信・資源・定石実験はversion 4で生成する。以下の完全例と末尾のv4仕様を優先する。後のversion 3完成例は旧モデルの互換性説明用である。
+
+- 敵の初期位置を味方の既知情報へ無条件に入れない。初期情報が必要なら所有者・観測時刻・根拠を明示する。
+- 判断は公開self/knowledge/clockだけ。真状態や通信していない仲間の現在位置・損害を条件へ直接入れない。
+- 運用controlsは味方の登録属性だけ。敵・目標期限を有利に変更しない。状況分布との重複指定を避ける。
+- 定石を最適値や成立保証と呼ばない。探索・独立検証・支持数・想定の条件を区別する。
+- 下の完全例はSI単位で、そのまま保存して読める。versionを数値4として保持する。
+
+### version 4完成例：情報制約と組合せ実験
+
+```json
+{
+  "version": 4,
+  "unitsSystem": "SI",
+  "title": "情報制約下の監視・中継・対処",
+  "duration": 180,
+  "seed": "information-mission",
+  "terrain": {
+    "columns": 5,
+    "rows": 5,
+    "spacing": 10000,
+    "origin": {
+      "x": -10000,
+      "y": -10000,
+      "z": 0
+    },
+    "seaLevel": 0,
+    "elevations": [
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500,
+      -500
+    ]
+  },
+  "units": [
+    {
+      "id": "observer",
+      "name": "observer",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once",
+      "sensor": {
+        "enabled": true,
+        "range": 100000,
+        "probabilityPerMinute": 1,
+        "domains": [
+          "subsurface"
+        ],
+        "terrainLOS": false
+      },
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 7,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "relay",
+      "name": "relay",
+      "domain": "surface",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 0,
+      "initial": {
+        "x": 500,
+        "y": 0,
+        "z": 0
+      },
+      "route": [],
+      "routeMode": "once",
+      "communication": {
+        "enabled": true,
+        "range": 100000,
+        "delay": 3,
+        "probability": 1,
+        "terrainLOS": false
+      }
+    },
+    {
+      "id": "uav",
+      "name": "uav",
+      "domain": "air",
+      "faction": "friendly",
+      "manned": false,
+      "speed": 100,
+      "initial": {
+        "x": 0,
+        "y": 0,
+        "z": 1000
+      },
+      "route": [],
+      "routeMode": "once"
+    },
+    {
+      "id": "uuv",
+      "name": "uuv",
+      "domain": "subsurface",
+      "faction": "hostile",
+      "manned": false,
+      "speed": 10,
+      "initial": {
+        "x": 1000,
+        "y": 0,
+        "z": -100
+      },
+      "route": [
+        {
+          "x": 10000,
+          "y": 0,
+          "z": -100
+        }
+      ],
+      "routeMode": "once"
+    }
+  ],
+  "destinations": [
+    {
+      "id": "received",
+      "name": "受信した目標位置",
+      "kind": "received"
+    }
+  ],
+  "routes": [
+    {
+      "id": "patrol",
+      "name": "UAVの周回",
+      "mode": "loop",
+      "points": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 1000
+        },
+        {
+          "x": 0,
+          "y": 1000,
+          "z": 1000
+        },
+        {
+          "x": -1000,
+          "y": 0,
+          "z": 1000
+        }
+      ]
+    }
+  ],
+  "behaviors": [
+    {
+      "id": "observe",
+      "name": "位置を探知して報告",
+      "initial": "listen",
+      "triggers": [
+        {
+          "id": "detect",
+          "event": "detected",
+          "to": "report"
+        },
+        {
+          "id": "refresh",
+          "event": "time",
+          "seconds": 30,
+          "once": false,
+          "to": "report"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "listen",
+          "kind": "signal",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "relay",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "to": "listen",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "listen",
+          "when": "sendFailed",
+          "from": "report"
+        }
+      ]
+    },
+    {
+      "id": "relay",
+      "name": "観測位置を中継",
+      "initial": "listen",
+      "triggers": [
+        {
+          "id": "receive",
+          "event": "received",
+          "to": "report",
+          "once": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "listen",
+          "kind": "signal",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "report",
+          "kind": "report",
+          "receiverId": "uav",
+          "x": 430,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "to": "listen",
+          "when": "sent",
+          "from": "report"
+        },
+        {
+          "to": "listen",
+          "when": "sendFailed",
+          "from": "report"
+        }
+      ]
+    },
+    {
+      "id": "respond",
+      "name": "受信位置へ高度を保って移動",
+      "initial": "patrol",
+      "triggers": [],
+      "nodes": [
+        {
+          "id": "patrol",
+          "kind": "patrol",
+          "routeId": "patrol",
+          "x": 140,
+          "y": 70
+        },
+        {
+          "id": "move",
+          "kind": "move",
+          "destinationId": "received",
+          "heightMode": "keep",
+          "x": 430,
+          "y": 70
+        },
+        {
+          "id": "done",
+          "kind": "stop",
+          "x": 640,
+          "y": 70
+        }
+      ],
+      "edges": [
+        {
+          "from": "patrol",
+          "to": "move",
+          "when": "condition",
+          "condition": {
+            "field": "knowledge.selectedContact.age",
+            "op": "lte",
+            "value": 30
+          },
+          "priority": 10
+        },
+        {
+          "from": "move",
+          "to": "done",
+          "when": "arrived"
+        }
+      ]
+    }
+  ],
+  "behaviorAssignments": [
+    {
+      "id": "observe",
+      "name": "位置を探知して報告",
+      "behaviorId": "observe",
+      "targets": [
+        "unit:observer"
+      ],
+      "spacing": "none"
+    },
+    {
+      "id": "relay",
+      "name": "観測位置を中継",
+      "behaviorId": "relay",
+      "targets": [
+        "unit:relay"
+      ],
+      "spacing": "none"
+    },
+    {
+      "id": "respond",
+      "name": "受信位置へ高度を保って移動",
+      "behaviorId": "respond",
+      "targets": [
+        "unit:uav"
+      ],
+      "spacing": "none"
+    }
+  ],
+  "recording": {
+    "step": 10,
+    "interval": 10
+  },
+  "modelAssumptions": {
+    "information": "restricted",
+    "identityMatching": "perfect",
+    "positionObservation": "exact"
+  },
+  "mission": {
+    "type": "state",
+    "assignmentId": "respond",
+    "nodeId": "done",
+    "join": "any",
+    "deadline": 180
+  },
+  "analysis": {
+    "trials": 64,
+    "step": 10,
+    "requiredRate": 0.8,
+    "factors": [],
+    "uncertainties": [
+      {
+        "target": "unit:observer",
+        "parameter": "interaction.communication.probability",
+        "distribution": "uniform",
+        "min": 0.4,
+        "max": 0.95
+      }
+    ]
+  },
+  "measurements": [
+    {
+      "id": "dispatched",
+      "name": "対処開始",
+      "type": "state",
+      "assignmentId": "respond",
+      "nodeId": "move",
+      "join": "any",
+      "deadline": 180
+    },
+    {
+      "id": "arrived",
+      "name": "観測位置に到着",
+      "type": "state",
+      "assignmentId": "respond",
+      "nodeId": "done",
+      "join": "any",
+      "deadline": 180,
+      "previousId": "dispatched"
+    }
+  ],
+  "experiment": {
+    "designSeed": "information-controls",
+    "candidates": 16,
+    "trials": 32,
+    "requiredRate": 0.8,
+    "controls": [
+      {
+        "id": "reportPeriod",
+        "target": "behavior:observe",
+        "parameter": "behavior.trigger.refresh.seconds",
+        "min": 15,
+        "max": 60
+      },
+      {
+        "id": "responseSpeed",
+        "target": "unit:uav",
+        "parameter": "rate.movement.speed",
+        "min": 20,
+        "max": 120
+      }
+    ],
+    "enemyProfiles": [
+      {
+        "id": "slow",
+        "changes": [
+          {
+            "target": "unit:uuv",
+            "parameter": "rate.movement.speed",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "fast",
+        "changes": [
+          {
+            "target": "unit:uuv",
+            "parameter": "rate.movement.speed",
+            "value": 15
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## 1. あなたの役割・成果物（共通項目と旧モデルの例）
 
 あなたはSimSim用のシナリオ作成担当です。利用者の意図を、この文書にある実装済み機能だけで表現してください。
 成果物は「SimSimが読み込める完全なシナリオJSON」です。シミュレーション結果、再生記録、分析結果はSimSimが計算します。
@@ -2015,7 +2457,7 @@ min<=max。三角分布はmin<=mode<=max。整数変数は整数の範囲を指�
 
 以下は根拠と更新時の確認箇所。生成時にアクセスする必要はない。
 対象ブランチのsrc/配下（冒頭のUIビルドと照合すること）:
-https://github.com/Zero-error-no-warning/SimSim/tree/feat/shared-behavior-replay/src
+https://github.com/Zero-error-no-warning/SimSim/tree/feat/information-aware-analysis/src
 
 - engine.js / terrain.js: トップレベル・地形・単体・群の入力制約、移動・領域の条件。
 - navigation.js / navigation-ui.js: 名前付き経路・目的・接近条件。
@@ -2069,7 +2511,7 @@ previousIdは任意。その点より前に登録した計測点のID。省略�
 初回の状態入場のみを測り、再入場で上書きしない。初期状態は0秒。無効な担当は除外し、担当0人は未達とする。報告状態のような瞬時の入場も記録される。
 追加点がある分析はdurationまで実行する。主ミッションのdeadlineは変更しない。各点の到達率は全試行が分母。起点成立後の到達率は、起点が成立した試行を分母とし、終点が起点以降に成立した試行を分子にする。所要時間は両方が成立し順序が正しい試行の時刻差。順序逆転は別途表示する。
 人数条件の成立時刻どうしの差であり、同じ個体の移動時間とは限らない。追尾継続時間や地理的な計測線はこのフィールドでは定義できない。
-実行例はdata/measurement-history-demo.txt。参照実装はsrc/measurement-points.jsとsrc/measurement-ui.js。計算履歴のタイムラインは記録済みの状態・探知・通信イベントを表示し、追加計測点とは別機能。
+実行例はtests/fixtures/legacy/measurement-history-demo.txt。参照実装はsrc/measurement-points.jsとsrc/measurement-ui.js。計算履歴のタイムラインは記録済みの状態・探知・通信イベントを表示し、追加計測点とは別機能。
 
 ## 追加仕様：感度分析（2026-10-07）
 
@@ -2099,7 +2541,7 @@ operationには units、groups、behaviors、behaviorAssignments、routes、dest
 比較実行には2案以上、合計案数×試行数10000以下が必要。各案1～2000試行。
 全案で成功条件・追加計測点の参照タスク／状態と、共通のばらつき対象を有効に保つ。対象数0を表現する場合は案の担当を無効化するなど、参照先を削除せず未達として計測できる構成にする。
 共通要素のIDを保持する。名前・配置・経路・挙動の編集や案の順序ではシード・試行番号による抽出値は変わらない。新しいIDは元の要素と対応しない。
-案をJSONで直接生成する場合、operationを展開した各案が共通成功条件で検証できるか確認する。data/plans-demo.txtは完成サンプル。運用案一覧は通常のシナリオTXTに保持される。分析結果はSimSim-plans/version 1でSimSimが生成する。LLMは試行結果を捏造しない。
+案をJSONで直接生成する場合、operationを展開した各案が共通成功条件で検証できるか確認する。tests/fixtures/legacy/plans-demo.txtは完成サンプル。運用案一覧は通常のシナリオTXTに保持される。分析結果はSimSim-plans/version 1でSimSimが生成する。LLMは試行結果を捏造しない。
 UIビルド25では通常画面の3D表示上部で案を切替・保存・更新する。分析はitemsの保存済みoperationを使用し、編集途中の案を自動反映しない。
 analysis.plans.editor は任意。形式は { activeId, drafts:[{id,name,operation}] }。activeIdは現在編集している案ID、無名の案は空文字。空文字以外はitemsまたはdraftsに存在するIDにする。draftsは最大16件、idは重複不可（空文字または案IDと同じ文字・長さ制約）、nameは1～120文字、operationは同じ6配列。削除した案の編集内容はitemsにないIDのdraftとして保持できる。
 現在表示している編集内容はシナリオ直下の6配列が正であり、非表示の編集途中の内容はdraftsへ保持する。editorを省略した旧ファイルも読める。生成時は通常editorを省略し、itemsとシナリオ直下に表示したい案を定義すればよい。
@@ -2107,3 +2549,81 @@ analysis.plans.editor は任意。形式は { activeId, drafts:[{id,name,operati
 
 
 持ち込み版更新時の注意（UIビルド24）：index.html・styles.css・main.js・worker.js・analysis-worker.jsを同じ版で入れ替える。起動時に実行されたWorker自身の版を照合し、古いWorkerとの混在はサンプル読込前に案内する。版確認に応答がない場合は起動遅延か旧ファイルかを断定せず待機する。
+
+
+## version 4仕様（単一ファイルでの生成用）
+
+# 情報制約モデル version 4
+
+version 3は既存の実行・記録モデルを維持する。version 4は `information-behavior-v4` として別のモデル名で記録・分析を保存する。旧記録の再計算によって新モデルの結果へ置換しない。
+
+## 段階A
+
+各ユニットはcontacts、friendlyReports、commandsを持つ。真のユニット位置は解析用に存在するが、判断条件へ渡さない。接触は複数保持し、元の観測時刻と受信時刻を区別する。古い観測は同じ対象の新しい観測を上書きしない。再生は再生時刻までの情報履歴から再構成する。
+
+`initialInformation` は所有者ごとに明示する。観測は `targetId, targetPosition, observationTime`、味方状態は `messageKind:"status", subjectId, reportedState, observationTime`。初期の観測時刻は0以下。未指定の敵初期位置は既知情報へ入らない。
+
+ユニット目的地は `access:"known"` として最後に知った座標を使う。version 4では省略時もknown。情報がなければ待機し、現在の真位置への追尾に切り替わらない。従来の参照は `modelAssumptions.information:"legacy"` と明示したときだけ許す。
+
+判断接続は `when:"condition"`。`condition` は `field,op,value` または `all/any`。比較演算はlt/lte/gt/gte/eq/neq/exists。判断対象はself.status、self.operational、self.resources、knowledge.selectedContactのage/identity.confidence/positionErrorRadius、knowledge.friendlyReportsのage/reportedState、clockに限定する。未知情報をfalseと同一視せず、`onUnknown:true`の接続で扱う。priorityの大きい接続を優先し、同順位は接続先ID順。判断時のコンテキストはイベントに残る。
+
+接触selectorはclass、order（latest/nearest）、trackId。内部の対象対応は完全ID一致という近似で、誤識別・誤接触・位置誤差の生成はまだ行わない。モデルの細分化より先に情報経路を検証するための境界である。
+
+報告ノードのmessageKindはobservation（既定）、status（自分の状態）、command。命令は `command:{name:"respond"}`。受信ユニットの `commandSources` にある送信元だけを受け付ける。`when:"command",commandName:"respond"` の接続は配達時刻に遷移する。送信成功の時点では遠隔ユニットを動かさない。命令そのものは位置観測を作らない。
+
+通しサンプルは `data/information-mission.txt`。探知者→中継→対処ユニットの経路で観測が届き、鮮度を条件に対処する。通信失敗や観測欠落は、対処側の既知情報を直接更新しない。
+
+## 段階B
+
+`communicationLinks` は送信元・受信先・IDと既存通信能力を持つ有向リンク。省略時は送信側の従来設定を使う。複数リンクは同じ論理メッセージを送信し、最初の受信だけを適用する。再送は別メッセージIDで独立した偶発乱数を使う。failureModelのtrialは試行全体、windowはwindowSecondsの区間内で継続する障害（outageProbability）。既存version 3の通信乱数は維持する。
+
+媒体はideal・rf・optical・acoustic・satellite。idealは従来の抽象リンク。rf/opticalは地球半径6371000mに対する球面の地平線と、地形遮蔽設定時の曲率補正を使う。earthFactorは実効半径係数（既定1）。局所平面座標・海面標高を用いる近似であり、全地球座標・屈折・電波リンクバジェットは含まない。acousticは両端が水中、他媒体は両端が海面以上の使用領域制約。伝搬速度の既定は音響1500m/s、他は光速。衛星リンクは抽象化した衛星経由で、軌道や可視衛星の計算はしない。sensor.mediumにも同じ使用領域・見通しを適用する。
+
+`communicationDisruptions` はstart/endの半開区間、medium、linkIdsを絞り、available:false、probabilityMultiplier、delayAddedを指定する。送信時にリンク状態を評価し、配達時に受信側の稼働を再確認する。伝搬中の経路変動は計算しない（instantTransmission近似）。偶発未着・受信側停止・経路の遮蔽や障害は解析専用deliveryFailedイベントで、送信側のsendFailed接続には漏らさない。sendFailedは自分の送信装置・資源やリンク設定の不足に限定する。確認応答は未実装。自動再送はなく、wait/report接続で設定する。
+
+`operationalEvents:[{unitId,time,operational:false}]` は交戦結果ではなく外部から注入する停止事象。移動・探知・送受信を止める。司令部のfriendlyReportsを直接更新しない。`unit.statusReports:{receiverIds,interval}` は移動と並行する周期状態報告。停止前の報告が最後に届いた場合、司令部はその古い「稼働」を保持する。沈黙から損害確定への自動変換はしない。
+
+協調周回はassignment.coordinationのideal/reportedで区別する。reportedは仲間の報告位置とreportMaxAgeのみを用い、情報欠落時はmissingReportのcruise/stopに従う。既存idealの間隔制御と性能は維持する。同時刻の受信は保有情報をまとめて更新してから判断する。
+
+## 段階C
+
+experiment.controlsはID、既存台帳のtarget/parameter、min/maxを持つ味方運用の許可リスト。同じ属性をanalysis.uncertaintiesに重複登録できない。通常の比較factorsは同じ登録属性を使えるが、組合せ実験ではその値を使わない。敵・中立・mission.deadlineは運用変数から変更できない。共有挙動は使用する全担当が味方の場合だけ許す。状況分布はanalysis.uncertaintiesを再利用する。
+
+enemyProfilesはIDとchanges（敵の登録属性のみ）。constraintsはterms（controlId/coefficient）の一次結合とop（lte/gte/eq）、value。実行できない組合せは候補生成時に除外し、必要数を生成できなければ設定エラーを返す。正常な任務失敗へ混ぜない。designSeedは運用候補用で、状況乱数のseed/trialとは独立。全候補に同じ想定・試行番号を適用する。
+
+情報計測は探知・報告・命令・到着の初回時刻、送信数、未着数、保有接触の鮮度が基準内だった合計秒数を主体ごとに保存する。maxContactAgeはinformationMetricsで設定（既定30秒）。基準時間内に届かなかった古い観測は鮮度の継続時間に加算しない。任務の成功条件と独立して、既存measurementsで対処開始・到着も計測する。
+
+src/experiment.jsは複数変数・複数敵想定の試行と、完了済み試行からの再開を提供する。SimSim-experimentの保存には完全な元入力、運用候補、想定、試行番号、状況抽出値、モデル名・実装版を含む。入力・実装版が変わったチェックポイントは再開しない。中断した試行は完了行へ含めず、再開時に同じ番号でやり直す。
+
+## 段階D
+
+地図の右クリックから「この地点を中心に監視任務を作成」。選択した味方単体、円の半径、報告先、周期を設定すると、通常のroutes/behaviors/behaviorAssignmentsへ展開する。既存担当からその単体を外すことを適用前に表示する。生成後はタスク・ノードエディタが正となり、隠れた任務エンジンはない。シナリオJSONで同じ展開結果を渡しても結果は一致する。通常のUndo/Redoを使う。担当から外れた共有挙動の実験変数は整理する。
+
+判断線は「判断条件」で、鮮度・情報欠落・残量のひな型、型付きJSON式、優先順位、unknown時の接続を設定できる。報告ノードは観測報告・自分の状態・命令を選択する。通信の媒体はユニット設定から変更する。複雑なリンク・障害・許可送信元は現在はシナリオファイルで設定する。
+
+表示メニューの情報視点は「解析用の真状態」と「選択ユニットの保有情報」。後者の地図は本人、受信済みの味方報告位置、観測済み接触位置のみ表示する。未知の敵計画経路や現在位置・通信経路線は表示しない。橙の接触は観測座標で、敵の現在位置ではない。右の「保有情報」に観測時刻・受信時刻・鮮度を表示する。配置定義・ユニット一覧・解析用テレメトリは解析者向け編集情報のまま。
+
+履歴の判断・未着・状態変更を表示し、「時刻・ノード」から判断元のノードへ戻れる。初期表示は通しサンプル。旧機能サンプルの整理はテスト用fixtureへの移設と併せて行う。
+
+## 段階E
+
+分析画面の「組合せ実験・定石」で味方運用変数の範囲と予算を編集し、Workerで探索する。探索はexplicitな実行操作で始まり、地図編集だけでは大量計算しない。結果から代表的な失敗試行（なければ成功試行）を同じ入力で再計算できる。中断した実験は保存・読込・再開できる。敵想定と一次制約は現在はシナリオファイルから設定する。
+
+抽出は各変数の範囲を二分し、1～3変数の区間組合せを列挙する説明可能な初期方式。成功・失敗を含む該当試行を使い、異なる運用候補4件以上、全敵想定で要求率を満たすものを最大4候補残す。制約停止を含む候補は採用しない。同じ支持集合の重複ルールをまとめる。探索範囲の全ての有効な定石を網羅する手法ではない。
+
+独立検証はルールを固定し、探索に使わなかった運用組合せと別の状況乱数名前空間で実行する。候補・想定・運用値ごとの下限を全て確認する。探索のWilson区間を採用判断へ使わず、独立検証には片側の正確二項下限とBonferroni補正を使用する。候補群・想定・検証運用値に対する全体誤採用率を0.05とする。試行数が少ないと100%成功でも下限不足になり得る。これは未検証として残す。
+
+保存はSimSim-patternsに元実験、範囲、支持数、探索の成功と失敗、検証運用値、想定別・値別成績、乱数名前空間、モデル・実装版を含む。画面の適用は独立検証で基準を満たした定石だけ許し、変更する登録属性をプレビューする。適用時に任務・対象ID・地形・固定したモデル条件を照合する。適用条件はシナリオの設定であり、観測していない敵の実際の行動を判断ノードへ漏らさない。現在は同じID構成のシナリオを対象とし、別IDへの対応付けや保存定石の専用インポートUIは後続の拡張とする。
+
+
+## 段階F
+
+unit.resourcesは容量、初期残量、秒・距離・メッセージ当たりの消耗、byNodeKind、枯渇のeffects（movement/sensor/communication）を定義する。省略時は資源制約を設けない。地点の目的地とreplenish.rateを指定し、その地点のwait/stop/signal中に補給する。自分の残量閾値から通常の判断線で帰投・補給・再出発できる。枯渇・満量の時刻は計算境界へ挿入する。判断閾値は計算境界で評価し、一律に細分化しない。資源量はコンパクトな記録フレームに保存し、巻戻しで終了時の残量を漏らさない。
+
+periodicReportsは移動と並行する観測・状態報告（receiverIds、interval、messageKind）。報告中断のために移動ノードを作り直さなくてよい。statusReportsも利用できる。通しサンプルsustainment-missionは初期残量の異なる2機が帰投・補給する監視交代で、帰投・補給中はセンサーを停止する。交戦の計算や最適な交代スケジューラではない。
+
+表示のタスク集約は共有する明示的な計画経路と担当数の矢印、担当／稼働数、ノード別人数、資源合計を示す。異なる経路の平均一本化はしない。表または経路のダブルクリックで個体へ展開する。集約数はその再生時刻の個体記録から計算する。node=stopを到着成功と推定しない。任務成功は設定した評価条件で別に判断する。
+
+実験はsummary保存を使用する。状態の初回到達、情報指標、到着をオンライン集計し、各計算境界の後に行動イベントを捨てる。eventsはイベント履歴、replayは履歴と位置・資源フレームを保存する。summary/events/replayの評価・計測・資源結果は一致する。代表試行は完全な実験入力とシード・番号から再計算する。実装版が変わった実験は再開しない。version 4の記録・分析も実装版を保存する。
+
+記録量の実測はtools/benchmark-information.mjs。上限は維持し、複数Workerはまだ実装しない。主体別の情報履歴を索引化し、画面への保有情報転送は選択主体だけにする。運用設定・情報伝達・資源を増やした分の処理費用は基準ケースと分けて評価する。

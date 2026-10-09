@@ -1,11 +1,11 @@
-import {runExperiment} from './experiment.js?v=20261007-plan-switch-25';
-import {validatePatterns} from './patterns.js?v=20261007-plan-switch-25';
-import {RUNTIME_BUILD} from './ui-dom.js?v=20261007-plan-switch-25';
-import {preparePlans} from './plans.js?v=20261007-plan-switch-25';
-import {prepareSensitivity} from './sensitivity.js?v=20261007-plan-switch-25';
-import { trialScenario } from './parameters.js?v=20261007-plan-switch-25';
-import { createSimulation } from './recorded-engine.js?v=20261007-plan-switch-25';
-import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261007-plan-switch-25';
+import {runExperiment} from './experiment.js?v=20261009-information-analysis-26';
+import {validatePatterns} from './patterns.js?v=20261009-information-analysis-26';
+import {RUNTIME_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
+import {preparePlans} from './plans.js?v=20261009-information-analysis-26';
+import {prepareSensitivity} from './sensitivity.js?v=20261009-information-analysis-26';
+import { trialScenario } from './parameters.js?v=20261009-information-analysis-26';
+import { createSimulation } from './recorded-engine.js?v=20261009-information-analysis-26';
+import { prepareAnalysis,detectionSteps,summarizeRow } from './detection.js?v=20261009-information-analysis-26';
 let generation=0;
 self.onmessage=({
   data
@@ -33,7 +33,7 @@ async function run(data,token) {
         const trial=startTrial+i,{
           scenario:sample,sampled
         }
-        =trialScenario(sources?.[condition.id]??trialSource??scenario,condition,trial),model=createSimulation(sample),generator=detectionSteps(model,sample.mission,analysis.step);
+        =trialScenario(sources?.[condition.id]??trialSource??scenario,condition,trial),model=createSimulation(sample),generator=detectionSteps(model,sample.mission,analysis.step,{storage:'summary'});
         let state=generator.next();
         while(!state.done) {
           if(performance.now()-lastYield>16){

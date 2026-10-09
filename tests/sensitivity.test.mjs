@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-plan-switch-25';
-import {createSimulation} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
-import {runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261007-plan-switch-25';
-import {trialScenario,readParameter,writeParameter} from '../src/parameters.js?v=20261007-plan-switch-25';
-import {sensitivityBindings,defaultSensitivityCandidate} from '../src/sensitivity-settings.js?v=20261007-plan-switch-25';
-import {prepareSensitivity,summarizeSensitivity,restoreSensitivityResult,summarizePaired,metricValue} from '../src/sensitivity.js?v=20261007-plan-switch-25';
-import {removeDefinition,removeBehavior,pruneReferences} from '../src/editor.js?v=20261007-plan-switch-25';
+import {clone,validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
+import {createSimulation} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
+import {runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-information-analysis-26';
+import {trialScenario,readParameter,writeParameter} from '../src/parameters.js?v=20261009-information-analysis-26';
+import {sensitivityBindings,defaultSensitivityCandidate} from '../src/sensitivity-settings.js?v=20261009-information-analysis-26';
+import {prepareSensitivity,summarizeSensitivity,restoreSensitivityResult,summarizePaired,metricValue} from '../src/sensitivity.js?v=20261009-information-analysis-26';
+import {removeDefinition,removeBehavior,pruneReferences} from '../src/editor.js?v=20261009-information-analysis-26';
 const fixture=JSON.parse(fs.readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 fixture.measurements=[{id:'initial',name:'起点',type:'state',assignmentId:'t',nodeId:'a',join:'all',deadline:30},{id:'finish',name:'到達',type:'state',assignmentId:'t',nodeId:'b',join:'all',deadline:30,previousId:'initial'}];
 fixture.analysis.mode='sensitivity';fixture.analysis.sensitivity={metric:'point.finish.duration',candidates:[{target:'behavior:g',parameter:'behavior.node.a.seconds',low:1,high:5},{target:'group:group',parameter:'capacity.population',low:0,high:3}]};
@@ -22,7 +22,7 @@ const rate=clone(fixture);rate.analysis.sensitivity.metric='point.finish.rate';c
 for(const id of ['mission.rate','mission.time','point.finish.rate','point.finish.time','point.finish.duration']){const s=clone(fixture);s.analysis.sensitivity.metric=id;assert(prepareSensitivity(s).metric);}
 // Use actual communication stochastic outcomes: uncertainty draws match each trial,
 // reversing candidates changes neither draws nor calculated results.
-const sample=JSON.parse(fs.readFileSync(new URL('../data/sensitivity-demo.txt',import.meta.url)));sample.analysis.trials=8;sample.analysis.uncertainties=[{target:'unit:uuv',parameter:'rate.movement.speed',distribution:'uniform',min:8,max:12}];
+const sample=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/sensitivity-demo.txt',import.meta.url)));sample.analysis.trials=8;sample.analysis.uncertainties=[{target:'unit:uuv',parameter:'rate.movement.speed',distribution:'uniform',min:8,max:12}];
 const one=compute(sample),reverse=clone(sample);reverse.analysis.sensitivity.candidates.reverse();const two=compute(reverse);
 for(const row of one.rows){const r=two.rows.find(r=>r.condition.id===row.condition.id);assert.deepEqual(row.trials,r.trials);for(const t of row.trials)assert.deepEqual(t.sampled,one.rows[0].trials.find(b=>b.trial===t.trial).sampled);}
 assert.deepEqual(one.rows.find(r=>r.condition.settings[0]?.parameter==='interaction.communication.probability'&&r.condition.settings[0].value===0).trials.map(t=>t.success),Array(8).fill(false));

@@ -22,7 +22,7 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
 
-  const source=JSON.parse(fs.readFileSync(path.join(root,'data/navigation-demo.txt')));
+  const source=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/legacy/navigation-demo.txt')));
   fs.writeFileSync(path.join(folder,'input.txt'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.txt'));
   await page.locator('.unit-item[data-id="actor"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();
   const node=id=>page.locator('#behavior-canvas [data-node="'+id+'"] > rect:first-child');

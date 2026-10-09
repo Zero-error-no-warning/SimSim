@@ -159,13 +159,13 @@
 |---|---|
 | `index.html` | 設定を積み足した構成を再設計。対象選択に応じたプロパティと少数の主操作へ |
 | `styles.css` | 整形・部品別整理。追記による重複上書きを解消し、文字サイズ・余白・フォーカスを見直す |
-| `data/shared-demo.txt` | 統一モデルの監視・報告・帰投例として移行 |
-| `data/demo.txt` | 4領域・地形・移動の基本例として移行 |
-| `data/group-demo.txt` | 大量ユニット・群編集の例として移行 |
-| `data/detection-demo.txt` | 個数0を含む比較例として移行。実行方式が変わらない検証に使う |
-| `data/parameter-demo.txt` | 多変数・抽出の例として移行 |
+| `tests/fixtures/legacy/shared-demo.txt` | 統一モデルの監視・報告・帰投例として移行 |
+| `tests/fixtures/legacy/demo.txt` | 4領域・地形・移動の基本例として移行 |
+| `tests/fixtures/legacy/group-demo.txt` | 大量ユニット・群編集の例として移行 |
+| `tests/fixtures/legacy/detection-demo.txt` | 個数0を含む比較例として移行。実行方式が変わらない検証に使う |
+| `tests/fixtures/legacy/parameter-demo.txt` | 多変数・抽出の例として移行 |
 | `data/island-patrol-demo.txt` | 島間を通る潜水艦と周回UUVの主要操作例として移行 |
-| `data/response-demo.txt` | 探知・中継・待機・出発・到着の例として移行 |
+| `tests/fixtures/legacy/response-demo.txt` | 探知・中継・待機・出発・到着の例として移行 |
 | `README.md` | 現在の入口と操作に書き換える。今回まずPagesのブランチ説明を訂正し、レビューへの入口を追加 |
 | `docs/scenario-format.md` | 移行後の定義形式の正本にする。旧形式は別の移行説明へ |
 | `docs/shared-behaviors.md` | 挙動仕様・割り当て・操作を分離し、統一モデルの仕様へ更新 |

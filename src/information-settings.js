@@ -11,12 +11,14 @@ export function informationErrors(s){
   const units=[...(Array.isArray(s.units)?s.units:[]),...(Array.isArray(s.groups)?s.groups.map(g=>g?.template):[])],ids=new Set(units.map(u=>u?.id));
   const advanced=s.initialInformation!==undefined||s.modelAssumptions!==undefined||units.some(u=>u?.commandSources!==undefined)||s.behaviors?.some?.(g=>g.nodes?.some?.(n=>n.messageKind!==undefined||n.selector!==undefined)||g.edges?.some?.(e=>['condition','command'].includes(e?.when)));
   if(s.version<4&&advanced)errors.push('情報・判断・命令の設定にはversion 4を使用してください。');
+  for(const [key,allowed] of Object.entries({identityMatching:['perfect'],positionObservation:['exact'],communicationTransmission:['instant'],geometry:['local-plane-spherical-horizon']}))if(s.modelAssumptions?.[key]!==undefined&&!allowed.includes(s.modelAssumptions[key]))errors.push('未対応のモデル仮定: '+key);
   if(s.modelAssumptions?.information!==undefined&&!['restricted','legacy'].includes(s.modelAssumptions.information))errors.push('情報参照はrestrictedまたはlegacyです。');
   for(const u of units)if(u?.commandSources!==undefined&&(!Array.isArray(u.commandSources)||u.commandSources.length>32||u.commandSources.some(x=>!ids.has(x))))errors.push('命令を受け付ける送信元ユニットを指定してください。');
   if(s.initialInformation!==undefined){
     if(!Array.isArray(s.initialInformation)||s.initialInformation.length>2000)errors.push('初期情報は最大2000件です。');
     else for(const item of s.initialInformation){
       const o=item?.observation;
+      if(o?.messageKind!==undefined&&!['observation','status'].includes(o.messageKind))errors.push('初期情報には観測または味方状態を指定してください。');
       const validTime=Number.isFinite(o?.observationTime)&&o.observationTime<=0&&o.observationTime>=-86400;
       const validContent=o?.messageKind==='status'?ids.has(o.subjectId)&&['operational','disabled','unknown'].includes(o.reportedState):ids.has(o?.targetId)&&position(o?.targetPosition);
       if(!ids.has(item?.ownerId)||!validTime||!validContent)errors.push('初期情報の所有者・対象・位置・観測時刻が不正です。');

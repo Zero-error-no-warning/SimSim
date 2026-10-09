@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261007-plan-switch-25';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
-import {rememberInformation} from '../src/knowledge.js?v=20261007-plan-switch-25';
-const base=JSON.parse(fs.readFileSync(new URL('../data/received-position-demo.txt',import.meta.url)));
+import {clone,validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
+import {rememberInformation} from '../src/knowledge.js?v=20261009-information-analysis-26';
+import {prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-information-analysis-26';
+import {trialScenario} from '../src/parameters.js?v=20261009-information-analysis-26';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261009-information-analysis-26';
+const base=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/received-position-demo.txt',import.meta.url)));
 const source=()=>{const s=clone(base);s.version=4;s.duration=60;s.units[0].sensor.enabled=false;s.behaviors[0].triggers=[];s.behaviors[1].triggers=[];s.behaviors[2].initial='move';s.behaviors[2].triggers=[];return s;};
 const run=s=>{const m=createSimulation(s);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:s.duration})){}return m;};
 test('v4 known destinations never use hidden world positions; initial intelligence remains a snapshot',()=>{
@@ -34,4 +37,13 @@ test('only authorized delivered commands select command edges; no command moves 
  const denied=run(s);assert.equal(denied.byId.get('uav').node.id,'patrol');assert(denied.result.actionEvents.some(e=>e.type==='commandRejected'));assert.equal(denied.evaluate(60).knowledge.uav.commands.length,0);
  s.units[2].commandSources=['observer'];const accepted=run(s);assert.equal(accepted.evaluate(6).units.find(u=>u.id==='uav').nodeId,'patrol');assert.equal(accepted.evaluate(7).units.find(u=>u.id==='uav').nodeId,'done');assert.equal(accepted.evaluate(7).knowledge.uav.commands.length,1);
  const replay=restoreRecording(recordingPayload(accepted));assert.deepEqual(replay.evaluate(7).knowledge,accepted.evaluate(7).knowledge);
+});
+test('initial intelligence contributes freshness and analysis archives preserve validated information metrics',()=>{
+ const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));delete s.experiment;s.analysis={trials:1,step:10,requiredRate:.9,factors:[],uncertainties:[]};s.duration=60;s.mission.deadline=60;s.measurements=[];for(const u of s.units)if(u.sensor)u.sensor.enabled=false;
+ s.initialInformation=[{ownerId:'uav',observation:{targetId:'uuv',targetPosition:{x:800,y:0,z:0},observationTime:-5}}];
+ const prepared=prepareAnalysis(s),condition=prepared.conditions[0],generated=trialScenario(prepared.scenario,condition,0),m=run(generated.scenario),metrics=m.result.informationMetrics;
+ assert.equal(metrics.units.uav.freshContactSeconds,25);assert.equal(metrics.units.uav.firstDetectionAt,null);
+ const row={...summarizeRow(condition.count,[{...m.result,trial:0,sampled:generated.sampled}]),condition},payload={type:'SimSim-analysis',version:5,model:'information-behavior-v4',implementation:UI_BUILD,source:s,rows:[row]};
+ assert.deepEqual(restoreAnalysisResult(payload).rows[0].trials[0].informationMetrics,metrics);
+ const invalid=clone(payload);invalid.rows[0].trials[0].informationMetrics.units.uav.freshContactSeconds=61;assert.throws(()=>restoreAnalysisResult(invalid),/情報指標/);
 });

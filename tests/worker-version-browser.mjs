@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';import http from 'node:http';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261007-plan-switch-25';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261009-information-analysis-26';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright'),root=fileURLToPath(new URL('..',import.meta.url)),requests=[];
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://local'),[,mode,...parts]=u.pathname.split('/'),name=parts.join('/')||'index.html',isPortable=mode.startsWith('portable'),base=path.resolve(root,isPortable?'portable':'.'),file=path.resolve(base,name);
@@ -16,7 +16,7 @@ try{browser=await chromium.launch({headless:true,...(process.env.SIMSIM_BROWSER_
  for(const mode of ['normal-good','portable-good','normal-old-worker','portable-old-worker','normal-old-analysis','portable-old-analysis','portable-stale-hash']){
   const page=await browser.newPage({viewport:{width:1500,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:'+server.address().port+'/'+mode+'/');
-  if(mode.endsWith('good')){await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));await page.locator('#sample-picker').selectOption('plans-demo.txt');await page.waitForFunction(()=>document.getElementById('title').value==='運用案比較：配置・経路・報告周期');assert(!await page.locator('#error-dialog').isVisible());}
+  if(mode.endsWith('good')){await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));await page.locator('#file').setInputFiles(path.resolve(new URL('fixtures/legacy/plans-demo.txt',import.meta.url).pathname));await page.waitForFunction(()=>document.getElementById('title').value==='運用案比較：配置・経路・報告周期');assert(!await page.locator('#error-dialog').isVisible());}
   else{await page.waitForFunction(()=>document.getElementById('boot').textContent.includes('起動できませんでした'));const message=await page.locator('#boot').innerText();assert(message.includes('版が一致していません'));assert(message.includes('5')||message.includes('index.html'));assert(message.includes('Worker:'));assert(!message.includes('分析の種類はcomparison・sensitivityです。'));assert.equal(await page.locator('#title').inputValue(),'');
    assert((await page.locator('#boot textarea').inputValue()).includes(UI_BUILD));await page.waitForTimeout(150);assert.equal(await page.locator('#boot').innerText(),message);assert(!await page.locator('#error-dialog').isVisible());}
   assert.deepEqual(errors,[]);await page.close();

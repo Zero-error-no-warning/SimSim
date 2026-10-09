@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {Simulation, Terrain, validateScenario, clone} from '../src/engine.js?v=20261007-plan-switch-25';
+import {Simulation, Terrain, validateScenario, clone} from '../src/engine.js?v=20261009-information-analysis-26';
 import fs from 'node:fs';
 
 const terrain={columns:5,rows:5,spacing:500,origin:{x:0,y:0},seaLevel:0,elevations:Array(25).fill(-500)};
@@ -51,7 +51,7 @@ assert.throws(()=>validateScenario(duplicate),/id/);
 const future=clone(scenario);future.units[0].components=[{type:'future-sensor',range:1234}];
 assert.deepEqual(validateScenario(future).units[0].components,future.units[0].components);
 
-const demo=JSON.parse(fs.readFileSync(new URL('../data/demo.txt',import.meta.url),'utf8'));
+const demo=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/demo.txt',import.meta.url),'utf8'));
 const sample=new Simulation(demo);
 assert.equal(sample.scenario.units.length,7);
 assert(sample.evaluate(0).units.every(u=>!u.error));

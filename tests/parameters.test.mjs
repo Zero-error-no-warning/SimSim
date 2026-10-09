@@ -1,11 +1,11 @@
-import {importScenario} from '../src/scenario-import.js?v=20261007-plan-switch-25';
+import {importScenario} from '../src/scenario-import.js?v=20261009-information-analysis-26';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261007-plan-switch-25';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261007-plan-switch-25';
-import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261007-plan-switch-25';
-import {numericScale} from '../src/chart-scale.js?v=20261007-plan-switch-25';
-const source=JSON.parse(fs.readFileSync(new URL('../data/detection-demo.txt',import.meta.url),'utf8'));
+import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-information-analysis-26';
+import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261009-information-analysis-26';
+import {numericScale} from '../src/chart-scale.js?v=20261009-information-analysis-26';
+const source=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/detection-demo.txt',import.meta.url),'utf8'));
 const range={target:'group:observers',parameter:'extent.sense.radius',values:[300,900]};
 const speed={target:'unit:hostile-transit',parameter:'rate.movement.speed',distribution:'uniform',min:10,max:24};
 // Obtain the fixture's actual target ID rather than relying on its display name.

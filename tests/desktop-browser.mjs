@@ -22,7 +22,7 @@ try{
   await page.goto('http://127.0.0.1:'+server.address().port);
   await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
 
-  const source=JSON.parse(fs.readFileSync(path.join(root,'data/navigation-demo.txt')));
+  const source=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/legacy/navigation-demo.txt')));
   fs.writeFileSync(path.join(folder,'input.txt'),JSON.stringify(source));await page.locator('#file').setInputFiles(path.join(folder,'input.txt'));
   const save=async filename=>{const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,filename);await download.saveAs(file);return JSON.parse(fs.readFileSync(file));};
   const item=page.locator('.unit-item[data-id="actor"]'),canvas=page.locator('#map canvas');

@@ -3,7 +3,7 @@
 export const restrictedInformation=s=>s.version>=4&&s.modelAssumptions?.information!=='legacy';
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function createKnowledge(unit,scenario){
-  const k={contacts:{},friendlyReports:{},commands:[]};
+  const k={contacts:Object.create(null),friendlyReports:Object.create(null),commands:[]};
   for(const item of scenario.initialInformation??[])if(item.ownerId===unit.id)rememberInformation(k,item.observation,0);
   return k;
 }

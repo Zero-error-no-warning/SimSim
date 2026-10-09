@@ -24,7 +24,7 @@ version 3は既存の実行・記録モデルを維持する。version 4は `inf
 
 媒体はideal・rf・optical・acoustic・satellite。idealは従来の抽象リンク。rf/opticalは地球半径6371000mに対する球面の地平線と、地形遮蔽設定時の曲率補正を使う。earthFactorは実効半径係数（既定1）。局所平面座標・海面標高を用いる近似であり、全地球座標・屈折・電波リンクバジェットは含まない。acousticは両端が水中、他媒体は両端が海面以上の使用領域制約。伝搬速度の既定は音響1500m/s、他は光速。衛星リンクは抽象化した衛星経由で、軌道や可視衛星の計算はしない。sensor.mediumにも同じ使用領域・見通しを適用する。
 
-`communicationDisruptions` はstart/endの半開区間、medium、linkIdsを絞り、available:false、probabilityMultiplier、delayAddedを指定する。送信時にリンク状態を評価し、配達時に受信側の稼働を再確認する。伝搬中の経路変動は計算しない（instantTransmission近似）。偶発未着は解析専用deliveryFailedイベントで、送信側のsendFailed接続には漏らさない。確認応答は未実装。自動再送はなく、wait/report接続で設定する。
+`communicationDisruptions` はstart/endの半開区間、medium、linkIdsを絞り、available:false、probabilityMultiplier、delayAddedを指定する。送信時にリンク状態を評価し、配達時に受信側の稼働を再確認する。伝搬中の経路変動は計算しない（instantTransmission近似）。偶発未着・受信側停止・経路の遮蔽や障害は解析専用deliveryFailedイベントで、送信側のsendFailed接続には漏らさない。sendFailedは自分の送信装置・資源やリンク設定の不足に限定する。確認応答は未実装。自動再送はなく、wait/report接続で設定する。
 
 `operationalEvents:[{unitId,time,operational:false}]` は交戦結果ではなく外部から注入する停止事象。移動・探知・送受信を止める。司令部のfriendlyReportsを直接更新しない。`unit.statusReports:{receiverIds,interval}` は移動と並行する周期状態報告。停止前の報告が最後に届いた場合、司令部はその古い「稼働」を保持する。沈黙から損害確定への自動変換はしない。
 
@@ -32,7 +32,7 @@ version 3は既存の実行・記録モデルを維持する。version 4は `inf
 
 ## 段階C
 
-experiment.controlsはID、既存台帳のtarget/parameter、min/maxを持つ味方運用の許可リスト。同じ属性をanalysis.uncertaintiesや通常の比較factorsに重複登録できない。敵・中立・mission.deadlineは運用変数から変更できない。共有挙動は使用する全担当が味方の場合だけ許す。状況分布はanalysis.uncertaintiesを再利用する。
+experiment.controlsはID、既存台帳のtarget/parameter、min/maxを持つ味方運用の許可リスト。同じ属性をanalysis.uncertaintiesに重複登録できない。通常の比較factorsは同じ登録属性を使えるが、組合せ実験ではその値を使わない。敵・中立・mission.deadlineは運用変数から変更できない。共有挙動は使用する全担当が味方の場合だけ許す。状況分布はanalysis.uncertaintiesを再利用する。
 
 enemyProfilesはIDとchanges（敵の登録属性のみ）。constraintsはterms（controlId/coefficient）の一次結合とop（lte/gte/eq）、value。実行できない組合せは候補生成時に除外し、必要数を生成できなければ設定エラーを返す。正常な任務失敗へ混ぜない。designSeedは運用候補用で、状況乱数のseed/trialとは独立。全候補に同じ想定・試行番号を適用する。
 
@@ -59,3 +59,16 @@ src/experiment.jsは複数変数・複数敵想定の試行と、完了済み試
 独立検証はルールを固定し、探索に使わなかった運用組合せと別の状況乱数名前空間で実行する。候補・想定・運用値ごとの下限を全て確認する。探索のWilson区間を採用判断へ使わず、独立検証には片側の正確二項下限とBonferroni補正を使用する。候補群・想定・検証運用値に対する全体誤採用率を0.05とする。試行数が少ないと100%成功でも下限不足になり得る。これは未検証として残す。
 
 保存はSimSim-patternsに元実験、範囲、支持数、探索の成功と失敗、検証運用値、想定別・値別成績、乱数名前空間、モデル・実装版を含む。画面の適用は独立検証で基準を満たした定石だけ許し、変更する登録属性をプレビューする。適用時に任務・対象ID・地形・固定したモデル条件を照合する。適用条件はシナリオの設定であり、観測していない敵の実際の行動を判断ノードへ漏らさない。現在は同じID構成のシナリオを対象とし、別IDへの対応付けや保存定石の専用インポートUIは後続の拡張とする。
+
+
+## 段階F
+
+unit.resourcesは容量、初期残量、秒・距離・メッセージ当たりの消耗、byNodeKind、枯渇のeffects（movement/sensor/communication）を定義する。省略時は資源制約を設けない。地点の目的地とreplenish.rateを指定し、その地点のwait/stop/signal中に補給する。自分の残量閾値から通常の判断線で帰投・補給・再出発できる。枯渇・満量の時刻は計算境界へ挿入する。判断閾値は計算境界で評価し、一律に細分化しない。資源量はコンパクトな記録フレームに保存し、巻戻しで終了時の残量を漏らさない。
+
+periodicReportsは移動と並行する観測・状態報告（receiverIds、interval、messageKind）。報告中断のために移動ノードを作り直さなくてよい。statusReportsも利用できる。通しサンプルsustainment-missionは初期残量の異なる2機が帰投・補給する監視交代で、帰投・補給中はセンサーを停止する。交戦の計算や最適な交代スケジューラではない。
+
+表示のタスク集約は共有する明示的な計画経路と担当数の矢印、担当／稼働数、ノード別人数、資源合計を示す。異なる経路の平均一本化はしない。表または経路のダブルクリックで個体へ展開する。集約数はその再生時刻の個体記録から計算する。node=stopを到着成功と推定しない。任務成功は設定した評価条件で別に判断する。
+
+実験はsummary保存を使用する。状態の初回到達、情報指標、到着をオンライン集計し、各計算境界の後に行動イベントを捨てる。eventsはイベント履歴、replayは履歴と位置・資源フレームを保存する。summary/events/replayの評価・計測・資源結果は一致する。代表試行は完全な実験入力とシード・番号から再計算する。実装版が変わった実験は再開しない。version 4の記録・分析も実装版を保存する。
+
+記録量の実測はtools/benchmark-information.mjs。上限は維持し、複数Workerはまだ実装しない。主体別の情報履歴を索引化し、画面への保有情報転送は選択主体だけにする。運用設定・情報伝達・資源を増やした分の処理費用は基準ケースと分けて評価する。

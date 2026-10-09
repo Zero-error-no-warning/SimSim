@@ -4,7 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-new-task-'));
 const server=http.createServer((req,res)=>{
@@ -21,7 +21,7 @@ try{
   const page=await browser.newPage({viewport:{width:1500,height:1000}}),errors=[];
   page.setDefaultTimeout(5000);page.on('pageerror',e=>{errors.push(e.stack);console.log(e.stack);});page.on('dialog',d=>d.accept());
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>document.getElementById('recording-info').textContent.includes('未計算'));
-  await page.locator('#sample-picker').selectOption('received-position-demo.txt');await page.waitForFunction(()=>document.getElementById('title').value==='受信した観測位置へ移動');
+  await page.locator('#file').setInputFiles(path.resolve(new URL('fixtures/legacy/received-position-demo.txt',import.meta.url).pathname));await page.waitForFunction(()=>document.getElementById('title').value==='受信した観測位置へ移動');
   await page.locator('#behaviors-open').click();await page.locator('#behavior-dialog').waitFor({state:'visible'});
   await page.locator('#assignment-list').selectOption('respond');await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   await page.locator('#behavior-canvas [data-node="move"] > rect:first-child').click();

@@ -1,0 +1,20 @@
+const num=(x,min,max)=>Number.isFinite(x)&&x>=min&&x<=max;
+export function resourceErrors(s){const errors=[];for(const u of [...(s.units??[]),...(s.groups??[]).map(g=>g.template)])if(u?.resources!==undefined){
+ if(s.version<4||!u.resources||typeof u.resources!=='object'||Array.isArray(u.resources)||Object.keys(u.resources).length>8){errors.push('資源はversion 4のunit.resourcesに最大8種類指定してください。');continue;}
+ for(const [id,r] of Object.entries(u.resources)){
+  if(!/^[A-Za-z0-9_-]{1,64}$/.test(id)||!r||!num(r.capacity,.000001,1e12)||!num(r.initial??r.capacity,0,r.capacity))errors.push('資源のID・容量・初期残量が不正です。');
+  if(!r)continue;for(const k of ['perSecond','perMetre','perMessage'])if(r[k]!==undefined&&!num(r[k],0,1e9))errors.push('資源の消耗係数は0～1e9です。');
+  if(r.byNodeKind!==undefined&&(!r.byNodeKind||typeof r.byNodeKind!=='object'||Object.entries(r.byNodeKind).some(([k,v])=>!['follow','patrol','signal','report','move','wait','stop'].includes(k)||!num(v,0,1e9))))errors.push('資源のノード別消耗が不正です。');
+  if(r.effects!==undefined&&(!Array.isArray(r.effects)||r.effects.some(k=>!['movement','sensor','communication'].includes(k))))errors.push('資源枯渇の影響はmovement/sensor/communicationです。');
+  if(r.replenish!==undefined&&(!s.destinations?.some(d=>d.id===r.replenish.destinationId&&d.kind==='point')||!num(r.replenish.rate,.000001,1e9)))errors.push('補給は地点の目的地と正の補給率を指定してください。');
+ }
+ }return errors;}
+export function createResources(unit){return Object.fromEntries(Object.entries(unit.resources??{}).map(([id,r])=>[id,{capacity:r.capacity,remaining:r.initial??r.capacity,consumed:0,recovered:0}]));}
+export function hasResource(s,effect){return Object.entries(s.resources??{}).every(([id,r])=>r.remaining>1e-9||!(s.unit.resources[id].effects??['movement','sensor','communication']).includes(effect));}
+export function resourceRate(s,id,speed=0,scenario){const r=s.unit.resources[id],base=(r.perSecond??0)+(r.byNodeKind?.[s.node?.kind??'follow']??0)+(r.perMetre??0)*speed;
+ const d=scenario?.destinations?.find(d=>d.id===r.replenish?.destinationId);
+ if(d&&['wait','stop','signal'].includes(s.node?.kind)&&Math.hypot(s.position.x-d.point.x,s.position.y-d.point.y,s.position.z-d.point.z)<1)return base-r.replenish.rate;return base;}
+export function resourceBoundary(s,time,speed,scenario){let at=Infinity;for(const [id,r] of Object.entries(s.resources??{})){const rate=resourceRate(s,id,speed,scenario),seconds=rate>0?r.remaining/rate:rate<0?(r.capacity-r.remaining)/-rate:Infinity;if(seconds>1e-8)at=Math.min(at,time+seconds);}return at;}
+export function updateResources(s,start,end,travel,scenario,events){for(const [id,r] of Object.entries(s.resources??{})){const rate=resourceRate(s,id,0,scenario),amount=rate*(end-start)+(s.unit.resources[id].perMetre??0)*travel,old=r.remaining;r.remaining=Math.max(0,Math.min(r.capacity,old-amount));r.consumed+=Math.max(0,old-r.remaining);r.recovered+=Math.max(0,r.remaining-old);if(old>0&&r.remaining===0||old<r.capacity&&r.remaining===r.capacity)events.push({type:'resourceChanged',time:end,unitId:s.unit.id,resourceId:id,remaining:r.remaining});}}
+export function chargeMessage(s,t,events){for(const [id,r] of Object.entries(s.resources??{})){const old=r.remaining;r.remaining=Math.max(0,old-(s.unit.resources[id].perMessage??0));r.consumed+=old-r.remaining;if(old>0&&!r.remaining)events.push({type:'resourceChanged',time:t,unitId:s.unit.id,resourceId:id,remaining:0});}}
+export function aggregateTasks(source,states){return (source.behaviorAssignments??[]).map(a=>{const members=states.filter(s=>s.assignment?.id===a.id);return {id:a.id,name:a.name,total:members.length,operational:members.filter(s=>s.operational).length,arrived:members.filter(s=>s.status==='arrived').length,nodes:Object.fromEntries([...new Set(members.map(s=>s.node?.id??'inactive'))].map(id=>[id,members.filter(s=>(s.node?.id??'inactive')===id).length])),resources:Object.fromEntries([...new Set(members.flatMap(s=>Object.keys(s.resources??{})))].map(id=>[id,members.reduce((sum,s)=>sum+(s.resources?.[id]?.remaining??0),0)]))};});}

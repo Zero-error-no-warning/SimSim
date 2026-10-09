@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {extractPatterns,validatePatterns,binomialLower,applyPattern} from '../src/patterns.js?v=20261007-plan-switch-25';
-import {runExperiment} from '../src/experiment.js?v=20261007-plan-switch-25';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261007-plan-switch-25';
+import {extractPatterns,validatePatterns,binomialLower,applyPattern} from '../src/patterns.js?v=20261009-information-analysis-26';
+import {runExperiment} from '../src/experiment.js?v=20261009-information-analysis-26';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261009-information-analysis-26';
 const source=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));s.experiment={candidates:16,trials:1,requiredRate:.5,designSeed:'patterns',controls:[{id:'speed',target:'unit:uav',parameter:'rate.movement.speed',min:80,max:120},{id:'period',target:'behavior:observe',parameter:'behavior.trigger.refresh.seconds',min:20,max:60}]};s.analysis.uncertainties=[];return s;};
 test('rules preserve combinations and multiple applicable patterns, include failures, and require different operating candidates',()=>{
  const s=source(),candidates=Array.from({length:64},(_,i)=>({id:'c-'+i,values:{speed:82.5+(i%8)*5,period:22.5+Math.floor(i/8)*5}})),rows=candidates.map((c,i)=>({index:i,candidateId:c.id,profileId:'baseline',trial:0,success:(c.values.speed<100)===(c.values.period<40),successTime:30,invalidUnits:0,constrainedPaths:0}));s.experiment.requiredRate=.95;
@@ -16,6 +16,7 @@ test('independent validation samples new control combinations and random namespa
  const rule=validated.find(r=>r.status==='adopted');assert(rule,'At 100% successes and sufficient budget a rule passes the adjusted lower limit');
  const applied=applyPattern(s,rule,rule.validation.operatingPoints[0].values);assert.equal(applied.changes.length,2);assert.deepEqual(applied.scenario.mission,s.mission);
  const changed=source();changed.mission.deadline=100;assert.throws(()=>applyPattern(changed,rule,rule.validation.operatingPoints[0].values),/適用条件/);
+ const distribution=source();distribution.analysis.uncertainties=[{target:'unit:relay',parameter:'interaction.communication.probability',distribution:'uniform',min:.2,max:1}];assert.throws(()=>applyPattern(distribution,rule,rule.validation.operatingPoints[0].values),/適用条件/);
  await assert.rejects(()=>validatePatterns(experiment,[{...rules[0],requiredRate:0}],{operatingPoints:1,trials:1}),/未変更/);
 });
 test('exact lower limits penalize small samples rather than calling a single success a validated pattern',()=>{

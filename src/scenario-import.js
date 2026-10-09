@@ -1,6 +1,6 @@
-import { validateScenario } from './engine.js?v=20261007-plan-switch-25';
-import { normalizedAnalysis } from './parameters.js?v=20261007-plan-switch-25';
-// Compatibility ends here: the application and workers execute version 3 only.
+import { validateScenario } from './engine.js?v=20261009-information-analysis-26';
+import { normalizedAnalysis } from './parameters.js?v=20261009-information-analysis-26';
+// Compatibility ends here: the application and workers execute canonical version 3/4 scenarios.
 export function importScenario(value) {
   const s = validateScenario(value);
   if (s.version >= 3) return s;

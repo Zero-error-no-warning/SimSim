@@ -1,5 +1,5 @@
-import {random01,streamKey} from './random.js?v=20261007-plan-switch-25';
-import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261007-plan-switch-25';
+import {random01,streamKey} from './random.js?v=20261009-information-analysis-26';
+import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261009-information-analysis-26';
 const within=(d,t)=>t>=d.start&&t<d.end;
 export function transmissionAttempts(model,s,receiver,t,messageId){
  const configured=model.source.communicationLinks;
@@ -17,7 +17,9 @@ export function transmissionAttempts(model,s,receiver,t,messageId){
   const key=streamKey(model.source,link.id,'communication-v4'),window=Math.floor(t/(c.windowSeconds??60));
   if(c.failureModel==='trial'&&random01(key+'|trial')<(c.outageProbability??0)||c.failureModel==='window'&&random01(key+'|window|'+window)<(c.outageProbability??0))reason='継続通信障害';
   const arrives=!reason&&random01(key+'|message|'+messageId)<(c.probability??1)*multiplier;
-  return {linkId:link.id,medium,reason,arrives,delay:delay+(medium==='ideal'?0:distance/(c.propagationSpeed??propagationSpeed(medium))),distance};
+  // A receiver's state and the physical path are not known without acknowledgement.
+  const localReason=!s.operational||!c.enabled?'送信装置停止':null;
+  return {linkId:link.id,medium,reason:localReason,deliveryReason:reason,arrives,delay:delay+(medium==='ideal'?0:distance/(c.propagationSpeed??propagationSpeed(medium))),distance};
  });
 }
 export function communicationErrors(s){
@@ -28,13 +30,16 @@ export function communicationErrors(s){
   if(c.failureModel!==undefined&&!['independent','trial','window'].includes(c.failureModel))errors.push('通信障害モデルはindependent/trial/windowです。');
  };
  for(const u of [...(s.units??[]),...(s.groups??[]).map(g=>g.template)]){if(u?.communication)check(u.communication);if(u?.sensor)check(u.sensor);
+  if(u?.periodicReports!==undefined&&(!Array.isArray(u.periodicReports)||u.periodicReports.length>8||u.periodicReports.some(r=>!r||!['observation','status'].includes(r.messageKind)||!Array.isArray(r.receiverIds)||r.receiverIds.length>32||r.receiverIds.some(id=>!ids.has(id))||!number(r.interval,.1,86400))))errors.push('周期報告は観測または状態、受信先と正の周期を指定してください。');
   if(u?.statusReports!==undefined&&(!Array.isArray(u.statusReports.receiverIds)||u.statusReports.receiverIds.length>32||u.statusReports.receiverIds.some(id=>!ids.has(id))||!number(u.statusReports.interval,.1,86400)))errors.push('定期状態報告の受信先・周期が不正です。');
  }
  if(s.communicationLinks!==undefined){const seen=new Set();if(!Array.isArray(s.communicationLinks)||s.communicationLinks.length>256)errors.push('通信リンクは最大256件です。');else for(const l of s.communicationLinks){if(!l||!ids.has(l.senderId)||!ids.has(l.receiverId)||typeof l.id!=='string'||seen.has(l.id)||typeof l.enabled!=='boolean'||!number(l.range,.001,100000)||!number(l.delay,0,86400)||!number(l.probability,0,1)||typeof l.terrainLOS!=='boolean')errors.push('通信リンクのID・端点・能力が不正です。');if(l){seen.add(l.id);check(l);}}}
  if(s.communicationDisruptions!==undefined){if(!Array.isArray(s.communicationDisruptions)||s.communicationDisruptions.length>256)errors.push('通信障害は最大256件です。');else for(const d of s.communicationDisruptions){if(!d||!number(d.start,0,s.duration)||!number(d.end,0,s.duration)||d.end<=d.start||d.available!==undefined&&typeof d.available!=='boolean'||d.probabilityMultiplier!==undefined&&!number(d.probabilityMultiplier,0,1)||d.delayAdded!==undefined&&!number(d.delayAdded,0,86400)||d.linkIds!==undefined&&(!Array.isArray(d.linkIds)||d.linkIds.some(id=>!s.communicationLinks?.some(l=>l.id===id))))errors.push('通信障害の時間・対象・効果が不正です。');if(d)check(d);}}
  if(s.operationalEvents!==undefined){if(!Array.isArray(s.operationalEvents)||s.operationalEvents.length>2000)errors.push('稼働状態の外部事象は最大2000件です。');else for(const e of s.operationalEvents)if(!e||!ids.has(e.unitId)||!number(e.time,0,s.duration)||typeof e.operational!=='boolean')errors.push('稼働状態の対象・時刻・状態が不正です。');}
  for(const a of s.behaviorAssignments??[]){if(a.coordination!==undefined&&!['ideal','reported'].includes(a.coordination))errors.push('協調方式はideal/reportedです。');if(a.reportMaxAge!==undefined&&!number(a.reportMaxAge,0,86400)||a.missingReport!==undefined&&!['cruise','stop'].includes(a.missingReport))errors.push('報告鮮度・欠落時の動作が不正です。');}
- const advanced=s.communicationLinks!==undefined||s.communicationDisruptions!==undefined||s.operationalEvents!==undefined||s.units?.some?.(u=>u.statusReports||u.communication?.medium||u.sensor?.medium)||s.behaviorAssignments?.some?.(a=>a.coordination);
+ const advanced=s.communicationLinks!==undefined||s.communicationDisruptions!==undefined||s.operationalEvents!==undefined||s.units?.some?.(u=>u.statusReports||u.periodicReports||u.communication?.medium||u.sensor?.medium)||s.behaviorAssignments?.some?.(a=>a.coordination);
  if(s.version<4&&advanced)errors.push('媒体・障害・状態報告はversion 4を使用してください。');
  return errors;
 }
+
+export const periodicReports=u=>[...(u.statusReports?[{...u.statusReports,messageKind:'status'}]:[]),...(u.periodicReports??[])];
