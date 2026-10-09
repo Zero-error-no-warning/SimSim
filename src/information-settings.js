@@ -6,7 +6,9 @@ export function selectorErrors(s){
 }
 export function informationErrors(s){
   if(!s||typeof s!=='object')return [];
-  const errors=[],units=[...(Array.isArray(s.units)?s.units:[]),...(Array.isArray(s.groups)?s.groups.map(g=>g?.template):[])],ids=new Set(units.map(u=>u?.id));
+  const errors=[];
+  if(s.informationMetrics!==undefined&&(!s.informationMetrics||!Number.isFinite(s.informationMetrics.maxContactAge)||s.informationMetrics.maxContactAge<0||s.informationMetrics.maxContactAge>86400))errors.push('情報鮮度の基準は0～86400秒です。');
+  const units=[...(Array.isArray(s.units)?s.units:[]),...(Array.isArray(s.groups)?s.groups.map(g=>g?.template):[])],ids=new Set(units.map(u=>u?.id));
   const advanced=s.initialInformation!==undefined||s.modelAssumptions!==undefined||units.some(u=>u?.commandSources!==undefined)||s.behaviors?.some?.(g=>g.nodes?.some?.(n=>n.messageKind!==undefined||n.selector!==undefined)||g.edges?.some?.(e=>['condition','command'].includes(e?.when)));
   if(s.version<4&&advanced)errors.push('情報・判断・命令の設定にはversion 4を使用してください。');
   if(s.modelAssumptions?.information!==undefined&&!['restricted','legacy'].includes(s.modelAssumptions.information))errors.push('情報参照はrestrictedまたはlegacyです。');

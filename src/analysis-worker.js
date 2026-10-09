@@ -42,7 +42,7 @@ async function run(data,token) {
         }
         const result=state.value;
         trials.push({
-          ...(result.measurements?{measurements:result.measurements}:{}),          ...(sample.mission?.type==='state'?{stateEntries:result.stateEntries,stateTargetCount:result.stateTargetCount,stateReachedCount:result.stateReachedCount}:{}),reachedCount:result.reachedCount??0,responderCount:result.responderCount??0,trial,sampled,success:result.success,successTime:result.successTime,detectedCount:result.detectedCount,targetCount:result.targetCount,invalidUnits:result.invalidUnits,constrainedPaths:result.constrainedPaths
+          ...(result.informationMetrics?{informationMetrics:result.informationMetrics}:{}),...(result.measurements?{measurements:result.measurements}:{}),          ...(sample.mission?.type==='state'?{stateEntries:result.stateEntries,stateTargetCount:result.stateTargetCount,stateReachedCount:result.stateReachedCount}:{}),reachedCount:result.reachedCount??0,responderCount:result.responderCount??0,trial,sampled,success:result.success,successTime:result.successTime,detectedCount:result.detectedCount,targetCount:result.targetCount,invalidUnits:result.invalidUnits,constrainedPaths:result.constrainedPaths
         });
         completed++;
         if(performance.now()-lastProgress>120||i===analysis.trials-1){

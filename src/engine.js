@@ -1,3 +1,4 @@
+import {experimentErrors} from './experiment-settings.js?v=20261007-plan-switch-25';
 import {communicationErrors} from './communication.js?v=20261007-plan-switch-25';
 import {informationErrors} from './information-settings.js?v=20261007-plan-switch-25';
 import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261007-plan-switch-25';
@@ -105,6 +106,7 @@ export function validateScenario(value) {
       errors.push(e.message);
     }
   }
+  if(!errors.length)errors.push(...experimentErrors(value));
   if(!errors.length)errors.push(...sensitivityConfigErrors(value));
   if(!errors.length)errors.push(...planConfigErrors(value));
   if(!errors.length&&value.analysis?.plans)for(const plan of [...value.analysis.plans.items,...(value.analysis.plans.editor?.drafts??[])]){

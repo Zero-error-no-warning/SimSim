@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261007-plan-switch-25';
 import {propagationVisible} from '../src/propagation.js?v=20261007-plan-switch-25';
 import {Terrain} from '../src/terrain.js?v=20261007-plan-switch-25';
-const base=()=>JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));
+const base=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));delete s.experiment;s.analysis.uncertainties=[];return s;};
 const run=s=>{const m=createSimulation(s);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:s.duration})){}return m;};
 test('RF/optical spherical horizon, elevated horizon and acoustic medium boundary',()=>{
  const terrain=new Terrain({columns:9,rows:2,spacing:10000,origin:{x:0,y:0},elevations:Array(18).fill(-100),seaLevel:0}),a={x:0,y:0,z:10},b={x:40000,y:0,z:10};

@@ -1,3 +1,4 @@
+import {InformationMetrics} from './information-metrics.js?v=20261007-plan-switch-25';
 import {measurePoints} from './measurement-points.js?v=20261007-plan-switch-25';
 import {StateTracker,stateSummary} from './state-measurement.js?v=20261007-plan-switch-25';
 import {resolveGraph} from './behavior-parameters.js?v=20261007-plan-switch-25';
@@ -371,6 +372,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     success:false,successTime:null,targetCount:mission?.type==='state'?targets.length:goalTargets.length,detectedCount:0,responderCount:responders.length,reachedCount:0,events:[],actionEvents:events,invalidUnits:states.filter(s=>s.error).length,constrainedPaths:0
   };
   if(model.source.version>=4)result.informationEvents=[];
+  const metrics=model.source.version>=4?new InformationMetrics(states,model.source.informationMetrics?.maxContactAge??30):null;
+  let metricCursor=0;
   let candidateChecks=0,lastRecord=0,lastContact=0,messageSequence=0;
   const deliveredIds=new Set(),appliedOperational=new Set(),statusTimes=new Map();
   const range=Math.max(1,...states.filter(s=>s.unit.sensor?.enabled).map(s=>s.unit.sensor.range));
@@ -594,6 +597,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     }
   }
   immediate(0);
+  if(metrics)while(metricCursor<events.length)metrics.observe(events[metricCursor++]);
   if(stateTracker)Object.assign(result,stateTracker.update(events));
   if(record)model.record(0,frames);
   for(let start=0;start<horizon;){
@@ -718,6 +722,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
             };
             model.rememberObservation(s,observed);
             if(result.informationEvents)result.informationEvents.push({...observed});
+            metrics?.observe(observed);
             if(!pairs.has(pair)||s.graph?.triggers.some(t=>t.event==='detected'&&t.once===false))contacts.push(observed);
             pairs.add(pair);
           }
@@ -736,6 +741,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       lastContact=end;
     }
     changed=immediate(end)||changed;
+    if(metrics)while(metricCursor<events.length){const e=events[metricCursor++];if(e.type!=='detected')metrics.observe(e);}
     if(events.length+messages.length>100000)throw Error('行動イベントが10万件を超えました。');
     result.detectedCount=result.events.filter(e=>!mission||e.time<=mission.deadline).length;
     result.reachedCount=new Set(events.filter(e=>e.type==='arrived'&&responders.includes(e.unitId)&&(!mission||e.time<=mission.deadline)).map(e=>e.unitId)).size;
@@ -756,6 +762,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     if(!model.source.measurements?.length&&!record&&!states.some(s=>s.graph)&&mission?.type==='detect'&&result.detectedCount===goalTargets.length)break;
   }
   if(model.source.measurements?.length)result.measurements=measurePoints(model.source,events,horizon);
+  if(metrics)result.informationMetrics=metrics.finish(horizon);
   result.constrainedPaths=states.filter(s=>s.status==='blocked').length;
   if(record){
     model.frames=frames;

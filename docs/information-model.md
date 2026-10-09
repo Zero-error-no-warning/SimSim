@@ -29,3 +29,13 @@ version 3は既存の実行・記録モデルを維持する。version 4は `inf
 `operationalEvents:[{unitId,time,operational:false}]` は交戦結果ではなく外部から注入する停止事象。移動・探知・送受信を止める。司令部のfriendlyReportsを直接更新しない。`unit.statusReports:{receiverIds,interval}` は移動と並行する周期状態報告。停止前の報告が最後に届いた場合、司令部はその古い「稼働」を保持する。沈黙から損害確定への自動変換はしない。
 
 協調周回はassignment.coordinationのideal/reportedで区別する。reportedは仲間の報告位置とreportMaxAgeのみを用い、情報欠落時はmissingReportのcruise/stopに従う。既存idealの間隔制御と性能は維持する。同時刻の受信は保有情報をまとめて更新してから判断する。
+
+## 段階C
+
+experiment.controlsはID、既存台帳のtarget/parameter、min/maxを持つ味方運用の許可リスト。同じ属性をanalysis.uncertaintiesや通常の比較factorsに重複登録できない。敵・中立・mission.deadlineは運用変数から変更できない。共有挙動は使用する全担当が味方の場合だけ許す。状況分布はanalysis.uncertaintiesを再利用する。
+
+enemyProfilesはIDとchanges（敵の登録属性のみ）。constraintsはterms（controlId/coefficient）の一次結合とop（lte/gte/eq）、value。実行できない組合せは候補生成時に除外し、必要数を生成できなければ設定エラーを返す。正常な任務失敗へ混ぜない。designSeedは運用候補用で、状況乱数のseed/trialとは独立。全候補に同じ想定・試行番号を適用する。
+
+情報計測は探知・報告・命令・到着の初回時刻、送信数、未着数、保有接触の鮮度が基準内だった合計秒数を主体ごとに保存する。maxContactAgeはinformationMetricsで設定（既定30秒）。基準時間内に届かなかった古い観測は鮮度の継続時間に加算しない。任務の成功条件と独立して、既存measurementsで対処開始・到着も計測する。
+
+src/experiment.jsは複数変数・複数敵想定の試行と、完了済み試行からの再開を提供する。SimSim-experimentの保存には完全な元入力、運用候補、想定、試行番号、状況抽出値、モデル名・実装版を含む。入力・実装版が変わったチェックポイントは再開しない。中断した試行は完了行へ含めず、再開時に同じ番号でやり直す。

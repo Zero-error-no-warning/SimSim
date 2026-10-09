@@ -271,6 +271,10 @@
           "heightMode": "keep",
           "x": 430,
           "y": 70
+        },
+        {
+          "id": "done",
+          "kind": "stop"
         }
       ],
       "edges": [
@@ -287,7 +291,7 @@
         },
         {
           "from": "move",
-          "to": "patrol",
+          "to": "done",
           "when": "arrived"
         }
       ]
@@ -334,7 +338,7 @@
   "mission": {
     "type": "state",
     "assignmentId": "respond",
-    "nodeId": "move",
+    "nodeId": "done",
     "join": "any",
     "deadline": 180
   },
@@ -343,6 +347,79 @@
     "step": 10,
     "requiredRate": 0.8,
     "factors": [],
-    "uncertainties": []
+    "uncertainties": [
+      {
+        "target": "unit:observer",
+        "parameter": "interaction.communication.probability",
+        "distribution": "uniform",
+        "min": 0.4,
+        "max": 0.95
+      }
+    ]
+  },
+  "measurements": [
+    {
+      "id": "dispatched",
+      "name": "対処開始",
+      "type": "state",
+      "assignmentId": "respond",
+      "nodeId": "move",
+      "join": "any",
+      "deadline": 180
+    },
+    {
+      "id": "arrived",
+      "name": "観測位置に到着",
+      "type": "state",
+      "assignmentId": "respond",
+      "nodeId": "done",
+      "join": "any",
+      "deadline": 180,
+      "previousId": "dispatched"
+    }
+  ],
+  "experiment": {
+    "designSeed": "information-controls",
+    "candidates": 16,
+    "trials": 32,
+    "requiredRate": 0.8,
+    "controls": [
+      {
+        "id": "reportPeriod",
+        "target": "behavior:observe",
+        "parameter": "behavior.trigger.refresh.seconds",
+        "min": 15,
+        "max": 60
+      },
+      {
+        "id": "responseSpeed",
+        "target": "unit:uav",
+        "parameter": "rate.movement.speed",
+        "min": 20,
+        "max": 120
+      }
+    ],
+    "enemyProfiles": [
+      {
+        "id": "slow",
+        "changes": [
+          {
+            "target": "unit:uuv",
+            "parameter": "rate.movement.speed",
+            "value": 5
+          }
+        ]
+      },
+      {
+        "id": "fast",
+        "changes": [
+          {
+            "target": "unit:uuv",
+            "parameter": "rate.movement.speed",
+            "value": 15
+          }
+        ]
+      }
+    ]
   }
 }
