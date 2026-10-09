@@ -1,7 +1,7 @@
-import {showEditorDialog} from './ui-dom.js?v=20261009-map-workspace-29';
-import {navigationErrors} from './navigation.js?v=20261009-map-workspace-29';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261009-map-workspace-29';
-import {requireElement} from './ui-dom.js?v=20261009-map-workspace-29';
+import {showEditorDialog} from './ui-dom.js?v=20261009-select-state-30';
+import {navigationErrors} from './navigation.js?v=20261009-select-state-30';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261009-select-state-30';
+import {requireElement} from './ui-dom.js?v=20261009-select-state-30';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

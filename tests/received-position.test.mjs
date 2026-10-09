@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261009-map-workspace-29';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-map-workspace-29';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-map-workspace-29';
+import {clone,validateScenario} from '../src/engine.js?v=20261009-select-state-30';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-select-state-30';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-select-state-30';
 const source=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/received-position-demo.txt',import.meta.url)));
 const run=s=>{const model=createSimulation(s),g=sharedSteps(model,undefined,undefined,{horizon:s.duration,record:true});for(const x of g){}return model;};
 const pos=(model,t,id='uav')=>model.evaluate(t).units.find(u=>u.id===id);

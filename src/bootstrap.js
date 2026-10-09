@@ -1,4 +1,4 @@
-import('./app.js?v=20261009-map-workspace-29').catch(error => {
+import('./app.js?v=20261009-select-state-30').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

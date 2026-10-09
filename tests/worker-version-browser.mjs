@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';import fs from 'node:fs';import http from 'node:http';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261009-map-workspace-29';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261009-select-state-30';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright'),root=fileURLToPath(new URL('..',import.meta.url)),requests=[];
 const server=http.createServer((req,res)=>{
  const u=new URL(req.url,'http://local'),[,mode,...parts]=u.pathname.split('/'),name=parts.join('/')||'index.html',isPortable=mode.startsWith('portable'),base=path.resolve(root,isPortable?'portable':'.'),file=path.resolve(base,name);

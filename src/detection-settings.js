@@ -1,6 +1,6 @@
-import {fieldErrors} from './configuration-schema.js?v=20261009-map-workspace-29';
-import {MOVEMENT_FIELDS,SENSOR_FIELDS} from './configuration-fields.js?v=20261009-map-workspace-29';
-import { variableErrors } from './parameters.js?v=20261009-map-workspace-29';
+import {fieldErrors} from './configuration-schema.js?v=20261009-select-state-30';
+import {MOVEMENT_FIELDS,SENSOR_FIELDS} from './configuration-fields.js?v=20261009-select-state-30';
+import { variableErrors } from './parameters.js?v=20261009-select-state-30';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);

@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261009-map-workspace-29';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261009-select-state-30';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

@@ -2,7 +2,7 @@
 
 # SimSim — 現在の操作と設計
 
-2026-10-09。対象は `feat/information-aware-analysis`、画面版29。画面構成の方針は[workspace-layout.md](workspace-layout.md)、設定の契約は[configuration-architecture.md](configuration-architecture.md)を参照。
+2026-10-09。対象は `feat/information-aware-analysis`、画面版30。画面構成の方針は[workspace-layout.md](workspace-layout.md)、設定の契約は[configuration-architecture.md](configuration-architecture.md)を参照。
 
 ## 画面の考え方
 

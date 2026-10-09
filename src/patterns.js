@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261009-map-workspace-29';
-import {constraintsSatisfied} from './experiment-settings.js?v=20261009-map-workspace-29';
-import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261009-map-workspace-29';
-import {readParameter,writeParameter} from './parameters.js?v=20261009-map-workspace-29';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-map-workspace-29';
-import {MODEL_BUILD} from './model-version.js?v=20261009-map-workspace-29';
+import {clone,validateScenario} from './engine.js?v=20261009-select-state-30';
+import {constraintsSatisfied} from './experiment-settings.js?v=20261009-select-state-30';
+import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261009-select-state-30';
+import {readParameter,writeParameter} from './parameters.js?v=20261009-select-state-30';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-select-state-30';
+import {MODEL_BUILD} from './model-version.js?v=20261009-select-state-30';
 const contains=(values,bounds)=>Object.entries(bounds).every(([id,[lo,hi]])=>values[id]>=lo&&values[id]<=hi);
 export function extractPatterns(experiment,{maxRules=4,minCandidates=4}={}){
  if(experiment.status!=='complete'||experiment.completed!==experiment.planned)throw Error('定石の抽出には探索の完了が必要です。');

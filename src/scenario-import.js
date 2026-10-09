@@ -1,5 +1,5 @@
-import { validateScenario } from './engine.js?v=20261009-map-workspace-29';
-import { normalizedAnalysis } from './parameters.js?v=20261009-map-workspace-29';
+import { validateScenario } from './engine.js?v=20261009-select-state-30';
+import { normalizedAnalysis } from './parameters.js?v=20261009-select-state-30';
 // Compatibility ends here: the application and workers execute canonical version 3/4 scenarios.
 export function importScenario(value) {
   const s = validateScenario(value);

@@ -1,10 +1,10 @@
-import { editableDefinition } from './editor.js?v=20261009-map-workspace-29';
-import { sharedAssignment } from './shared-settings.js?v=20261009-map-workspace-29';
-import {taskPresentations} from './map-presentation.js?v=20261009-map-workspace-29';
-import {resourceName} from './resource-ui.js?v=20261009-map-workspace-29';
+import { editableDefinition } from './editor.js?v=20261009-select-state-30';
+import { sharedAssignment } from './shared-settings.js?v=20261009-select-state-30';
+import {taskPresentations} from './map-presentation.js?v=20261009-select-state-30';
+import {resourceName} from './resource-ui.js?v=20261009-select-state-30';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261009-map-workspace-29';
+import { Terrain, Simulation } from './engine.js?v=20261009-select-state-30';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };

@@ -1,5 +1,5 @@
-import {fieldErrors} from './configuration-schema.js?v=20261009-map-workspace-29';
-import {COMMUNICATION_FIELDS} from './configuration-fields.js?v=20261009-map-workspace-29';
+import {fieldErrors} from './configuration-schema.js?v=20261009-select-state-30';
+import {COMMUNICATION_FIELDS} from './configuration-fields.js?v=20261009-select-state-30';
 // Communication validation plus input-only validation for version 1/2 legacy rules.
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 export function actionErrors(unit,prefix='unit',recipientIds=new Set()) {

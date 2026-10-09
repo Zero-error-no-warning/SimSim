@@ -1,4 +1,4 @@
-export {resourceContractErrors as resourceErrors} from './resource-schema.js?v=20261009-map-workspace-29';
+export {resourceContractErrors as resourceErrors} from './resource-schema.js?v=20261009-select-state-30';
 export function createResources(unit){return Object.fromEntries(Object.entries(unit.resources??{}).map(([id,r])=>[id,{capacity:r.capacity,remaining:r.initial??r.capacity,consumed:0,recovered:0}]));}
 export function hasResource(s,effect){return Object.entries(s.resources??{}).every(([id,r])=>r.remaining>1e-9||!(s.unit.resources[id].effects??['movement','sensor','communication']).includes(effect));}
 export function resourceRate(s,id,speed=0,scenario){const r=s.unit.resources[id],base=(r.perSecond??0)+(r.byNodeKind?.[s.node?.kind??'follow']??0)+(r.perMetre??0)*speed;

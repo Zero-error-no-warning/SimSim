@@ -1,9 +1,9 @@
-import {importScenario} from '../src/scenario-import.js?v=20261009-map-workspace-29';
+import {importScenario} from '../src/scenario-import.js?v=20261009-select-state-30';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261009-map-workspace-29';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-map-workspace-29';
-import {trialScenario} from '../src/parameters.js?v=20261009-map-workspace-29';
+import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261009-select-state-30';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-select-state-30';
+import {trialScenario} from '../src/parameters.js?v=20261009-select-state-30';
 const source=JSON.parse(fs.readFileSync(new URL('../data/island-patrol-demo.txt',import.meta.url),'utf8'));
 const {conditions}=prepareAnalysis(source);assert.equal(conditions.length,12);assert.equal(source.analysis.trials*conditions.length,600);
 const base=new Simulation(source),members=base.scenario.units.filter(u=>u.groupId==='patrol-uuv');

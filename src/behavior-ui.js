@@ -1,15 +1,15 @@
-import {showEditorDialog} from './ui-dom.js?v=20261009-map-workspace-29';
-import {conditionErrors} from './decision.js?v=20261009-map-workspace-29';
-import {ConditionUI} from './condition-ui.js?v=20261009-map-workspace-29';
-import {ContextMenu} from './context-menu.js?v=20261009-map-workspace-29';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261009-map-workspace-29';
-import {isParameterRef} from './behavior-parameters.js?v=20261009-map-workspace-29';
-import {NavigationUI} from './navigation-ui.js?v=20261009-map-workspace-29';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261009-map-workspace-29';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261009-map-workspace-29';
-import { clone,validateScenario } from './engine.js?v=20261009-map-workspace-29';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261009-map-workspace-29';
-import { requireElement } from './ui-dom.js?v=20261009-map-workspace-29';
+import {showEditorDialog} from './ui-dom.js?v=20261009-select-state-30';
+import {conditionErrors} from './decision.js?v=20261009-select-state-30';
+import {ConditionUI} from './condition-ui.js?v=20261009-select-state-30';
+import {ContextMenu} from './context-menu.js?v=20261009-select-state-30';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261009-select-state-30';
+import {isParameterRef} from './behavior-parameters.js?v=20261009-select-state-30';
+import {NavigationUI} from './navigation-ui.js?v=20261009-select-state-30';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261009-select-state-30';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261009-select-state-30';
+import { clone,validateScenario } from './engine.js?v=20261009-select-state-30';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261009-select-state-30';
+import { requireElement } from './ui-dom.js?v=20261009-select-state-30';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

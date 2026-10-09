@@ -1,5 +1,5 @@
-import {fieldErrors} from './configuration-schema.js?v=20261009-map-workspace-29';
-import {COMMAND_FIELDS,INITIAL_FIELDS,ASSUMPTION_FIELDS} from './configuration-fields.js?v=20261009-map-workspace-29';
+import {fieldErrors} from './configuration-schema.js?v=20261009-select-state-30';
+import {COMMAND_FIELDS,INITIAL_FIELDS,ASSUMPTION_FIELDS} from './configuration-fields.js?v=20261009-select-state-30';
 const id=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(x);
 export function selectorErrors(s){
   if(s===undefined)return [];

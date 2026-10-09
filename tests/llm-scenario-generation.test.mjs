@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Terrain} from '../src/engine.js?v=20261009-map-workspace-29';
-import {importScenario} from '../src/scenario-import.js?v=20261009-map-workspace-29';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-map-workspace-29';
-import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261009-map-workspace-29';
-import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261009-map-workspace-29';
+import {Terrain} from '../src/engine.js?v=20261009-select-state-30';
+import {importScenario} from '../src/scenario-import.js?v=20261009-select-state-30';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-select-state-30';
+import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261009-select-state-30';
+import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261009-select-state-30';
 const text=fs.readFileSync(new URL('../docs/llm-scenario-generation.txt',import.meta.url),'utf8');
 assert(!/__MINIMAL__|__RECEIVED__|__GROUP__|__PARAMETERS__/.test(text));
 const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,14);

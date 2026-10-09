@@ -1,6 +1,6 @@
-import {stateField} from './state-contract.js?v=20261009-map-workspace-29';
-import {conditionKey} from './navigation.js?v=20261009-map-workspace-29';
-import {selectedContact} from './knowledge.js?v=20261009-map-workspace-29';
+import {stateField} from './state-contract.js?v=20261009-select-state-30';
+import {conditionKey} from './navigation.js?v=20261009-select-state-30';
+import {selectedContact} from './knowledge.js?v=20261009-select-state-30';
 export const UNKNOWN=null;
 const operators={lt:(a,b)=>a<b,lte:(a,b)=>a<=b,gt:(a,b)=>a>b,gte:(a,b)=>a>=b,eq:(a,b)=>a===b,neq:(a,b)=>a!==b};
 export function conditionErrors(c,depth=0){

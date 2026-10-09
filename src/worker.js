@@ -1,5 +1,5 @@
-import {RUNTIME_BUILD} from './ui-dom.js?v=20261009-map-workspace-29';
-import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261009-map-workspace-29';
+import {RUNTIME_BUILD} from './ui-dom.js?v=20261009-select-state-30';
+import { createSimulation, sharedSteps, recordingPayload, restoreRecording } from './recorded-engine.js?v=20261009-select-state-30';
 let simulation, latest, generation=0, state='idle', failure=null;
 function sendHistory(){
   if(simulation.frames)self.postMessage({type:'recordingHistory',revision:latest.revision,history:{duration:simulation.source.duration,unitIds:simulation.states.map(s=>s.unit.id),events:simulation.result.actionEvents}});

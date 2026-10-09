@@ -1,4 +1,4 @@
-import {parameter,bindingKey,readParameter} from './parameters.js?v=20261009-map-workspace-29';
+import {parameter,bindingKey,readParameter} from './parameters.js?v=20261009-select-state-30';
 export function bindingFaction(s,b){
  const [kind,id]=b.target.split(':');
  if(kind==='unit')return s.units.find(u=>u.id===id)?.faction;

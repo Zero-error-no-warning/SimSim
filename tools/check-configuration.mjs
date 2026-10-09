@@ -1,9 +1,9 @@
 import fs from 'node:fs';
-import {CONFIGURATION_MODULES,configurationContractErrors} from '../src/configuration-contract.js?v=20261009-map-workspace-29';
-import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261009-map-workspace-29';
-import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261009-map-workspace-29';
-import {STATE_FIELDS} from '../src/state-contract.js?v=20261009-map-workspace-29';
-import {PARAMETERS} from '../src/parameters.js?v=20261009-map-workspace-29';
+import {CONFIGURATION_MODULES,configurationContractErrors} from '../src/configuration-contract.js?v=20261009-select-state-30';
+import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261009-select-state-30';
+import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261009-select-state-30';
+import {STATE_FIELDS} from '../src/state-contract.js?v=20261009-select-state-30';
+import {PARAMETERS} from '../src/parameters.js?v=20261009-select-state-30';
 const errors=configurationContractErrors(CONFIGURATION_MODULES,FIELD_RENDERERS,EDITOR_RENDERERS);
 for(const m of CONFIGURATION_MODULES)for(const f of m.fields){if(f.analysis&&!PARAMETERS.some(p=>p.key===f.analysis.key))errors.push(f.id+': 分析台帳に未接続');}
 for(const f of STATE_FIELDS)if(!f.type||!f.visibility||!f.record||!f.aggregate||!f.unknown)errors.push(f.field+': 状態の参照契約が不足');

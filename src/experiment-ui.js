@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261009-map-workspace-29';
-import {availableBindings,parameter,readParameter} from './parameters.js?v=20261009-map-workspace-29';
-import {bindingFaction} from './experiment-settings.js?v=20261009-map-workspace-29';
-import {extractPatterns,patternPayload,applyPattern} from './patterns.js?v=20261009-map-workspace-29';
-import {experimentSample,experimentSummary} from './experiment.js?v=20261009-map-workspace-29';
-import {requireElement as $} from './ui-dom.js?v=20261009-map-workspace-29';
+import {clone,validateScenario} from './engine.js?v=20261009-select-state-30';
+import {availableBindings,parameter,readParameter} from './parameters.js?v=20261009-select-state-30';
+import {bindingFaction} from './experiment-settings.js?v=20261009-select-state-30';
+import {extractPatterns,patternPayload,applyPattern} from './patterns.js?v=20261009-select-state-30';
+import {experimentSample,experimentSummary} from './experiment.js?v=20261009-select-state-30';
+import {requireElement as $} from './ui-dom.js?v=20261009-select-state-30';
 const pct=x=>x===null?'—':(100*x).toFixed(1)+'%';
 export class ExperimentUI{
  constructor(analysis){this.analysis=analysis;this.runId=100000;this.running=false;this.result=null;this.rules=[];

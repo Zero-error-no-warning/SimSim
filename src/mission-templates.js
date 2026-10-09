@@ -1,5 +1,5 @@
-import {bindingFaction} from './experiment-settings.js?v=20261009-map-workspace-29';
-import {clone} from './engine.js?v=20261009-map-workspace-29';
+import {bindingFaction} from './experiment-settings.js?v=20261009-select-state-30';
+import {clone} from './engine.js?v=20261009-select-state-30';
 export function surveillanceTemplate(source,{unitId,receiverId,center,radius=1000,period=30}){
  const s=clone(source),u=s.units.find(u=>u.id===unitId),receiver=s.units.find(u=>u.id===receiverId);
  if(!u||u.faction!=='friendly'||!receiver||receiver.id===unitId||receiver.faction!=='friendly')throw Error('監視担当と別の味方報告先を指定してください。');

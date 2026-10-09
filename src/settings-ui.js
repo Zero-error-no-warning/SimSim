@@ -1,10 +1,10 @@
-import { availableBindings } from "./parameters.js?v=20261009-map-workspace-29";
-import { CONFIGURATION_MODULES, CATEGORIES, SCENARIO_CATEGORIES, configurationTarget, configurationContractErrors } from "./configuration-contract.js?v=20261009-map-workspace-29";
-import { getValue, setValue, resolvedDefault } from "./configuration-schema.js?v=20261009-map-workspace-29";
-import { ConfigurationSession } from "./configuration-session.js?v=20261009-map-workspace-29";
-import { renderFields, FIELD_RENDERERS } from "./settings-form.js?v=20261009-map-workspace-29";
-import { renderResourceCollection, resourceName } from "./resource-ui.js?v=20261009-map-workspace-29";
-import { validateScenario } from "./engine.js?v=20261009-map-workspace-29";
+import { availableBindings } from "./parameters.js?v=20261009-select-state-30";
+import { CONFIGURATION_MODULES, CATEGORIES, SCENARIO_CATEGORIES, configurationTarget, configurationContractErrors } from "./configuration-contract.js?v=20261009-select-state-30";
+import { getValue, setValue, resolvedDefault } from "./configuration-schema.js?v=20261009-select-state-30";
+import { ConfigurationSession } from "./configuration-session.js?v=20261009-select-state-30";
+import { renderFields, FIELD_RENDERERS } from "./settings-form.js?v=20261009-select-state-30";
+import { renderResourceCollection, resourceName } from "./resource-ui.js?v=20261009-select-state-30";
+import { validateScenario } from "./engine.js?v=20261009-select-state-30";
 const el = (tag, text) => {
   const n = document.createElement(tag);
   if (text) n.textContent = text;

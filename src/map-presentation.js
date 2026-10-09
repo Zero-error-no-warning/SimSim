@@ -1,6 +1,6 @@
-import {sharedAssignment} from './shared-settings.js?v=20261009-map-workspace-29';
-import {routeFor,destinationFor} from './navigation.js?v=20261009-map-workspace-29';
-import {aggregateTasks} from './resources.js?v=20261009-map-workspace-29';
+import {sharedAssignment} from './shared-settings.js?v=20261009-select-state-30';
+import {routeFor,destinationFor} from './navigation.js?v=20261009-select-state-30';
+import {aggregateTasks} from './resources.js?v=20261009-select-state-30';
 const center=points=>({x:points.reduce((n,p)=>n+p.x,0)/points.length,y:points.reduce((n,p)=>n+p.y,0)/points.length,z:points.reduce((n,p)=>n+p.z,0)/points.length});
 export function taskPresentations(source,snapshot){
  const units=new Map(source.units.map(u=>[u.id,u])),graphs=new Map(source.behaviors.map(g=>[g.id,g]));
