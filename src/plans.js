@@ -1,9 +1,9 @@
-import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
-import {importScenario} from './scenario-import.js?v=20261009-information-analysis-26';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261009-information-analysis-26';
-import {applyPlan,planMetric} from './plan-settings.js?v=20261009-information-analysis-26';
-import {summarizePaired} from './sensitivity.js?v=20261009-information-analysis-26';
-import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261009-information-analysis-26';
+import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
+import {importScenario} from './scenario-import.js?v=20261009-authoring-display-27';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261009-authoring-display-27';
+import {applyPlan,planMetric} from './plan-settings.js?v=20261009-authoring-display-27';
+import {summarizePaired} from './sensitivity.js?v=20261009-authoring-display-27';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261009-authoring-display-27';
 export function planTrialSource(s,condition){
   const p=s.analysis.plans.items.find(p=>'plan:'+p.id===condition.id);
   if(!p)throw Error('運用案が見つかりません。');
@@ -29,7 +29,7 @@ export function summarizePlans(s,rows){
   return base&&metric?rows.filter(r=>r!==base).map(r=>({...summarizePaired(s,base.trials,r.trials,metric),condition:r.condition})):[];
 }
 export function restorePlansResult(payload){
-  if(payload?.source?.version>=4&&payload.implementation!==UI_BUILD)throw Error('分析の実装版が一致しません。');
+  if(payload?.source?.version>=4&&payload.implementation!==MODEL_BUILD)throw Error('分析の実装版が一致しません。');
   if(!payload||payload.type!=='SimSim-plans'||payload.version!==1||!compatibleModel(payload)||payload.source?.version<3)throw Error('この運用案比較結果の形式・モデル版は読み込めません。');
   const prepared=preparePlans(payload.source),rows=[],seen=new Set();
   if(!Array.isArray(payload.rows)||payload.rows.length>prepared.conditions.length)throw Error('運用案比較結果の件数が不正です。');

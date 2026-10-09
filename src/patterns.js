@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
-import {constraintsSatisfied} from './experiment-settings.js?v=20261009-information-analysis-26';
-import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261009-information-analysis-26';
-import {readParameter,writeParameter} from './parameters.js?v=20261009-information-analysis-26';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-information-analysis-26';
-import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
+import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
+import {constraintsSatisfied} from './experiment-settings.js?v=20261009-authoring-display-27';
+import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261009-authoring-display-27';
+import {readParameter,writeParameter} from './parameters.js?v=20261009-authoring-display-27';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-authoring-display-27';
+import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
 const contains=(values,bounds)=>Object.entries(bounds).every(([id,[lo,hi]])=>values[id]>=lo&&values[id]<=hi);
 export function extractPatterns(experiment,{maxRules=4,minCandidates=4}={}){
  if(experiment.status!=='complete'||experiment.completed!==experiment.planned)throw Error('定石の抽出には探索の完了が必要です。');
@@ -27,7 +27,7 @@ export function binomialLower(successes,n,alpha=.05){
  let lo=0,hi=1;for(let i=0;i<50;i++){const p=(lo+hi)/2;let tail=0;for(let k=successes;k<=n;k++)tail+=Math.exp(coefficients[k]+k*Math.log(p)+(n-k)*Math.log1p(-p));if(tail<alpha)lo=p;else hi=p;}return (lo+hi)/2;
 }
 export async function validatePatterns(experiment,rules,{operatingPoints=8,trials=64,onProgress=()=>{},cancelled=()=>false}={}){
- if(experiment.status!=='complete'||experiment.implementation!==UI_BUILD||experiment.model!==recordModel(experiment.source))throw Error('探索の入力・実装版が一致しません。');
+ if(experiment.status!=='complete'||experiment.implementation!==MODEL_BUILD||experiment.model!==recordModel(experiment.source))throw Error('探索の入力・実装版が一致しません。');
  if(!Number.isInteger(operatingPoints)||operatingPoints<1||operatingPoints>16||!Number.isInteger(trials)||trials<1||trials>2000||rules.length>4||rules.length*operatingPoints*trials*experiment.profiles.length>10000)throw Error('検証予算が上限を超えています。');
  // Freeze the extracted definitions; callers cannot supply looser made-up rules.
  const extracted=extractPatterns(experiment);for(const rule of rules)if(!extracted.some(r=>JSON.stringify(r)===JSON.stringify(rule)))throw Error('検証対象は探索から抽出した未変更の候補にしてください。');
@@ -64,7 +64,7 @@ export function patternContext(source){
 export function patternPayload(experiment,rules){return {type:'SimSim-patterns',version:1,...experimentIdentity(experiment.source),experiment:clone(experiment),rules:clone(rules)};}
 export function applyPattern(source,rule,values,{allowCandidate=false}={}){
  if(rule.status!=='adopted'&&!allowCandidate)throw Error('独立検証で採用条件を満たした定石を選択してください。');
- if(rule.sourceExperiment.implementation!==UI_BUILD||rule.sourceExperiment.model!==recordModel(source)||JSON.stringify(patternContext(source))!==JSON.stringify(rule.applicability))throw Error('任務・対象ID・地形・モデル仮定が定石の適用条件と一致しません。');
+ if(rule.sourceExperiment.implementation!==MODEL_BUILD||rule.sourceExperiment.model!==recordModel(source)||JSON.stringify(patternContext(source))!==JSON.stringify(rule.applicability))throw Error('任務・対象ID・地形・モデル仮定が定石の適用条件と一致しません。');
  if(!contains(values,rule.bounds)||!constraintsSatisfied(source.experiment,values))throw Error('適用値が定石範囲・制約を満たしていません。');
  const s=clone(source),changes=[];for(const c of rule.controls){const value=values[c.id];if(!Number.isFinite(value)||value<c.min||value>c.max)throw Error('適用する運用値が不正です。');changes.push({...c,before:readParameter(s,c),after:value});writeParameter(s,c,value);}validateScenario(s);return {scenario:s,changes};
 }

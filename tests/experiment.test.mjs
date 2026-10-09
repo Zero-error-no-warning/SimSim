@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
-import {runExperiment,experimentCandidates,experimentSample} from '../src/experiment.js?v=20261009-information-analysis-26';
+import {validateScenario} from '../src/engine.js?v=20261009-authoring-display-27';
+import {runExperiment,experimentCandidates,experimentSample} from '../src/experiment.js?v=20261009-authoring-display-27';
 const source=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));s.duration=60;s.mission.deadline=60;s.measurements.forEach(m=>m.deadline=60);s.analysis.uncertainties=[];s.experiment={candidates:4,trials:3,designSeed:'test-design',controls:[{id:'delay',target:'unit:observer',parameter:'interaction.communication.delay',min:1,max:40},{id:'speed',target:'unit:uav',parameter:'rate.movement.speed',min:40,max:120}],enemyProfiles:[{id:'slow',changes:[{target:'unit:uuv',parameter:'rate.movement.speed',value:5}]},{id:'fast',changes:[{target:'unit:uuv',parameter:'rate.movement.speed',value:15}]}]};return s;};
 test('controls cannot alter hostile entities, mission deadlines or an uncertainty binding',()=>{
  for(const change of [s=>s.experiment.controls[0].target='unit:uuv',s=>{s.experiment.controls[0].target='scenario';s.experiment.controls[0].parameter='mission.deadline';},s=>s.analysis.uncertainties=[{target:'unit:observer',parameter:'interaction.communication.delay',distribution:'uniform',min:1,max:40}]]){const s=source();change(s);assert.throws(()=>validateScenario(s));}

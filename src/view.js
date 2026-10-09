@@ -1,8 +1,10 @@
-import { editableDefinition } from './editor.js?v=20261009-information-analysis-26';
-import { sharedAssignment } from './shared-settings.js?v=20261009-information-analysis-26';
+import { editableDefinition } from './editor.js?v=20261009-authoring-display-27';
+import { sharedAssignment } from './shared-settings.js?v=20261009-authoring-display-27';
+import {taskPresentations} from './map-presentation.js?v=20261009-authoring-display-27';
+import {resourceName} from './resource-ui.js?v=20261009-authoring-display-27';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261009-information-analysis-26';
+import { Terrain, Simulation } from './engine.js?v=20261009-authoring-display-27';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -49,6 +51,7 @@ export class MapView {
     this.detectionGroup=new THREE.Group();
     this.contactGroup=new THREE.Group();this.taskPlanGroup=new THREE.Group();this.scene.add(this.contactGroup,this.taskPlanGroup);
     this.showSensor=true;
+    this.showResources=true;this.dataLayer=document.getElementById('map-data');this.dataLabels=[];
     this.scene.add(this.environment,this.routes,this.units,this.trails,this.sensorRangeGroup,this.detectionGroup);
     this.camera3d=new THREE.PerspectiveCamera(44,1,10,700000);
     this.cameraTop=new THREE.OrthographicCamera(-20000,20000,16000,-16000,10,700000);
@@ -770,30 +773,37 @@ export class MapView {
       const points=[issue.from,issue.to].map(p=>this.world({...p,z:Math.max(p.z,this.terrain.height(p.x,p.y)??p.z,this.scenario.terrain.seaLevel)+15}));
       const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#ff504b',depthTest:false,depthWrite:false}));line.renderOrder=20;line.userData.routeWarning=true;this.routes.add(line);
     }
-    this.routes.visible=this.showRoutes;
+    this.routes.visible=this.showRoutes&&!this.knowledgeOwner&&!this.taskAggregation;
   }
   updateSnapshot(snapshot) {
     if(!snapshot||this.drag)return;
     this.rawSnapshot=snapshot;
     this.snapshot=snapshot;
     disposal(this.contactGroup);disposal(this.taskPlanGroup);
+    const dataLabels=[],status=document.getElementById('map-display-status');
     this.displayedIds=null;
     if(this.knowledgeOwner){
       const k=snapshot.knowledge?.[this.knowledgeOwner],self=snapshot.units.find(u=>u.id===this.knowledgeOwner),friends=Object.values(k?.friendlyReports??{}).filter(r=>r.position).map(r=>({id:r.subjectId,position:r.position,status:r.reportedState}));
       snapshot={...snapshot,units:[...(self?[self]:[]),...friends.filter(r=>r.id!==self?.id)],mission:undefined,actionEvents:[],trails:{}};
       this.displayedIds=new Set(snapshot.units.map(u=>u.id));
-      for(const c of Object.values(k?.contacts??{})){const sprite=new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffd18b',depthTest:false}));sprite.position.copy(this.world(c.position,40));sprite.scale.setScalar(180);sprite.userData.trackId=c.trackId;this.contactGroup.add(sprite);}
+      for(const c of Object.values(k?.contacts??{})){const sprite=new THREE.Sprite(new THREE.SpriteMaterial({color:'#ffd18b',depthTest:false}));sprite.position.copy(this.world(c.position,40));sprite.userData.trackId=c.trackId;this.contactGroup.add(sprite);dataLabels.push({id:c.trackId,kind:'contact',position:c.position,text:c.trackId+' · 観測から '+Math.max(0,snapshot.time-c.observedAt).toFixed(0)+'秒'});}
+      for(const r of Object.values(k?.friendlyReports??{}))if(r.position&&r.subjectId!==self?.id)dataLabels.push({id:r.subjectId,kind:'report',position:r.position,text:(this.markers.get(r.subjectId)?.unit.name??r.subjectId)+' · 最終報告から '+Math.max(0,snapshot.time-r.observedAt).toFixed(0)+'秒'});
       this.routes.visible=false;this.handles.forEach(h=>h.mesh.visible=false);this.relatedMarkers.count=0;
+      status.textContent=(self?this.markers.get(self.id)?.unit.name:'ユニット未選択')+'の保有情報 · 接触 '+Object.keys(k?.contacts??{}).length+'件 / 味方報告 '+friends.length+'件'+(snapshot.actionsPending?' · 未計算（初期情報のみ）':!Object.keys(k?.contacts??{}).length&&!friends.length?' · まだ情報を取得していません':'');
     }else if(this.taskAggregation){
-      this.displayedIds=new Set(this.selected?[this.selected]:[]);this.routes.visible=false;
-      for(const task of snapshot.taskSummary??[]){
-        const a=this.scenario.behaviorAssignments.find(a=>a.id===task.id),g=this.scenario.behaviors.find(g=>g.id===a?.behaviorId),routeIds=[...new Set(g?.nodes.filter(n=>['patrol','follow'].includes(n.kind)&&typeof n.routeId==='string').map(n=>n.routeId)??[])];
-        const routes=routeIds.map(id=>this.scenario.routes?.find(r=>r.id===id)).filter(Boolean);if(!routes.length&&a?.route?.length)routes.push({points:a.route});
-        for(const route of routes){const points=route.points.map(p=>this.world(p,45)),line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#75dce7',depthTest:false}));line.userData.taskId=task.id;this.taskPlanGroup.add(line);
-          if(points.length>1){const delta=points[1].clone().sub(points[0]),length=delta.length();if(length){const arrow=new THREE.ArrowHelper(delta.normalize(),points[0],length,'#75dce7',Math.min(length/3,100+30*Math.sqrt(task.total)),Math.min(length/4,50+15*Math.sqrt(task.total)));for(const child of arrow.children)child.userData.taskId=task.id;this.taskPlanGroup.add(arrow);}}
+      this.displayedIds=new Set(this.scenario.units.filter(u=>!sharedAssignment(this.scenario,u.id)||u.id===this.selected).map(u=>u.id));this.routes.visible=false;
+      for(const task of taskPresentations(this.scenario,snapshot)){
+        if(task.position)dataLabels.push({id:task.id,kind:'task',faction:task.faction,position:task.position,text:task.name+' · '+task.total+'機（稼働 '+task.operational+'）',resources:this.showResources?Object.fromEntries(Object.entries(task.resources).map(([id,remaining])=>[id,{remaining,capacity:task.resourceCapacity[id]}])):{}});
+        if(this.showRoutes)for(const path of task.paths){const points=path.map(p=>this.world(p,45)),color=COLORS[task.faction];
+          for(let i=1;i<points.length;i++){const delta=points[i].clone().sub(points[i-1]),length=delta.length();if(!length)continue;const mesh=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.65,depthTest:false,depthWrite:false}));mesh.position.copy(points[i-1]).addScaledVector(delta,.5);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.clone().normalize());mesh.userData={taskId:task.id,routeLength:length,routePixels:Math.min(12,4+Math.sqrt(task.total))};this.taskPlanGroup.add(mesh);}
+          if(points.length>1){const delta=points[1].clone().sub(points[0]);if(delta.length()){const head=new THREE.Mesh(new THREE.ConeGeometry(1,1,12),new THREE.MeshBasicMaterial({color,depthTest:false,depthWrite:false}));head.position.copy(points[1]);head.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),delta.normalize());head.userData={taskId:task.id,arrowPixels:Math.min(24,12+Math.sqrt(task.total))};this.taskPlanGroup.add(head);}}
         }
       }
-    }else this.routes.visible=this.showRoutes;
+      status.textContent='タスク集約 · 色は陣営、太い線は計画経路 · ラベルをダブルクリックで個体へ'+(snapshot.actionsPending?' · 未計算（初期配置）':'');
+    }else {this.routes.visible=this.showRoutes;status.textContent='解析用の真状態 · 個体表示'+(snapshot.actionsPending?' · 未計算（初期配置）':'');}
+    this.sensorRangeGroup.visible=this.showSensor&&!this.taskAggregation&&(!this.knowledgeOwner||this.selected===this.knowledgeOwner);
+    if(this.showResources)for(const state of snapshot.units){if(this.displayedIds&&!this.displayedIds.has(state.id)||!Object.keys(state.resources??{}).length)continue;dataLabels.push({id:state.id,kind:'resource',position:state.position,text:this.markers.get(state.id)?.unit.name??state.id,resources:state.resources});}
+    this.buildDataLabels(dataLabels);
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {
       const marker=this.markers.get(state.id);
@@ -830,7 +840,17 @@ export class MapView {
         color:COLORS[unit.faction],transparent:true,opacity:.75
       })));
     }
-    this.trails.visible=this.showTrails;
+    this.trails.visible=this.showTrails&&!this.knowledgeOwner&&!this.taskAggregation;
+  }
+  buildDataLabels(entries){
+    this.dataLayer.replaceChildren();this.dataLabels=[];
+    const leaders=document.createElementNS('http://www.w3.org/2000/svg','svg');leaders.classList.add('map-data-leaders');this.dataLayer.append(leaders);
+    for(const item of entries.slice(0,80)){const node=document.createElement(item.kind==='task'?'button':'div');node.className='map-data-label '+item.kind;node.dataset.mapKind=item.kind;node.dataset.mapId=item.id;if(item.faction)node.style.borderColor=COLORS[item.faction];const title=document.createElement('strong');title.textContent=item.text;node.append(title);
+      for(const [id,r] of Object.entries(item.resources??{})){const row=document.createElement('div'),text=document.createElement('span'),bar=document.createElement('progress');text.textContent=resourceName(id)+' '+r.remaining.toFixed(1)+' / '+r.capacity.toFixed(1);bar.max=r.capacity||1;bar.value=r.remaining;row.className='map-resource-row';row.dataset.resourceId=id;row.append(text,bar);node.append(row);}
+      if(item.kind==='task'){node.title='担当位置の中心です。ダブルクリックで個体へ展開';node.ondblclick=()=>this.onSelectTask?.(item.id);}
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.setAttribute('stroke',COLORS[item.faction]??(item.kind==='contact'?'#ffd18b':'#93c9da'));leaders.append(line);
+      this.dataLayer.append(node);this.dataLabels.push({node,line,position:this.world(item.position,40)});
+    }
   }
   resetTrails(){
     this.trailPoints.clear();
@@ -856,6 +876,14 @@ export class MapView {
     if(!this.drag&&this.terrainStroke===undefined)this.controls.update();
     const width=this.sceneWidth,height=this.element.clientHeight;
     this.camera.updateMatrixWorld();
+    const pixelSize=position=>this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*position.distanceTo(this.camera.position)/height;
+    for(const sprite of this.contactGroup.children)sprite.scale.setScalar(Math.max(1,pixelSize(sprite.position)*26));
+    for(const mesh of this.taskPlanGroup.children){const size=pixelSize(mesh.position);if(mesh.userData.routeLength)mesh.scale.set(size*mesh.userData.routePixels/2,mesh.userData.routeLength,size*mesh.userData.routePixels/2);else if(mesh.userData.arrowPixels)mesh.scale.set(size*mesh.userData.arrowPixels/2,size*mesh.userData.arrowPixels,size*mesh.userData.arrowPixels/2);}
+    const occupied=[];
+    for(const {node,line,position} of this.dataLabels){const p=this.screenPoint(position);node.hidden=!p.visible||p.x<0||p.x>width||p.y<0||p.y>height;line.style.display=node.hidden?'none':'';if(node.hidden)continue;const w=node.offsetWidth,h=node.offsetHeight,baseX=Math.max(6,Math.min(width-w-6,p.x+20)),baseY=Math.max(78,Math.min(height-h-65,p.y)),free=r=>!occupied.some(o=>r.x<o.x+o.w+4&&r.x+r.w+4>o.x&&r.y<o.y+o.h+4&&r.y+r.h+4>o.y);let place;
+      for(const dx of [0,w+12,-w-12]){for(const dy of [0,-h-8,h+8,-2*(h+8),2*(h+8),-3*(h+8),3*(h+8)]){const candidate={x:Math.max(6,Math.min(width-w-6,baseX+dx)),y:Math.max(78,Math.min(height-h-65,baseY+dy)),w,h};if(free(candidate)){place=candidate;break;}}if(place)break;}
+      place??={x:baseX,y:baseY,w,h};occupied.push(place);node.style.transform='translate('+place.x+'px,'+place.y+'px)';for(const [key,value] of [['x1',p.x],['y1',p.y],['x2',place.x],['y2',place.y+Math.min(h/2,15)]])line.setAttribute(key,value);
+    }
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
     for(const [id,marker] of sorted) {
       const pixels=id===this.selected?36:this.scenario.units.length>80?15:30;
@@ -869,7 +897,7 @@ export class MapView {
     this.updateListLinks(width,height);
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;
-      h.mesh.visible=!this.knowledgeOwner&&(h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24);
+      h.mesh.visible=!this.knowledgeOwner&&!this.taskAggregation&&(h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24);
       const pixels=22,scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*h.mesh.position.distanceTo(this.camera.position)/height*pixels;
       h.mesh.scale.setScalar(Math.max(10,scale));
     }

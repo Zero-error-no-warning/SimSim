@@ -1,5 +1,5 @@
-import {requireElement as $} from './ui-dom.js?v=20261009-information-analysis-26';
-import {NODE_KINDS} from './shared-settings.js?v=20261009-information-analysis-26';
+import {requireElement as $} from './ui-dom.js?v=20261009-authoring-display-27';
+import {NODE_KINDS} from './shared-settings.js?v=20261009-authoring-display-27';
 const ns='http://www.w3.org/2000/svg';
 const eventNames={decision:'判断',deliveryFailed:'未着（解析）',commandRejected:'命令拒否',operationalChanged:'稼働変更',detected:'探知',sent:'送信',received:'受信',sendFailed:'送信失敗',arrived:'到着',triggered:'割込み',departed:'出発',near:'接近'};
 const eventColors={decision:'#e5a9ff',deliveryFailed:'#ff8d93',commandRejected:'#ff8d93',operationalChanged:'#ff8d93',detected:'#f6cc77',sent:'#82c9ff',received:'#96e2b0',sendFailed:'#ff8d93',arrived:'#c7aeff',triggered:'#ffae71',departed:'#b2d8f4',near:'#78dcdf'};

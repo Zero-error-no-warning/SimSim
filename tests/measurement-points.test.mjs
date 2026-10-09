@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-information-analysis-26';
-import {trialScenario} from '../src/parameters.js?v=20261009-information-analysis-26';
-import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261009-information-analysis-26';
-import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261009-information-analysis-26';
-import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261009-information-analysis-26';
+import {clone,validateScenario} from '../src/engine.js?v=20261009-authoring-display-27';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-authoring-display-27';
+import {trialScenario} from '../src/parameters.js?v=20261009-authoring-display-27';
+import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261009-authoring-display-27';
+import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261009-authoring-display-27';
+import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261009-authoring-display-27';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 source.mission.deadline=2; // Additional points must execute beyond the main goal's deadline.
 source.measurements=[

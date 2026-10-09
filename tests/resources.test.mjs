@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
 const source=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));delete s.experiment;s.analysis.uncertainties=[];return s;};
 const run=(s,storage='replay')=>{const m=createSimulation(s);let result;const g=sharedSteps(m,undefined,undefined,{record:storage==='replay',storage,horizon:s.duration});let step=g.next();while(!step.done)step=g.next();result=step.value;return {m,result};};
 test('depletion stops movement/sensing/communication and recorded own resource state seeks correctly',()=>{

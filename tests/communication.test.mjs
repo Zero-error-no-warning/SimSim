@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
-import {propagationVisible} from '../src/propagation.js?v=20261009-information-analysis-26';
-import {Terrain} from '../src/terrain.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
+import {propagationVisible} from '../src/propagation.js?v=20261009-authoring-display-27';
+import {Terrain} from '../src/terrain.js?v=20261009-authoring-display-27';
 const base=()=>{const s=JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));delete s.experiment;s.analysis.uncertainties=[];return s;};
 const run=s=>{const m=createSimulation(s);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:s.duration})){}return m;};
 test('RF/optical spherical horizon, elevated horizon and acoustic medium boundary',()=>{

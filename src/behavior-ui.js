@@ -1,13 +1,14 @@
-import {conditionErrors} from './decision.js?v=20261009-information-analysis-26';
-import {ContextMenu} from './context-menu.js?v=20261009-information-analysis-26';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261009-information-analysis-26';
-import {isParameterRef} from './behavior-parameters.js?v=20261009-information-analysis-26';
-import {NavigationUI} from './navigation-ui.js?v=20261009-information-analysis-26';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261009-information-analysis-26';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261009-information-analysis-26';
-import { clone,validateScenario } from './engine.js?v=20261009-information-analysis-26';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261009-information-analysis-26';
-import { requireElement } from './ui-dom.js?v=20261009-information-analysis-26';
+import {conditionErrors} from './decision.js?v=20261009-authoring-display-27';
+import {ConditionUI} from './condition-ui.js?v=20261009-authoring-display-27';
+import {ContextMenu} from './context-menu.js?v=20261009-authoring-display-27';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261009-authoring-display-27';
+import {isParameterRef} from './behavior-parameters.js?v=20261009-authoring-display-27';
+import {NavigationUI} from './navigation-ui.js?v=20261009-authoring-display-27';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261009-authoring-display-27';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261009-authoring-display-27';
+import { clone,validateScenario } from './engine.js?v=20261009-authoring-display-27';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261009-authoring-display-27';
+import { requireElement } from './ui-dom.js?v=20261009-authoring-display-27';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -38,6 +39,7 @@ export class BehaviorUI{
     });
     this.navigation=new NavigationUI({getDraft:()=>this.draft,getUnit:()=>this.mapUnit(),remember:()=>this.remember(),render:()=>this.render(),pickRoute:()=>{this.navigationMode='route';this.dialog.close();this.pickRoute();},pickPoint:()=>{this.navigationMode='point';this.dialog.close();this.pickBase();}});
     this.parameters=new BehaviorParameterUI(this);
+    this.conditions=new ConditionUI($('edge-condition-builder'),condition=>{const edge=this.edge();if(!edge)return;this.remember();edge.condition=condition;this.draft.version=4;this.render();});
     $('route-new').onclick=()=>this.openResource('route',false,true);
     $('destination-new').onclick=()=>this.openResource('destination',false,true);
     for(const kind of ['route','destination']){
@@ -353,6 +355,8 @@ export class BehaviorUI{
     $('graph-editor').hidden=name!=='graph';
     $('task-edit-tab').classList.toggle('active',name==='task');
     $('graph-edit-tab').classList.toggle('active',name==='graph');
+    $('task-edit-tab').setAttribute('aria-pressed',String(name==='task'));
+    $('graph-edit-tab').setAttribute('aria-pressed',String(name==='graph'));
     if(name==='graph')this.renderGraph();
   }
   open(id,newTask=false){
@@ -415,7 +419,7 @@ export class BehaviorUI{
     if(id==='edge-expression'&&edge){try{expression=JSON.parse($('edge-expression').value);const errors=conditionErrors(expression);if(errors.length)throw Error(errors.join(' '));$('edge-expression-error').textContent='';}catch(error){$('edge-expression-error').textContent=error.message;return;}}
     this.remember();
     if(id==='edge-expression'&&edge)edge.condition=expression;
-    if(id==='edge-decision-preset'&&edge){const p=$('edge-decision-preset').value;if(p==='fresh')edge.condition={field:'knowledge.selectedContact.age',op:'lte',value:30};if(p==='missing'){edge.condition={field:'knowledge.selectedContact.age',op:'lt',value:0};edge.onUnknown=true;}if(p==='energy')edge.condition={field:'self.resources.energy.fraction',op:'lte',value:.2};}
+    if(id==='edge-decision-preset'&&edge){const p=$('edge-decision-preset').value;if(p==='fresh'){edge.condition={field:'knowledge.selectedContact.age',op:'lte',value:30};edge.onUnknown=false;}if(p==='missing'){edge.condition={field:'knowledge.selectedContact.age',op:'lt',value:0};edge.onUnknown=true;}if(p==='energy'){edge.condition={field:'self.resources.energy.fraction',op:'lte',value:.2};edge.onUnknown=false;}}
     if(id==='edge-priority'&&edge)edge.priority=Number($('edge-priority').value);
     if(id==='edge-unknown'&&edge)edge.onUnknown=$('edge-unknown').checked;
     if(id==='edge-command-name'&&edge){if($('edge-command-name').value)edge.commandName=$('edge-command-name').value;else delete edge.commandName;}
@@ -777,6 +781,7 @@ export class BehaviorUI{
     $('node-message-fields').hidden=n?.kind!=='report';$('node-message-kind').value=n?.messageKind??'observation';$('node-command-field').hidden=n?.messageKind!=='command';$('node-command-name').value=n?.command?.name??'respond';
     $('edge-decision-fields').hidden=edge?.when!=='condition';$('edge-expression').value=JSON.stringify(edge?.condition??{field:'knowledge.selectedContact.age',op:'lte',value:30},null,2);$('edge-priority').value=edge?.priority??0;$('edge-unknown').checked=edge?.onUnknown??false;$('edge-command-field').hidden=edge?.when!=='command';$('edge-command-name').value=edge?.commandName??'';
     $('node-sensor').checked=n?.sensor!==false;
+    if(edge?.when==='condition')this.conditions.render(edge.condition,this.draft);
     $('edge-properties').hidden=!edge;
     const source=this.graph()?.nodes.find(n=>n.id===edge?.from),target=this.graph()?.nodes.find(n=>n.id===edge?.to);
     $('edge-summary').textContent=edge?(NODE_KINDS[source?.kind]??'未設定の状態')+' → '+(NODE_KINDS[target?.kind]??'未設定の状態'):'';

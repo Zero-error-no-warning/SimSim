@@ -1,10 +1,10 @@
-import {validateInformationMetrics} from './information-metrics.js?v=20261009-information-analysis-26';
-import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
-import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261009-information-analysis-26';
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261009-information-analysis-26';
-export { RECORD_MODEL,recordModel,compatibleModel } from './recorded-engine.js?v=20261009-information-analysis-26';
-import { clone } from './engine.js?v=20261009-information-analysis-26';
-import { RecordedSimulation, RECORD_MODEL,recordModel,compatibleModel, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261009-information-analysis-26';
+import {validateInformationMetrics} from './information-metrics.js?v=20261009-authoring-display-27';
+import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
+import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261009-authoring-display-27';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261009-authoring-display-27';
+export { RECORD_MODEL,recordModel,compatibleModel } from './recorded-engine.js?v=20261009-authoring-display-27';
+import { clone } from './engine.js?v=20261009-authoring-display-27';
+import { RecordedSimulation, RECORD_MODEL,recordModel,compatibleModel, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261009-authoring-display-27';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);
@@ -23,7 +23,7 @@ const decode = (text, Type, length) => {
 export function recordingPayload(model) {
   if(!model.frames)throw Error('計算・記録を先に実行してください。');
   const payload={
-    type:'SimSim-recording',version:2,model:recordModel(model.source),source:clone(model.source),...(model.source.version>=4?{implementation:UI_BUILD,resourceNames:model.resourceNames}:{}),unitIds:model.states.map(s=>s.unit.id),nodeNames:model.nodeNames,result:model.result,frames:model.frames.map(f=>({
+    type:'SimSim-recording',version:2,model:recordModel(model.source),source:clone(model.source),...(model.source.version>=4?{implementation:MODEL_BUILD,resourceNames:model.resourceNames}:{}),unitIds:model.states.map(s=>s.unit.id),nodeNames:model.nodeNames,result:model.result,frames:model.frames.map(f=>({
       time:f.time,values:encode(f.values),nodes:encode(f.nodes),status:encode(f.status),...(f.resources?{resources:encode(f.resources)}:{})
     }))
   };
@@ -35,7 +35,7 @@ const types = new Set(['detected','sent','sendFailed','received','arrived','elap
 export function restoreRecording(payload) {
   if(payload?.type!=='SimSim-recording'||payload.version!==2||!compatibleModel(payload)||!Array.isArray(payload.frames)||!payload.frames.length)throw Error('対応していない記録モデルです。旧版の記録は元の版で再生してください。');
   const model=new RecordedSimulation(payload.source),n=model.states.length;
-  if(model.source.version>=4&&payload.implementation!==UI_BUILD)throw Error('記録の実装版が一致しません。保存した版で再生してください。');
+  if(model.source.version>=4&&payload.implementation!==MODEL_BUILD)throw Error('記録の実装版が一致しません。保存した版で再生してください。');
   if(payload.source.version<3||JSON.stringify(payload.unitIds)!==JSON.stringify(model.states.map(s=>s.unit.id))||JSON.stringify(payload.nodeNames)!==JSON.stringify(model.nodeNames))throw Error('記録対象・ノード・シナリオ版が一致しません。');
   if(model.source.version>=4&&JSON.stringify(payload.resourceNames)!==JSON.stringify(model.resourceNames))throw Error('記録の資源参照が一致しません。');
   if(payload.frames.length*(n*23+8+model.resourceNames.length*4)>MAX_RECORD_BYTES||payload.frames.length>100001)throw Error('再生記録が上限を超えています。');

@@ -1,4 +1,4 @@
-import('./app.js?v=20261009-information-analysis-26').catch(error => {
+import('./app.js?v=20261009-authoring-display-27').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

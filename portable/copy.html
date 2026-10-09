@@ -7,14 +7,14 @@ body{font-family:system-ui,sans-serif;margin:24px auto;padding:0 20px;max-width:
 <h1>SimSim 持ち込み用ファイル</h1>
 <p>下の<strong>5ファイル</strong>をコピーし、社内サーバの同じフォルダに、表示された名前でUTF-8のテキストとして保存してください。<code>index.html</code> をHTTP／HTTPSで開くと起動します。サンプルとThree.jsは組み込み済みです。</p>
 <p>「表示」で全文を開き、「全文をコピー」を押してください。コピーが使えない場合は「全文を選択」→ Ctrl+Cでもコピーできます。「TXTを保存」は内容が同じ <code>ファイル名.txt</code> をダウンロードします。保存先では末尾の <code>.txt</code> を外してください。</p>
-<p class="build">版: 20261009-information-analysis-26-f68e44ba2b3e</p>
+<p class="build">版: 20261009-authoring-display-27-f721c7498a43</p>
 <table><thead><tr><th>保存する名前</th><th>サイズ</th><th>内容</th></tr></thead><tbody id="files"></tbody></table>
 <p id="status" role="status" aria-live="polite"></p>
 <section id="editor" hidden><h2 id="filename"></h2><button id="copy">全文をコピー</button><button id="select">全文を選択</button><button id="download">TXTを保存</button><textarea id="content" readonly spellcheck="false" aria-label="ファイルの全文"></textarea><p id="checksum"></p></section>
 <p><a href="index.html" target="_blank" rel="noopener">持ち込み版を試す</a> · <a href="../index.html">通常版へ戻る</a></p>
 <script>
 'use strict';
-const files=[{"name":"index.html","bytes":62231,"sha256":"793cfa7eecd1ad9851fa03a24a2a905e59e2336a3cd1d6b440f0459ccfda04f1"},{"name":"styles.css","bytes":31226,"sha256":"ba6e08339a8fd436cf1ffc9100c92383dfc60def8906e9bf7de21087d5ae8e8e"},{"name":"main.js","bytes":967909,"sha256":"bad7f835d7f22cfc12a9f12d8dfa773a1efd1ddd3796bb8242224775729688c6"},{"name":"worker.js","bytes":130197,"sha256":"fb0b9c02f567b49358aaab64018340a012c4506ccc2f2751ef4a5f0cc7da43ff"},{"name":"analysis-worker.js","bytes":136903,"sha256":"56cbc38a039354c1933b0d6dfb3dc8f29414f1a73ef181bbff99cd05b7cf8929"}],build='20261009-information-analysis-26-f68e44ba2b3e',status=document.getElementById('status'),content=document.getElementById('content');
+const files=[{"name":"index.html","bytes":62826,"sha256":"c18918d4ec42cdba5f99f60f06b8bc0a61a6154aa5db5735f2447da3173f71b5"},{"name":"styles.css","bytes":34153,"sha256":"c40d834bee8e42de8158d371d1b0c475b33d67bccb46c784001163511588581b"},{"name":"main.js","bytes":985390,"sha256":"8fc6a16c16063390b833890b29ee490f317a0776cb3759bed0f5aedd2b908cba"},{"name":"worker.js","bytes":130528,"sha256":"a1c870411ec2458b65c0c08ddc39dd44c08c9fb1d45f9401b42473c2231d5899"},{"name":"analysis-worker.js","bytes":137228,"sha256":"b9d7912c2d2ba80918c7ddd59ad9fa7b1734ea7f022ee28944b28481c5d42ee0"}],build='20261009-authoring-display-27-f721c7498a43',status=document.getElementById('status'),content=document.getElementById('content');
 let selected=null;
 for(const file of files){
   const row=document.createElement('tr'),name=document.createElement('td'),size=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');

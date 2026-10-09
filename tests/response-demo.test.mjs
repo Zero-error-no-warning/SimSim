@@ -1,10 +1,10 @@
-import {createSimulation,sharedSteps} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
-import {importScenario} from '../src/scenario-import.js?v=20261009-information-analysis-26';
+import {createSimulation,sharedSteps} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
+import {importScenario} from '../src/scenario-import.js?v=20261009-authoring-display-27';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone} from '../src/engine.js?v=20261009-information-analysis-26';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult,detectionSteps} from '../src/detection.js?v=20261009-information-analysis-26';
-import {trialScenario} from '../src/parameters.js?v=20261009-information-analysis-26';
+import {Simulation,clone} from '../src/engine.js?v=20261009-authoring-display-27';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult,detectionSteps} from '../src/detection.js?v=20261009-authoring-display-27';
+import {trialScenario} from '../src/parameters.js?v=20261009-authoring-display-27';
 const source=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/response-demo.txt',import.meta.url)));
 const {conditions}=prepareAnalysis(source),rows=[],start=performance.now();assert.equal(conditions.length,12);
 for(const condition of conditions){const trials=[];for(let trial=0;trial<source.analysis.trials;trial++){const sample=trialScenario(source,condition,trial),model=createSimulation(sample.scenario),r=runDetection(model);assert.equal(r.invalidUnits,0);assert.equal(r.constrainedPaths,0);if(r.success){const firstReceived=r.actionEvents.find(e=>e.type==='received'&&e.unitId==='response-uav'),departed=r.actionEvents.find(e=>e.type==='departed'),arrived=r.actionEvents.find(e=>e.type==='arrived'&&e.unitId==='response-uav');assert(firstReceived);assert(departed.time>=firstReceived.time+180);assert.equal(arrived.time,r.successTime);assert(model.states.find(s=>s.unit.id==='response-uav').distance>0);}trials.push({...r,trial,sampled:sample.sampled});}rows.push({...summarizeRow(condition.count,trials),condition});}

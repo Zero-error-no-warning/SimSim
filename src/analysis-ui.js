@@ -1,21 +1,21 @@
-import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
-import {ExperimentUI} from './experiment-ui.js?v=20261009-information-analysis-26';
-import {verifiedWorker} from './worker-client.js?v=20261009-information-analysis-26';
-import {PlansUI} from './plans-ui.js?v=20261009-information-analysis-26';
-import {preparePlans,planTrialSource} from './plans.js?v=20261009-information-analysis-26';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261009-information-analysis-26';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261009-information-analysis-26';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-information-analysis-26';
-import {HistoryUI} from './history-ui.js?v=20261009-information-analysis-26';
-import {MeasurementUI} from './measurement-ui.js?v=20261009-information-analysis-26';
-import {stateMembers} from './state-measurement.js?v=20261009-information-analysis-26';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261009-information-analysis-26';
-import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-information-analysis-26';
-import { numericScale } from './chart-scale.js?v=20261009-information-analysis-26';
-import { clone,validateScenario } from './engine.js?v=20261009-information-analysis-26';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261009-information-analysis-26';
-import { ParameterEditor } from './parameter-ui.js?v=20261009-information-analysis-26';
-import { requireElement } from './ui-dom.js?v=20261009-information-analysis-26';
+import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
+import {ExperimentUI} from './experiment-ui.js?v=20261009-authoring-display-27';
+import {verifiedWorker} from './worker-client.js?v=20261009-authoring-display-27';
+import {PlansUI} from './plans-ui.js?v=20261009-authoring-display-27';
+import {preparePlans,planTrialSource} from './plans.js?v=20261009-authoring-display-27';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261009-authoring-display-27';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261009-authoring-display-27';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-authoring-display-27';
+import {HistoryUI} from './history-ui.js?v=20261009-authoring-display-27';
+import {MeasurementUI} from './measurement-ui.js?v=20261009-authoring-display-27';
+import {stateMembers} from './state-measurement.js?v=20261009-authoring-display-27';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261009-authoring-display-27';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-authoring-display-27';
+import { numericScale } from './chart-scale.js?v=20261009-authoring-display-27';
+import { clone,validateScenario } from './engine.js?v=20261009-authoring-display-27';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261009-authoring-display-27';
+import { ParameterEditor } from './parameter-ui.js?v=20261009-authoring-display-27';
+import { requireElement } from './ui-dom.js?v=20261009-authoring-display-27';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -26,7 +26,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261009-information-analysis-26',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261009-authoring-display-27',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -479,7 +479,7 @@ export class AnalysisUI {
   export() {
     const sensitive=this.resultMode==='sensitivity';
     const payload={
-      type:this.resultMode==='plans'?'SimSim-plans':sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive||this.resultMode==='plans'?1:5,model:recordModel(this.base),...(this.base.version>=4?{implementation:UI_BUILD}:{}),confidence:sensitive||this.resultMode==='plans'?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
+      type:this.resultMode==='plans'?'SimSim-plans':sensitive?'SimSim-sensitivity':'SimSim-analysis',version:sensitive||this.resultMode==='plans'?1:5,model:recordModel(this.base),...(this.base.version>=4?{implementation:MODEL_BUILD}:{}),confidence:sensitive||this.resultMode==='plans'?'Paired mean difference, Student t approximate two-sided 95%':'Wilson two-sided 95%',completed:this.completed,planned:this.planned,partial:this.completed<this.planned,elapsedMs:this.elapsedMs,source:this.base,rows:this.rows
     };
     const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{
       type:'text/plain;charset=utf-8'

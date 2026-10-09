@@ -1,11 +1,11 @@
-import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
-import {importScenario} from './scenario-import.js?v=20261009-information-analysis-26';
-import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
-import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261009-information-analysis-26';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261009-information-analysis-26';
-import {median} from './measurement-points.js?v=20261009-information-analysis-26';
-import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-information-analysis-26';
-import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261009-information-analysis-26';
+import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
+import {importScenario} from './scenario-import.js?v=20261009-authoring-display-27';
+import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
+import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261009-authoring-display-27';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261009-authoring-display-27';
+import {median} from './measurement-points.js?v=20261009-authoring-display-27';
+import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-authoring-display-27';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261009-authoring-display-27';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;
@@ -64,7 +64,7 @@ export function summarizeSensitivity(s,rows){
   return entries.map(r=>({...r,rank:r.delta===null?null:keys.indexOf(bindingKey(r.condition.candidate))+1})).sort((a,b)=>(a.rank??Infinity)-(b.rank??Infinity)||a.condition.index-b.condition.index);
 }
 export function restoreSensitivityResult(payload){
-  if(payload?.source?.version>=4&&payload.implementation!==UI_BUILD)throw Error('分析の実装版が一致しません。');
+  if(payload?.source?.version>=4&&payload.implementation!==MODEL_BUILD)throw Error('分析の実装版が一致しません。');
   if(!payload||payload.type!=='SimSim-sensitivity'||payload.version!==1||!compatibleModel(payload))throw Error('この感度分析結果の形式・モデル版は読み込めません。');
   if(payload.source?.version<3)throw Error('感度分析の元シナリオはversion 3にしてください。');
   const prepared=prepareSensitivity(payload.source),restored=restoreAnalysisRows({...prepared,scenario:prepared.trialSource},{...payload,source:prepared.trialSource});

@@ -1,9 +1,9 @@
-import {importScenario} from '../src/scenario-import.js?v=20261009-information-analysis-26';
+import {importScenario} from '../src/scenario-import.js?v=20261009-authoring-display-27';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261009-information-analysis-26';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-information-analysis-26';
-import {trialScenario} from '../src/parameters.js?v=20261009-information-analysis-26';
+import {Simulation,clone,validateScenario} from '../src/engine.js?v=20261009-authoring-display-27';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-authoring-display-27';
+import {trialScenario} from '../src/parameters.js?v=20261009-authoring-display-27';
 const source=JSON.parse(fs.readFileSync(new URL('../data/island-patrol-demo.txt',import.meta.url),'utf8'));
 const {conditions}=prepareAnalysis(source);assert.equal(conditions.length,12);assert.equal(source.analysis.trials*conditions.length,600);
 const base=new Simulation(source),members=base.scenario.units.filter(u=>u.groupId==='patrol-uuv');

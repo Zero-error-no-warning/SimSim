@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restorePlansResult,summarizePlans} from '../src/plans.js?v=20261009-information-analysis-26';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261009-information-analysis-26';
+import {restorePlansResult,summarizePlans} from '../src/plans.js?v=20261009-authoring-display-27';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-sensitivity-'));
 const server=http.createServer((req,res)=>{

@@ -1,10 +1,10 @@
-import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
-import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261009-information-analysis-26';
-import {random01} from './random.js?v=20261009-information-analysis-26';
-import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261009-information-analysis-26';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-information-analysis-26';
-import {wilson} from './detection.js?v=20261009-information-analysis-26';
-import {UI_BUILD} from './ui-dom.js?v=20261009-information-analysis-26';
+import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
+import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261009-authoring-display-27';
+import {random01} from './random.js?v=20261009-authoring-display-27';
+import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261009-authoring-display-27';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-authoring-display-27';
+import {wilson} from './detection.js?v=20261009-authoring-display-27';
+import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
 export function controlValues(e,index,phase='explore',bounds={}){
  const values={};for(const c of e.controls){const [min,max]=bounds[c.id]??[c.min,c.max],u=random01((e.designSeed??'SimSim-design')+'|'+phase+'|'+index+'|'+c.id);let value=min+u*(max-min);if(parameter(c.parameter).integer)value=Math.round(value);values[c.id]=value;}return values;
 }
@@ -22,10 +22,10 @@ export function experimentSample(source,candidate,profile,trial,phase='explore')
  const {scenario,sampled}=trialScenario(base,{settings},trial);validateScenario(scenario);return {scenario,sampled};
 }
 export function experimentSummary(rows){const successes=rows.filter(r=>r.success).length;return {total:rows.length,successes,failures:rows.length-successes,invalid:rows.filter(r=>r.invalidUnits||r.constrainedPaths).length,...wilson(successes,rows.length)};}
-export function experimentIdentity(s){return {model:recordModel(s),implementation:UI_BUILD,source:clone(s)};}
+export function experimentIdentity(s){return {model:recordModel(s),implementation:MODEL_BUILD,source:clone(s)};}
 export async function runExperiment(source,{checkpoint,onProgress=()=>{},cancelled=()=>false}={}){
  const s=validateScenario(source),candidates=experimentCandidates(s),profiles=s.experiment.enemyProfiles??[{id:'baseline',changes:[]}],trials=s.experiment.trials??64,planned=candidates.length*profiles.length*trials;
- if(checkpoint&&(checkpoint.type!=='SimSim-experiment'||checkpoint.version!==1||checkpoint.implementation!==UI_BUILD||checkpoint.model!==recordModel(s)||JSON.stringify(checkpoint.source)!==JSON.stringify(s)||!Array.isArray(checkpoint.rows)||checkpoint.rows.length>planned))throw Error('再開データと入力・実装版が一致しません。');
+ if(checkpoint&&(checkpoint.type!=='SimSim-experiment'||checkpoint.version!==1||checkpoint.implementation!==MODEL_BUILD||checkpoint.model!==recordModel(s)||JSON.stringify(checkpoint.source)!==JSON.stringify(s)||!Array.isArray(checkpoint.rows)||checkpoint.rows.length>planned))throw Error('再開データと入力・実装版が一致しません。');
  const result={type:'SimSim-experiment',version:1,...experimentIdentity(s),candidates,profiles,rows:checkpoint?clone(checkpoint.rows):[],planned,completed:checkpoint?.rows.length??0,status:'running'};
  for(let index=0;index<result.rows.length;index++){const r=result.rows[index],candidate=candidates[Math.floor(index/(profiles.length*trials))],profile=profiles[Math.floor(index/trials)%profiles.length];if(r.index!==index||r.candidateId!==candidate.id||r.profileId!==profile.id||r.trial!==(s.trial??0)+index%trials||typeof r.success!=='boolean')throw Error('再開データの試行対応が不正です。');}
  let last=performance.now();for(let index=result.completed;index<planned;index++){

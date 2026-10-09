@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261009-information-analysis-26';
+import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261009-authoring-display-27';
 // Run before publishing after changing UI_BUILD. Version the entire module graph,
 // including worker entry points; versioning only bootstrap leaves stale imports.
 const root=new URL('../',import.meta.url);

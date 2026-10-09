@@ -1,7 +1,7 @@
-import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
-import {NODE_KINDS} from './shared-settings.js?v=20261009-information-analysis-26';
-import {summarizeMeasurements} from './measurement-points.js?v=20261009-information-analysis-26';
-import {requireElement as $} from './ui-dom.js?v=20261009-information-analysis-26';
+import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
+import {NODE_KINDS} from './shared-settings.js?v=20261009-authoring-display-27';
+import {summarizeMeasurements} from './measurement-points.js?v=20261009-authoring-display-27';
+import {requireElement as $} from './ui-dom.js?v=20261009-authoring-display-27';
 const pct=n=>n===null?'—':(n*100).toFixed(1)+'%';
 const time=n=>n===null?'—':n.toFixed(1)+'秒';
 export class MeasurementUI{

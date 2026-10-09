@@ -1,5 +1,5 @@
-import {random01,streamKey} from './random.js?v=20261009-information-analysis-26';
-import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261009-information-analysis-26';
+import {random01,streamKey} from './random.js?v=20261009-authoring-display-27';
+import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261009-authoring-display-27';
 const within=(d,t)=>t>=d.start&&t<d.end;
 export function transmissionAttempts(model,s,receiver,t,messageId){
  const configured=model.source.communicationLinks;

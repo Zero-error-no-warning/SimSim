@@ -1,19 +1,19 @@
-import {createResources,hasResource,resourceBoundary,updateResources,chargeMessage,aggregateTasks} from './resources.js?v=20261009-information-analysis-26';
-import {InformationMetrics} from './information-metrics.js?v=20261009-information-analysis-26';
-import {measurePoints} from './measurement-points.js?v=20261009-information-analysis-26';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261009-information-analysis-26';
-import {resolveGraph} from './behavior-parameters.js?v=20261009-information-analysis-26';
-import { Simulation } from './engine.js?v=20261009-information-analysis-26';
-import { importScenario } from './scenario-import.js?v=20261009-information-analysis-26';
-import { random01, streamKey } from './random.js?v=20261009-information-analysis-26';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261009-information-analysis-26';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261009-information-analysis-26';
-import { graphTriggers } from './shared-settings.js?v=20261009-information-analysis-26';
-import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261009-information-analysis-26';
-import {transmissionAttempts,periodicReports} from './communication.js?v=20261009-information-analysis-26';
-import {propagationVisible} from './propagation.js?v=20261009-information-analysis-26';
-import {chooseDecision} from './decision.js?v=20261009-information-analysis-26';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261009-information-analysis-26';
+import {createResources,hasResource,resourceBoundary,updateResources,chargeMessage,aggregateTasks} from './resources.js?v=20261009-authoring-display-27';
+import {InformationMetrics} from './information-metrics.js?v=20261009-authoring-display-27';
+import {measurePoints} from './measurement-points.js?v=20261009-authoring-display-27';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261009-authoring-display-27';
+import {resolveGraph} from './behavior-parameters.js?v=20261009-authoring-display-27';
+import { Simulation } from './engine.js?v=20261009-authoring-display-27';
+import { importScenario } from './scenario-import.js?v=20261009-authoring-display-27';
+import { random01, streamKey } from './random.js?v=20261009-authoring-display-27';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261009-authoring-display-27';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261009-authoring-display-27';
+import { graphTriggers } from './shared-settings.js?v=20261009-authoring-display-27';
+import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261009-authoring-display-27';
+import {transmissionAttempts,periodicReports} from './communication.js?v=20261009-authoring-display-27';
+import {propagationVisible} from './propagation.js?v=20261009-authoring-display-27';
+import {chooseDecision} from './decision.js?v=20261009-authoring-display-27';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261009-authoring-display-27';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const INFORMATION_MODEL='information-behavior-v4';
 export const recordModel=s=>s.version>=4?INFORMATION_MODEL:RECORD_MODEL;
@@ -267,13 +267,15 @@ export class RecordedSimulation extends Simulation {
     return {
       id:s.unit.id,position:{
         x:s.position.x,y:s.position.y,z:s.position.z
-      },heading:s.heading,status:s.status,distance:s.distance,routeDistance:path.length,error:s.error,errorAt:path.errorAt,actualSpeed:path.actualSpeed,startDelay:path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null
+      },heading:s.heading,status:s.status,distance:s.distance,routeDistance:path.length,error:s.error,errorAt:path.errorAt,actualSpeed:path.actualSpeed,startDelay:path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null,
+      ...(this.source.version>=4?{resources:structuredClone(s.resources),operational:s.operational!==false}:{})
     };
   }
   evaluate(time,{knowledgeOwners}={}) {
     const t=Math.max(0,Math.min(this.source.duration,Number(time)||0));
     if (!this.frames) return {
-      time:0,units:[...this.states.map(s=>this.stateSnapshot(s)),...this.inactiveUnits],actionsPending:true,recordingPending:true
+      time:0,units:[...this.states.map(s=>this.stateSnapshot(s)),...this.inactiveUnits],actionsPending:true,recordingPending:true,
+      ...(this.source.version>=4?{taskSummary:aggregateTasks(this.source,this.states),knowledge:Object.fromEntries(this.states.filter(s=>!knowledgeOwners||knowledgeOwners.includes(s.unit.id)).map(s=>[s.unit.id,createKnowledge(s.unit,this.source)]))}:{})
     };
     let l=0,r=this.frames.length-1;
     while(l<r){

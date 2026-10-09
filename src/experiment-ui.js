@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261009-information-analysis-26';
-import {availableBindings,parameter,readParameter} from './parameters.js?v=20261009-information-analysis-26';
-import {bindingFaction} from './experiment-settings.js?v=20261009-information-analysis-26';
-import {extractPatterns,patternPayload,applyPattern} from './patterns.js?v=20261009-information-analysis-26';
-import {experimentSample,experimentSummary} from './experiment.js?v=20261009-information-analysis-26';
-import {requireElement as $} from './ui-dom.js?v=20261009-information-analysis-26';
+import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
+import {availableBindings,parameter,readParameter} from './parameters.js?v=20261009-authoring-display-27';
+import {bindingFaction} from './experiment-settings.js?v=20261009-authoring-display-27';
+import {extractPatterns,patternPayload,applyPattern} from './patterns.js?v=20261009-authoring-display-27';
+import {experimentSample,experimentSummary} from './experiment.js?v=20261009-authoring-display-27';
+import {requireElement as $} from './ui-dom.js?v=20261009-authoring-display-27';
 const pct=x=>x===null?'—':(100*x).toFixed(1)+'%';
 export class ExperimentUI{
  constructor(analysis){this.analysis=analysis;this.runId=100000;this.running=false;this.result=null;this.rules=[];
