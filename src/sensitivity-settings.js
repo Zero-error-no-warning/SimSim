@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261009-authoring-display-27';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261009-configuration-contract-28';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){

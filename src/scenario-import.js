@@ -1,5 +1,5 @@
-import { validateScenario } from './engine.js?v=20261009-authoring-display-27';
-import { normalizedAnalysis } from './parameters.js?v=20261009-authoring-display-27';
+import { validateScenario } from './engine.js?v=20261009-configuration-contract-28';
+import { normalizedAnalysis } from './parameters.js?v=20261009-configuration-contract-28';
 // Compatibility ends here: the application and workers execute canonical version 3/4 scenarios.
 export function importScenario(value) {
   const s = validateScenario(value);

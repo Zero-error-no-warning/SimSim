@@ -1,5 +1,6 @@
+import {fieldErrors} from './configuration-schema.js?v=20261009-configuration-contract-28';
+import {COMMAND_FIELDS,INITIAL_FIELDS,ASSUMPTION_FIELDS} from './configuration-fields.js?v=20261009-configuration-contract-28';
 const id=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(x);
-const position=p=>p&&['x','y','z'].every(k=>Number.isFinite(p[k]));
 export function selectorErrors(s){
   if(s===undefined)return [];
   return !s||typeof s!=='object'||Array.isArray(s)||Object.keys(s).some(k=>!['class','order','trackId'].includes(k))||s.class!==undefined&&!id(s.class)||s.order!==undefined&&!['latest','nearest'].includes(s.order)||s.trackId!==undefined&&!id(s.trackId)?['接触選択はclass・order（latest/nearest）・trackIdで指定してください。']:[];
@@ -7,23 +8,15 @@ export function selectorErrors(s){
 export function informationErrors(s){
   if(!s||typeof s!=='object')return [];
   const errors=[];
-  if(s.informationMetrics!==undefined&&(!s.informationMetrics||!Number.isFinite(s.informationMetrics.maxContactAge)||s.informationMetrics.maxContactAge<0||s.informationMetrics.maxContactAge>86400))errors.push('情報鮮度の基準は0～86400秒です。');
-  const units=[...(Array.isArray(s.units)?s.units:[]),...(Array.isArray(s.groups)?s.groups.map(g=>g?.template):[])],ids=new Set(units.map(u=>u?.id));
+  const units=[...(Array.isArray(s.units)?s.units:[]),...(Array.isArray(s.groups)?s.groups.map(g=>g?.template):[])],context={scenario:{...s,units}};
   const advanced=s.initialInformation!==undefined||s.modelAssumptions!==undefined||units.some(u=>u?.commandSources!==undefined)||s.behaviors?.some?.(g=>g.nodes?.some?.(n=>n.messageKind!==undefined||n.selector!==undefined)||g.edges?.some?.(e=>['condition','command'].includes(e?.when)));
   if(s.version<4&&advanced)errors.push('情報・判断・命令の設定にはversion 4を使用してください。');
-  for(const [key,allowed] of Object.entries({identityMatching:['perfect'],positionObservation:['exact'],communicationTransmission:['instant'],geometry:['local-plane-spherical-horizon']}))if(s.modelAssumptions?.[key]!==undefined&&!allowed.includes(s.modelAssumptions[key]))errors.push('未対応のモデル仮定: '+key);
-  if(s.modelAssumptions?.information!==undefined&&!['restricted','legacy'].includes(s.modelAssumptions.information))errors.push('情報参照はrestrictedまたはlegacyです。');
-  for(const u of units)if(u?.commandSources!==undefined&&(!Array.isArray(u.commandSources)||u.commandSources.length>32||u.commandSources.some(x=>!ids.has(x))))errors.push('命令を受け付ける送信元ユニットを指定してください。');
+  errors.push(...fieldErrors(ASSUMPTION_FIELDS,s,context));
+  if(s.informationMetrics!==undefined&&(!s.informationMetrics||s.informationMetrics.maxContactAge===undefined))errors.push('情報鮮度の基準を指定してください。');
+  for(const u of units)if(u)errors.push(...fieldErrors(COMMAND_FIELDS,u,context));
   if(s.initialInformation!==undefined){
     if(!Array.isArray(s.initialInformation)||s.initialInformation.length>2000)errors.push('初期情報は最大2000件です。');
-    else for(const item of s.initialInformation){
-      const o=item?.observation;
-      if(o?.messageKind!==undefined&&!['observation','status'].includes(o.messageKind))errors.push('初期情報には観測または味方状態を指定してください。');
-      const validTime=Number.isFinite(o?.observationTime)&&o.observationTime<=0&&o.observationTime>=-86400;
-      const validContent=o?.messageKind==='status'?ids.has(o.subjectId)&&['operational','disabled','unknown'].includes(o.reportedState):ids.has(o?.targetId)&&position(o?.targetPosition);
-      if(!ids.has(item?.ownerId)||!validTime||!validContent)errors.push('初期情報の所有者・対象・位置・観測時刻が不正です。');
-      if(o?.confidence!==undefined&&(!Number.isFinite(o.confidence)||o.confidence<0||o.confidence>1)||o?.positionErrorRadius!==undefined&&(!Number.isFinite(o.positionErrorRadius)||o.positionErrorRadius<0))errors.push('初期情報の信頼度・位置誤差が不正です。');
-    }
+    else for(const item of s.initialInformation)errors.push(...fieldErrors(INITIAL_FIELDS.filter(f=>!f.when||item&&f.when(item)),item,context));
   }
   for(const g of Array.isArray(s.behaviors)?s.behaviors:[]){
     for(const n of Array.isArray(g.nodes)?g.nodes:[]){errors.push(...selectorErrors(n.selector));

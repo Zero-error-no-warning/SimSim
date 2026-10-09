@@ -1,16 +1,16 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261009-authoring-display-27">
+<html lang="ja" data-simsim-build="20261009-configuration-contract-28">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261009-authoring-display-27-f721c7498a43">
-<script src="main.js?v=20261009-authoring-display-27-f721c7498a43" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261009-configuration-contract-28-d9ccd105ca90">
+<script src="main.js?v=20261009-configuration-contract-28-d9ccd105ca90" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.09.27</span>
+<h1>SimSim <span id="app-version">v2026.10.09.28</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
@@ -58,11 +58,11 @@
 <span class="phase-badge">編集 → 計算 → 再生・分析</span>
 </div></aside>
 <div class="pane-resizer" data-pane="unit" role="separator" aria-label="ユニット一覧の幅" aria-orientation="vertical" tabindex="0"></div>
-<main class="main-panel"><div class="plan-toolbar" aria-label="運用案の切替と管理">
+<main class="main-panel"><section id="settings-editor" hidden aria-label="共通設定画面"><header class="settings-heading"><div><h2 id="settings-title">設定</h2><p id="settings-scope"></p></div><button id="settings-back">地図へ戻る</button></header><label class="settings-search">設定を検索<input id="settings-search" type="search" placeholder="例: 燃料、通信、初期情報" aria-label="設定を検索"></label><div class="settings-body"><nav id="settings-categories" aria-label="設定カテゴリ"></nav><div id="settings-content"></div><div id="settings-specialized" hidden></div></div><footer class="settings-footer"><output id="settings-error" role="status"></output><div><span id="settings-dirty"></span><button id="settings-cancel">取消・戻る</button><button id="settings-apply" class="primary">適用</button></div></footer></section><div class="plan-toolbar" aria-label="運用案の切替と管理">
 <label>運用案 <select id="plan-select" aria-label="表示する運用案"></select></label><button id="plan-save">案として保存</button><details id="plan-menu" class="menu-popover"><summary>案の操作</summary><div><div class="plan-menu-actions"><button id="plan-new">新しい案として保存</button><button id="plan-rename">名前を変更</button><button id="plan-delete">保存済みの案を削除</button></div><p class="route-help">切替時に編集中の内容を保持します。分析は保存済みの案を使用します。</p><div class="results-scroll"><table class="results-table"><thead><tr><th>保存した案</th><th>基準と異なる設定</th><th>編集状況</th></tr></thead><tbody id="plan-list"></tbody></table></div></div></details><output id="plan-current" role="status"></output>
 </div><div class="map-toolbar">
 <div class="view-buttons">
-<button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="view3d" class="active" aria-pressed="true">3D</button><button id="viewtop" aria-pressed="false">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
+<button id="authoring-toggle" class="active" aria-pressed="true">配置編集</button><button id="terrain-edit">地形・領域編集</button><button id="analysis-open" class="primary">分析</button><button id="scenario-settings-open">シナリオ設定</button><button id="view3d" class="active" aria-pressed="true">3D</button><button id="viewtop" aria-pressed="false">真上</button><button hidden id="focus-selection" title="選択対象を中央に表示（F）">選択へ</button><button hidden id="fit" title="全体を表示">全体</button>
 </div>
 <details class="menu-popover"><summary>表示</summary><div><div class="map-options"><label>集約表示 <select id="task-aggregation"><option value="units">個体</option><option value="tasks">タスクの計画経路と担当数</option></select></label><label>情報視点 <select id="information-perspective"><option value="truth">解析用の真状態</option><option value="selected">選択ユニットの保有情報</option></select></label>
 <label><input id="show-routes" type="checkbox" checked>経路</label><label><input id="show-trails" type="checkbox" checked>航跡</label><label><input id="show-labels" type="checkbox" checked>一覧との対応線</label><label><input id="show-sensor" type="checkbox" checked>探知範囲</label><label><input id="show-resources" type="checkbox" checked>資源残量</label><label><input id="show-water" type="checkbox" checked>海面</label><label>高さ表示 <select id="exaggeration"><option value="1">×1</option>
@@ -112,78 +112,8 @@
 <section id="task-summary-panel" hidden><table class="results-table"><thead><tr><th>タスク</th><th>担当／稼働</th><th>現在のノード別人数</th><th>資源残量の合計</th></tr></thead><tbody id="task-summary"></tbody></table><small>線はタスクの計画経路です。表または経路をダブルクリックすると個体とノードへ展開します。</small></section><div class="notice"><button id="route-check-open">経路を検査</button> <output id="route-check-status" role="status"></output></div>
 <div id="notice" class="notice" role="status">読み込み中</div></main>
 <div class="pane-resizer" data-pane="inspector" role="separator" aria-label="ユニット編集の幅" aria-orientation="vertical" tabindex="0"></div>
-<aside class="inspector" aria-label="ユニット編集"><div class="panel-heading">
-<div>
-<span class="eyebrow">SELECTED UNIT</span><h2>選択したユニット</h2>
-</div>
-<button id="delete" class="danger" disabled>削除</button>
-</div>
-<div id="empty-selection" class="empty-selection">ユニットを選択してください。</div>
-<div id="properties" hidden>
-<p id="generated-note" class="route-help" hidden>群から生成したユニットです。ドラッグは群全体に適用。数値属性は群の設定で変更できます。</p>
-<button id="edit-selected-group" class="full" hidden>この群を編集</button><div class="task-binding">
-<p id="unit-task-summary"></p>
-<button id="unit-task-open" class="full">担当タスクを設定</button>
-</div>
-<details class="property-section" id="unit-resource-panel"><summary>燃料・電池などの資源</summary><div><div id="unit-resource-summary"></div><button id="unit-resource-open" class="full">資源の容量・消費率を設定</button></div></details><label class="check-field"><input id="unit-enabled" type="checkbox" checked>計算に使用する</label><p id="unit-enabled-note" class="route-help"></p><fieldset id="definition-fields">
-<label class="field">名称<input id="unit-name" maxlength="120"></label><div class="fields-two">
-<label class="field">領域<select id="unit-domain"><option value="ground">地上</option>
-<option value="surface">水上</option>
-<option value="subsurface">水中</option>
-<option value="air">空中</option></select></label><label class="field">陣営<select id="unit-faction"><option value="friendly">味方</option>
-<option value="hostile">相手側</option>
-<option value="neutral">中立</option></select></label>
-</div>
-<div class="fields-two">
-<label class="field">運用<select id="unit-manned"><option value="true">有人</option>
-<option value="false">無人</option></select></label><label class="field">速度（km/h）<input id="unit-speed" type="number" min="0" max="5400" step="any"></label>
-</div>
-<details class="property-section"><summary>経路・初期位置</summary><div>
-<div id="position-heading" class="section-label">初期位置</div>
-<div class="fields-two">
-<label class="field">東西 x（km）<input id="unit-x" type="number" step="any"></label><label class="field">南北 y（km）<input id="unit-y" type="number" step="any"></label>
-</div>
-<label class="field"><span id="height-label">高度（海面基準 m）</span><input id="unit-height" type="number" step="any"></label><button id="place" class="full">地図で初期位置を指定</button>
-<div class="section-label route-heading">
-<span>経由点</span><span id="route-count">0点</span>
-</div>
-<label class="field">経路の繰り返し<select id="route-mode"><option value="once">一度だけ</option>
-<option value="pingpong">往復</option>
-<option value="loop">周回（閉じた経路）</option></select></label><label class="field">周回の出発点（%）<input id="loop-start" type="number" min="0" max="100" step="any"></label><p class="route-help">1周の経路長に対する割合。0%は経路の基準点、100%は0%と同じ。周回で使用します。</p>
-<button id="route-plan-open" class="full">経路の検査・自動生成</button>
-<button id="route-edit" class="full">＋ 地図で経由点を追加</button><p class="route-help">表の座標はkm。入力または地図クリックで編集できます。</p>
-<div id="route-table"></div>
-<button id="clear-route" class="full quiet">経由点をすべて削除</button>
-</div></details><details class="property-section"><summary>センサー能力</summary><div>
-<div class="section-label">簡易探知モデル</div>
-<label class="check-field"><input id="unit-sensor-enabled" type="checkbox">探知センサーを使用</label><div class="fields-two">
-<label class="field">最大距離（km）<input id="unit-sensor-range" type="number" min="0.001" max="100" step="any"></label><label class="field">距離0で1分の探知確率（%）<input id="unit-sensor-probability" type="number" min="0" max="100" step="any"></label>
-</div>
-<div class="sensor-domains">対象領域 <label><input id="unit-sensor-ground" type="checkbox">地上</label><label><input id="unit-sensor-surface" type="checkbox">水上</label><label><input id="unit-sensor-subsurface" type="checkbox">水中</label><label><input id="unit-sensor-air" type="checkbox">空中</label>
-</div>
-<label class="check-field"><input id="unit-sensor-los" type="checkbox">地形による遮蔽を判定</label><div class="fields-two">
-<label class="field">センサーの取付高（m）<input id="unit-sensor-height" type="number" min="0" max="1000" step="any"></label><label class="field">被探知係数（0～10）<input id="unit-detectability" type="number" min="0" max="10" step="any"></label>
-</div>
-<p class="route-help">距離で探知頻度が低下する球状の簡易モデル。係数1が基準、0は探知不能。電波・音波・海面越しの減衰は未モデル化。</p>
-</div></details><details class="property-section"><summary>航跡のばらつき</summary><div>
-<div class="section-label">航跡のばらつき</div>
-<div class="fields-two">
-<label class="field">水平の最大ずれ（m）<input id="motion-horizontal" type="number" min="0" max="10000" step="any"></label><label class="field">上下の最大ずれ（m）<input id="motion-vertical" type="number" min="0" max="3000" step="any"></label>
-</div>
-<label class="field">変動間隔（経路上のm）<input id="motion-scale" type="number" min="10" max="100000" step="any"></label><div class="fields-two">
-<label class="field">出発遅れの上限（s）<input id="motion-delay" type="number" min="0" max="86400" step="any"></label><label class="field">速度のばらつき（±%）<input id="motion-speed" type="number" min="0" max="100" step="any"></label>
-</div>
-<p class="route-help">水平ずれは平面内の全方向。上下のずれは空中・水中に適用。往復・周回では同じ生成経路を繰り返します。</p>
-</div></details><details class="property-section"><summary>通信能力</summary><div>
-<label class="field">媒体<select id="unit-communication-medium"><option value="ideal">抽象リンク</option><option value="rf">無線（地球曲率を考慮）</option><option value="optical">光学</option><option value="acoustic">音響</option><option value="satellite">衛星経由（抽象）</option></select></label><label class="field">通信アンテナ・端末の取付高（m）<input id="unit-communication-height" type="number" min="0" max="10000" step="any"></label><label class="check-field"><input id="unit-communication-enabled" type="checkbox">通信を使用</label><div class="fields-two">
-<label class="field">最大距離（km）<input id="unit-communication-range" type="number" min="0.000001" max="100" step="any"></label><label class="field">遅延（秒）<input id="unit-communication-delay" type="number" min="0" max="86400" step="any"></label>
-</div>
-<label class="field">1回の成功確率（%）<input id="unit-communication-probability" type="number" min="0" max="100" step="any"></label><label class="check-field"><input id="unit-communication-los" type="checkbox">地形遮蔽を判定</label><p class="route-help">報告の動作はタスクのノードで設定します。</p>
-</div></details>
-</fieldset>
-<details class="property-section" id="knowledge-panel"><summary>保有情報</summary><div id="knowledge-summary"></div></details><details class="property-section"><summary>再生中の状態</summary><div>
-<div class="section-label">現在の状態</div>
-<dl class="telemetry">
+<aside class="inspector" aria-label="選択対象の確認"><div class="panel-heading"><div><span class="eyebrow">SELECTED UNIT</span><h2 id="inspector-name">選択したユニット</h2></div><button id="delete" class="danger" disabled>削除</button></div>
+<div id="empty-selection" class="empty-selection">ユニットを選択してください。</div><div id="properties" hidden><p id="inspector-scope" class="route-help"></p><button id="settings-open" class="primary full">設定を編集</button><div class="inspector-tabs" aria-label="確認する内容"><button data-inspector-tab="overview" aria-pressed="true">概要</button><button data-inspector-tab="state" aria-pressed="false">状態</button><button data-inspector-tab="knowledge" aria-pressed="false">保有情報</button></div><section data-inspector-page="overview" id="inspector-overview"></section><section data-inspector-page="state" hidden><p id="inspector-state-time"></p><dl class="telemetry">
 <div>
 <dt>探知</dt>
 <dd id="state-detection">—</dd>
@@ -212,10 +142,7 @@
 <dt>経路距離</dt>
 <dd id="state-route">—</dd>
 </div>
-</dl>
-<div id="unit-warning" class="unit-warning" hidden></div>
-</div></details>
-</div></aside>
+</dl><h3>現在の資源残量</h3><div id="unit-resource-summary"></div><div id="unit-warning" class="unit-warning" hidden></div></section><section id="knowledge-panel" data-inspector-page="knowledge" hidden><div id="knowledge-summary"></div></section></div></aside>
 </div>
 <dialog id="behavior-parameter-dialog"><h2>担当時に指定する値</h2><p class="route-help">挙動では名前を参照し、具体的な値は「担当・共有設定」で指定します。秒・m・速度比は表示単位で入力してください。</p><p id="behavior-parameter-error" class="validation-message" role="alert" hidden></p><label class="field">編集する値<select id="behavior-parameter-list"></select></label><label class="field">名前<input id="behavior-parameter-name" maxlength="120"></label><label class="field">種類<select id="behavior-parameter-type"><option value="number">数値</option><option value="route">経路</option><option value="destination">目的地</option><option value="unit">単体ユニット</option></select></label><label class="field">単位<select id="behavior-parameter-unit"><option value="s">秒</option><option value="m">m</option><option value="ratio">速度比（%）</option></select></label><label class="check-field"><input id="behavior-parameter-default-enabled" type="checkbox">挙動に既定値を設定する</label><label class="field">既定値<input id="behavior-parameter-number" type="number" step="any"></label><label class="field">既定値<select id="behavior-parameter-reference"></select></label><button id="behavior-parameter-delete">削除</button><div class="dialog-actions"><button id="behavior-parameter-close">閉じる</button><button id="behavior-parameter-cancel">取消</button><button id="behavior-parameter-save" class="primary">保存</button></div></dialog>
 <dialog id="navigation-dialog"><h2 id="navigation-title">経路・目的地</h2><p id="navigation-error" class="validation-message" role="alert" hidden></p><label class="field">編集する経路・目的地<select id="navigation-resource"></select></label><label class="field">名前<input id="navigation-name" maxlength="120"></label><section id="navigation-route-fields"><button id="navigation-draw">地図で経路を描く</button><label class="field">経路の繰り返し<select id="navigation-mode"><option value="once">一度だけ</option><option value="loop">周回</option><option value="pingpong">往復</option></select></label><label class="field">経路の座標（m）：一行に 東西, 南北, 高度・深度<textarea id="navigation-points" rows="7" placeholder="0, 0, 0
@@ -230,7 +157,7 @@
 <p class="route-help">最初が出発点、最後が目的地。途中の点も必ず通ります。周回は最後から最初への区間も生成します。生成結果は上の座標欄で編集し、保存後は地図上でドラッグできます。通れない必須地点は変更してください。検査で問題がある区間は保存後に地図上で赤く表示します。</p>
 </details></section><section id="navigation-destination-fields"><label class="field">目的の種類<select id="navigation-kind"><option value="point">地点</option><option value="unit">ユニットの現在位置</option><option value="received">取得した目標位置（探知・受信）</option></select></label><section id="navigation-point-fields"><button id="navigation-pick">地図で地点を指定</button><div class="actions-columns"><label class="field">東西（km）<input id="navigation-x" type="number" step="any"></label><label class="field">南北（km）<input id="navigation-y" type="number" step="any"></label><label class="field">高度・深度の座標（m）<input id="navigation-z" type="number" step="any"></label></div><p class="route-help">高さはz座標です。海面が0mの場合、深度120mは −120m と指定します。</p></section><label id="navigation-unit-field" class="field" hidden>目標のユニット（単体）<select id="navigation-unit"></select></label><p class="route-help">「取得した目標位置（探知・受信）」は、自分で探知した位置または通信で受け取った観測位置です。移動状態に入った時点で目的地を固定します。「対象探知」「情報受信」イベントからこの移動状態へ接続できます。繰り返しのイベントは周回中も移動状態へ戻すため、到達後に周回を続ける場合は「一度だけ遷移」にします。位置を取得するまでは待機します。「ユニットの現在位置」は相手の移動を追い続けます。</p></section><div class="dialog-actions"><button id="navigation-delete">削除</button><button id="navigation-cancel">取消</button><button id="navigation-save" class="primary">保存して選択</button><button id="navigation-close" hidden>閉じる</button></div></dialog>
 <dialog id="route-check-dialog"><h2>経路の検査</h2><p class="route-help">問題がある区間は地図上で赤く表示します。固定経路と周回の閉じる区間を検査します。イベント時点の接続、追跡先への移動、揺らぎを含む経路は実行時にも確認してください。</p><div id="route-check-list"></div><button id="route-check-close">閉じる</button></dialog>
-<dialog id="error-dialog"><h2>読み込み・操作エラー</h2>
+<dialog id="settings-leave-dialog"><h2>編集中の設定があります</h2><p>下書きを適用するか、破棄して移動するか選択してください。</p><div class="dialog-actions"><button id="settings-keep">編集を続ける</button><button id="settings-discard">破棄して移動</button><button id="settings-leave-apply" class="primary">適用して移動</button></div></dialog><dialog id="error-dialog"><h2>読み込み・操作エラー</h2>
 <pre id="error-text"></pre>
 <button id="close-error">閉じる</button></dialog>
 <dialog id="group-dialog"><form id="group-form">

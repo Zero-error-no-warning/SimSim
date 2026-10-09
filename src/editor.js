@@ -1,7 +1,7 @@
-import {bindingTargetExists} from './parameters.js?v=20261009-authoring-display-27';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-authoring-display-27';
-import {resolveValue} from './behavior-parameters.js?v=20261009-authoring-display-27';
-import { sharedAssignment } from './shared-settings.js?v=20261009-authoring-display-27';
+import {bindingTargetExists} from './parameters.js?v=20261009-configuration-contract-28';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
+import {resolveValue} from './behavior-parameters.js?v=20261009-configuration-contract-28';
+import { sharedAssignment } from './shared-settings.js?v=20261009-configuration-contract-28';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

@@ -79,7 +79,7 @@ try {
   const temporaryWait=await page.locator('#behavior-canvas .behavior-node.selected').getAttribute('data-node');
   assert.equal(await page.locator('#node-kind').inputValue(),'');
   assert((await page.locator('#behavior-canvas .behavior-node.selected').textContent()).includes('未設定'));
-  await page.locator('#behavior-apply').click();
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();
   assert(await page.locator('#behavior-dialog').isVisible());
   assert((await page.locator('#behavior-validation').innerText()).includes('未設定の状態'));
   await page.locator('#node-kind').selectOption('wait');
@@ -110,7 +110,7 @@ try {
   await connect('patrol',temporaryWait);
   assert(await page.locator('#edge-properties').isVisible());assert.equal(await page.locator('#edge-condition').inputValue(),'');
   assert((await page.locator('#behavior-canvas [data-edge="0"]').textContent()).includes('条件を設定'));
-  await page.locator('#behavior-apply').click();assert((await page.locator('#behavior-validation').innerText()).includes('遷移条件が未設定'));
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();assert((await page.locator('#behavior-validation').innerText()).includes('遷移条件が未設定'));
   await page.locator('#edge-condition').selectOption('detected');
   await page.locator('#behavior-canvas [data-node="patrol"] > rect:first-child').click();assert(await page.locator('#edge-condition').isHidden());
   await clickLine(0);assert.equal(await page.locator('#edge-condition').inputValue(),'detected');
@@ -142,7 +142,7 @@ try {
   await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),2);
   await page.locator('#behavior-undo').click();assert.equal(await page.locator('#behavior-canvas [data-edge]').count(),3);
   // Completed drafts use the existing persisted model and reopen with conditions.
-  await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
   const editedSave=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);
   await editedSave[0].saveAs(path.join(folder,'edited-scenario.txt'));
   const editedSource=JSON.parse(fs.readFileSync(path.join(folder,'edited-scenario.txt'))),editedGraph=editedSource.behaviors.find(g=>g.nodes.some(n=>n.id===temporaryWait));
@@ -155,7 +155,7 @@ try {
   await addNode('trigger-add');
   assert(await page.locator('#trigger-properties').isVisible());assert.equal(await page.locator('#trigger-event').inputValue(),'');
   assert.equal(await page.locator('#trigger-target').inputValue(),'');
-  await page.locator('#behavior-apply').click();assert((await page.locator('#behavior-validation').innerText()).includes('未設定のイベントノード'));
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();assert((await page.locator('#behavior-validation').innerText()).includes('未設定のイベントノード'));
   assert.equal(await page.locator('#trigger-event option[value="scenarioStart"]').count(),0);
   await page.locator('#trigger-event').selectOption('received');
   await page.locator('#trigger-event').selectOption('time');await page.locator('#trigger-seconds').fill('22.5');await page.locator('#trigger-seconds').press('Tab');
@@ -169,7 +169,7 @@ try {
   await added.locator('rect').click();assert.equal(await page.locator('#trigger-target').inputValue(),'patrol');
   assert.equal(await page.locator('#trigger-seconds').inputValue(),'22.5');
   assert.equal(await page.locator('#trigger-once').inputValue(),'repeat');
-  await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
   await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();
   await page.locator('#behavior-canvas .trigger-node rect').click();assert.equal(await page.locator('#trigger-once').inputValue(),'repeat');
   await page.locator('#behavior-canvas').focus();await page.keyboard.press('Delete');assert.equal(await page.locator('#behavior-canvas .trigger-node').count(),0);
@@ -182,9 +182,9 @@ try {
   if(process.env.SIMSIM_GRAPH_SCREENSHOT)await page.locator('#behavior-dialog').screenshot({path:process.env.SIMSIM_GRAPH_SCREENSHOT});
   await page.locator('#task-edit-tab').click();
   await page.locator('#assignment-phase').fill('50');await page.locator('#assignment-phase').press('Tab');
-  await page.locator('#behavior-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();await page.waitForSelector('#behavior-dialog:not([open])',{state:'attached'});
   await page.locator('.unit-item[data-id="transit-submarine"]').click();
-  await page.locator('#unit-task-open').click();assert.equal(await page.locator('#assignment-list').inputValue(),'');await page.locator('#behavior-cancel').click();
+  await page.locator('#unit-task-open').click();assert.equal(await page.locator('#assignment-list').inputValue(),'');await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
   // Save definition and verify the task parameter, not the obsolete raw unit route.
   const save=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);
   await save[0].saveAs(path.join(folder,'scenario.txt'));
@@ -222,7 +222,7 @@ try {
   await connect('patrol',compactWait);await page.locator('#edge-condition').selectOption('received');
   await clickLine(0);assert.equal(await page.locator('#edge-condition').inputValue(),'received');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-  await page.locator('#behavior-cancel').click();
+  await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
   assert.deepEqual(errors,[]);
   if(process.env.SIMSIM_SCREENSHOT)await page.screenshot({path:process.env.SIMSIM_SCREENSHOT,fullPage:true});
   console.log('PASS: offline CSP; desktop create-before-configure; draft validation; clickable wires and labels; edge condition Undo/Redo; duplicate-condition protection; state-kind edits retain wires; graph definition save/reopen; initial state and event editing; port-free directed connections and self-loops; zoom/pan/fit/minimap; scaled drag; calculation/record seek/reopen; Monte Carlo/replay; no browser errors');

@@ -1,6 +1,7 @@
-import {navigationErrors} from './navigation.js?v=20261009-authoring-display-27';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261009-authoring-display-27';
-import {requireElement} from './ui-dom.js?v=20261009-authoring-display-27';
+import {showEditorDialog} from './ui-dom.js?v=20261009-configuration-contract-28';
+import {navigationErrors} from './navigation.js?v=20261009-configuration-contract-28';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261009-configuration-contract-28';
+import {requireElement} from './ui-dom.js?v=20261009-configuration-contract-28';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){
@@ -29,7 +30,7 @@ export class NavigationUI{
     const unit=this.getUnit(),point={...(unit?.initial??{x:0,y:0,z:0})};
     this.newItem={id:kind+'-'+index,name:(kind==='route'?'経路':'目的地')+index,...(kind==='route'?{points:[],mode:'once'}:{kind:'point',point}),...preset};
     this.item=structuredClone(this.existing??this.newItem);
-    this.fields();this.dialog.showModal();
+    this.fields();showEditorDialog(this.dialog);
   }
   fields(){
     $('navigation-title').textContent=this.kind==='route'?'経路の作成・編集':'目的地の作成・編集';
@@ -112,7 +113,7 @@ export class NavigationUI{
   addPoint(point){this.item.points.push({...point});return this.item.points.length;}
   finishRoute(){
     if(this.item.points.length<2)this.item.points=this.oldPoints;
-    this.fields();this.dialog.showModal();
+    this.fields();showEditorDialog(this.dialog);
   }
-  setPoint(point){this.item.point={...point};this.fields();this.dialog.showModal();}
+  setPoint(point){this.item.point={...point};this.fields();showEditorDialog(this.dialog);}
 }

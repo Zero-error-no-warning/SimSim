@@ -1,13 +1,14 @@
-import {conditionKey} from './navigation.js?v=20261009-authoring-display-27';
-import {selectedContact} from './knowledge.js?v=20261009-authoring-display-27';
+import {stateField} from './state-contract.js?v=20261009-configuration-contract-28';
+import {conditionKey} from './navigation.js?v=20261009-configuration-contract-28';
+import {selectedContact} from './knowledge.js?v=20261009-configuration-contract-28';
 export const UNKNOWN=null;
 const operators={lt:(a,b)=>a<b,lte:(a,b)=>a<=b,gt:(a,b)=>a>b,gte:(a,b)=>a>=b,eq:(a,b)=>a===b,neq:(a,b)=>a!==b};
 export function conditionErrors(c,depth=0){
   if(!c||typeof c!=='object'||Array.isArray(c)||depth>8)return ['判断条件は深さ8以下のオブジェクトにしてください。'];
   if(c.all||c.any){const items=c.all??c.any;if(c.all&&c.any||!Array.isArray(items)||!items.length||items.length>16)return ['判断条件のall・anyは1～16件のどちらか一方です。'];return items.flatMap(x=>conditionErrors(x,depth+1));}
-  if(typeof c.field!=='string'||!/^self\.(status|operational|resources\.[A-Za-z0-9_-]+\.(remaining|fraction))$|^knowledge\.selectedContact\.(age|identity\.confidence|positionErrorRadius)$|^knowledge\.friendlyReports\.[A-Za-z0-9_-]+\.(age|reportedState)$|^clock$/.test(c.field))return ['判断条件はself・knowledge・clockの公開フィールドを指定してください。'];
+  const definition=typeof c.field==='string'?stateField(c.field):null;if(!definition)return ['判断条件はself・knowledge・clockの公開フィールドを指定してください。'];
   if(!['exists',...Object.keys(operators)].includes(c.op))return ['判断条件の比較演算子が不正です。'];
-  const type=c.field==='self.operational'?'boolean':c.field==='self.status'||c.field.endsWith('.reportedState')?'string':'number';
+  const type=definition.type;
   if(c.op!=='exists'&&(typeof c.value!==type||!['eq','neq'].includes(c.op)&&type!=='number')||typeof c.value==='number'&&!Number.isFinite(c.value))return ['判断条件の比較値はフィールドの型に合わせてください。順序比較は数値のみです。'];
   return [];
 }

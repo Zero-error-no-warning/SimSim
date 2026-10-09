@@ -1,14 +1,10 @@
+import {fieldErrors} from './configuration-schema.js?v=20261009-configuration-contract-28';
+import {COMMUNICATION_FIELDS} from './configuration-fields.js?v=20261009-configuration-contract-28';
 // Communication validation plus input-only validation for version 1/2 legacy rules.
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 export function actionErrors(unit,prefix='unit',recipientIds=new Set()) {
   const errors=[],c=unit.communication,b=unit.behavior;
-  if(c!==undefined){
-    if(!c||typeof c!=='object'||Array.isArray(c))errors.push(prefix+': communicationはオブジェクトにしてください。');
-    else {
-      if(typeof c.enabled!=='boolean'||typeof c.terrainLOS!=='boolean')errors.push(prefix+': 通信のenabled・terrainLOSはbooleanにしてください。');
-      for(const [k,min,max] of [['range',.001,100000],['delay',0,86400],['probability',0,1]])if(!finite(c[k])||c[k]<min||c[k]>max)errors.push(prefix+': communication.'+k+'は'+min+'～'+max+'にしてください。');
-    }
-  }
+  if(c!==undefined)errors.push(...fieldErrors(COMMUNICATION_FIELDS,c,{scenario:{}}).map(e=>prefix+': '+e));
   if(b!==undefined){
     if(!b||typeof b!=='object'||Array.isArray(b))return [...errors,prefix+': behaviorはオブジェクトにしてください。'];
     if(typeof b.hold!=='boolean')errors.push(prefix+': behavior.holdはbooleanにしてください。');

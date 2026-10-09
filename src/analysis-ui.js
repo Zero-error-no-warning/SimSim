@@ -1,21 +1,21 @@
-import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
-import {ExperimentUI} from './experiment-ui.js?v=20261009-authoring-display-27';
-import {verifiedWorker} from './worker-client.js?v=20261009-authoring-display-27';
-import {PlansUI} from './plans-ui.js?v=20261009-authoring-display-27';
-import {preparePlans,planTrialSource} from './plans.js?v=20261009-authoring-display-27';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261009-authoring-display-27';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261009-authoring-display-27';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-authoring-display-27';
-import {HistoryUI} from './history-ui.js?v=20261009-authoring-display-27';
-import {MeasurementUI} from './measurement-ui.js?v=20261009-authoring-display-27';
-import {stateMembers} from './state-measurement.js?v=20261009-authoring-display-27';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261009-authoring-display-27';
-import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-authoring-display-27';
-import { numericScale } from './chart-scale.js?v=20261009-authoring-display-27';
-import { clone,validateScenario } from './engine.js?v=20261009-authoring-display-27';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis } from './parameters.js?v=20261009-authoring-display-27';
-import { ParameterEditor } from './parameter-ui.js?v=20261009-authoring-display-27';
-import { requireElement } from './ui-dom.js?v=20261009-authoring-display-27';
+import {MODEL_BUILD} from './model-version.js?v=20261009-configuration-contract-28';
+import {ExperimentUI} from './experiment-ui.js?v=20261009-configuration-contract-28';
+import {verifiedWorker} from './worker-client.js?v=20261009-configuration-contract-28';
+import {PlansUI} from './plans-ui.js?v=20261009-configuration-contract-28';
+import {preparePlans,planTrialSource} from './plans.js?v=20261009-configuration-contract-28';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261009-configuration-contract-28';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261009-configuration-contract-28';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
+import {HistoryUI} from './history-ui.js?v=20261009-configuration-contract-28';
+import {MeasurementUI} from './measurement-ui.js?v=20261009-configuration-contract-28';
+import {stateMembers} from './state-measurement.js?v=20261009-configuration-contract-28';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261009-configuration-contract-28';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-configuration-contract-28';
+import { numericScale } from './chart-scale.js?v=20261009-configuration-contract-28';
+import { clone,validateScenario } from './engine.js?v=20261009-configuration-contract-28';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261009-configuration-contract-28';
+import { ParameterEditor } from './parameter-ui.js?v=20261009-configuration-contract-28';
+import { requireElement } from './ui-dom.js?v=20261009-configuration-contract-28';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -26,7 +26,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261009-authoring-display-27',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261009-configuration-contract-28',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});
@@ -114,6 +114,14 @@ export class AnalysisUI {
       $('events-dialog').showModal();this.history.render();
     };
     $('events-close').onclick=()=>$('events-dialog').close();
+  }
+  addConfigurationBinding(binding,kind='factors'){
+    try{const source=this.getScenario();if(!source.mission)throw Error('先に分析画面で作戦の達成条件を設定してください。');
+      if(!availableBindings(source).some(b=>bindingKey(b)===bindingKey(binding)))throw Error('現在の対象ではこの分析変数を使用できません。');
+      this.renderConfig();const used=[...this.parameters.factors,...this.parameters.uncertainties].some(b=>bindingKey(b)===bindingKey(binding));
+      if(!used){if(this.parameters[kind].length>=(kind==='factors'?9:8))throw Error('分析変数の上限に達しています。');const value=readParameter(source,binding);this.parameters[kind].push(kind==='factors'?{...binding,values:[value]}:{...binding,distribution:'uniform',min:value,max:value});this.parameters.onChange();}
+      if(!$('analysis-dialog').open)$('analysis-dialog').showModal();$(''+kind+'-editor').scrollIntoView({block:'nearest'});
+    }catch(error){this.showError(error.message);}
   }
   stop(){
     this.worker.postMessage({

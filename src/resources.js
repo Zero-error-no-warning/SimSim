@@ -1,14 +1,4 @@
-const num=(x,min,max)=>Number.isFinite(x)&&x>=min&&x<=max;
-export function resourceErrors(s){const errors=[];for(const u of [...(s.units??[]),...(s.groups??[]).map(g=>g.template)])if(u?.resources!==undefined){
- if(s.version<4||!u.resources||typeof u.resources!=='object'||Array.isArray(u.resources)||Object.keys(u.resources).length>8){errors.push('資源はversion 4のunit.resourcesに最大8種類指定してください。');continue;}
- for(const [id,r] of Object.entries(u.resources)){
-  if(!/^[A-Za-z0-9_-]{1,64}$/.test(id)||!r||!num(r.capacity,.000001,1e12)||!num(r.initial??r.capacity,0,r.capacity))errors.push('資源のID・容量・初期残量が不正です。');
-  if(!r)continue;for(const k of ['perSecond','perMetre','perMessage'])if(r[k]!==undefined&&!num(r[k],0,1e9))errors.push('資源の消耗係数は0～1e9です。');
-  if(r.byNodeKind!==undefined&&(!r.byNodeKind||typeof r.byNodeKind!=='object'||Object.entries(r.byNodeKind).some(([k,v])=>!['follow','patrol','signal','report','move','wait','stop'].includes(k)||!num(v,0,1e9))))errors.push('資源のノード別消耗が不正です。');
-  if(r.effects!==undefined&&(!Array.isArray(r.effects)||r.effects.some(k=>!['movement','sensor','communication'].includes(k))))errors.push('資源枯渇の影響はmovement/sensor/communicationです。');
-  if(r.replenish!==undefined&&(!s.destinations?.some(d=>d.id===r.replenish.destinationId&&d.kind==='point')||!num(r.replenish.rate,.000001,1e9)))errors.push('補給は地点の目的地と正の補給率を指定してください。');
- }
- }return errors;}
+export {resourceContractErrors as resourceErrors} from './resource-schema.js?v=20261009-configuration-contract-28';
 export function createResources(unit){return Object.fromEntries(Object.entries(unit.resources??{}).map(([id,r])=>[id,{capacity:r.capacity,remaining:r.initial??r.capacity,consumed:0,recovered:0}]));}
 export function hasResource(s,effect){return Object.entries(s.resources??{}).every(([id,r])=>r.remaining>1e-9||!(s.unit.resources[id].effects??['movement','sensor','communication']).includes(effect));}
 export function resourceRate(s,id,speed=0,scenario){const r=s.unit.resources[id],base=(r.perSecond??0)+(r.byNodeKind?.[s.node?.kind??'follow']??0)+(r.perMetre??0)*speed;

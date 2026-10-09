@@ -1,5 +1,7 @@
-import {random01,streamKey} from './random.js?v=20261009-authoring-display-27';
-import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261009-authoring-display-27';
+import {fieldErrors} from './configuration-schema.js?v=20261009-configuration-contract-28';
+import {PROPAGATION_FIELDS,REPORT_FIELDS,LINK_FIELDS,DISRUPTION_FIELDS,OPERATIONAL_FIELDS,COORDINATION_FIELDS} from './configuration-fields.js?v=20261009-configuration-contract-28';
+import {random01,streamKey} from './random.js?v=20261009-configuration-contract-28';
+import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261009-configuration-contract-28';
 const within=(d,t)=>t>=d.start&&t<d.end;
 export function transmissionAttempts(model,s,receiver,t,messageId){
  const configured=model.source.communicationLinks;
@@ -23,20 +25,16 @@ export function transmissionAttempts(model,s,receiver,t,messageId){
  });
 }
 export function communicationErrors(s){
- const errors=[],ids=new Set(s.units?.map?.(u=>u?.id)??[]),number=(v,min,max)=>Number.isFinite(v)&&v>=min&&v<=max;
- const check=c=>{
-  if(c.medium!==undefined&&!['ideal','rf','optical','acoustic','satellite'].includes(c.medium))errors.push('通信・探知媒体はideal/rf/optical/acoustic/satelliteです。');
-  for(const [k,min,max] of [['mountHeight',0,10000],['earthFactor',.5,2],['propagationSpeed',1,299792458],['windowSeconds',.1,86400],['outageProbability',0,1]])if(c[k]!==undefined&&!number(c[k],min,max))errors.push('通信・探知の'+k+'が不正です。');
-  if(c.failureModel!==undefined&&!['independent','trial','window'].includes(c.failureModel))errors.push('通信障害モデルはindependent/trial/windowです。');
- };
- for(const u of [...(s.units??[]),...(s.groups??[]).map(g=>g.template)]){if(u?.communication)check(u.communication);if(u?.sensor)check(u.sensor);
-  if(u?.periodicReports!==undefined&&(!Array.isArray(u.periodicReports)||u.periodicReports.length>8||u.periodicReports.some(r=>!r||!['observation','status'].includes(r.messageKind)||!Array.isArray(r.receiverIds)||r.receiverIds.length>32||r.receiverIds.some(id=>!ids.has(id))||!number(r.interval,.1,86400))))errors.push('周期報告は観測または状態、受信先と正の周期を指定してください。');
-  if(u?.statusReports!==undefined&&(!Array.isArray(u.statusReports.receiverIds)||u.statusReports.receiverIds.length>32||u.statusReports.receiverIds.some(id=>!ids.has(id))||!number(u.statusReports.interval,.1,86400)))errors.push('定期状態報告の受信先・周期が不正です。');
+ const errors=[],context={scenario:s},check=(fields,r)=>errors.push(...fieldErrors(fields,r,context));
+ for(const u of [...(s.units??[]),...(s.groups??[]).map(g=>g.template)]){
+  if(u?.communication)check(PROPAGATION_FIELDS,u.communication);if(u?.sensor)check(PROPAGATION_FIELDS,u.sensor);
+  if(u?.periodicReports!==undefined){if(!Array.isArray(u.periodicReports)||u.periodicReports.length>8)errors.push('周期報告は最大8件です。');else for(const r of u.periodicReports)check(REPORT_FIELDS,r);}
+  if(u?.statusReports!==undefined)check(REPORT_FIELDS.filter(f=>f.path!=='messageKind'),u.statusReports);
  }
- if(s.communicationLinks!==undefined){const seen=new Set();if(!Array.isArray(s.communicationLinks)||s.communicationLinks.length>256)errors.push('通信リンクは最大256件です。');else for(const l of s.communicationLinks){if(!l||!ids.has(l.senderId)||!ids.has(l.receiverId)||typeof l.id!=='string'||seen.has(l.id)||typeof l.enabled!=='boolean'||!number(l.range,.001,100000)||!number(l.delay,0,86400)||!number(l.probability,0,1)||typeof l.terrainLOS!=='boolean')errors.push('通信リンクのID・端点・能力が不正です。');if(l){seen.add(l.id);check(l);}}}
- if(s.communicationDisruptions!==undefined){if(!Array.isArray(s.communicationDisruptions)||s.communicationDisruptions.length>256)errors.push('通信障害は最大256件です。');else for(const d of s.communicationDisruptions){if(!d||!number(d.start,0,s.duration)||!number(d.end,0,s.duration)||d.end<=d.start||d.available!==undefined&&typeof d.available!=='boolean'||d.probabilityMultiplier!==undefined&&!number(d.probabilityMultiplier,0,1)||d.delayAdded!==undefined&&!number(d.delayAdded,0,86400)||d.linkIds!==undefined&&(!Array.isArray(d.linkIds)||d.linkIds.some(id=>!s.communicationLinks?.some(l=>l.id===id))))errors.push('通信障害の時間・対象・効果が不正です。');if(d)check(d);}}
- if(s.operationalEvents!==undefined){if(!Array.isArray(s.operationalEvents)||s.operationalEvents.length>2000)errors.push('稼働状態の外部事象は最大2000件です。');else for(const e of s.operationalEvents)if(!e||!ids.has(e.unitId)||!number(e.time,0,s.duration)||typeof e.operational!=='boolean')errors.push('稼働状態の対象・時刻・状態が不正です。');}
- for(const a of s.behaviorAssignments??[]){if(a.coordination!==undefined&&!['ideal','reported'].includes(a.coordination))errors.push('協調方式はideal/reportedです。');if(a.reportMaxAge!==undefined&&!number(a.reportMaxAge,0,86400)||a.missingReport!==undefined&&!['cruise','stop'].includes(a.missingReport))errors.push('報告鮮度・欠落時の動作が不正です。');}
+ if(s.communicationLinks!==undefined){const seen=new Set();if(!Array.isArray(s.communicationLinks)||s.communicationLinks.length>256)errors.push('通信リンクは最大256件です。');else for(const l of s.communicationLinks){check(LINK_FIELDS.map(f=>f.path==='id'?{...f,pattern:undefined,maxLength:undefined,required:false}:f),l);if(typeof l?.id!=='string'||seen.has(l.id))errors.push('通信リンクのIDは重複しない文字列です。');seen.add(l?.id);}}
+ if(s.communicationDisruptions!==undefined){if(!Array.isArray(s.communicationDisruptions)||s.communicationDisruptions.length>256)errors.push('通信障害は最大256件です。');else for(const d of s.communicationDisruptions){check(DISRUPTION_FIELDS,d);if(d?.end<=d?.start)errors.push('通信障害の終了は開始より後にしてください。');if(d)check(PROPAGATION_FIELDS,d);}}
+ if(s.operationalEvents!==undefined){if(!Array.isArray(s.operationalEvents)||s.operationalEvents.length>2000)errors.push('稼働状態の外部事象は最大2000件です。');else for(const e of s.operationalEvents)check(OPERATIONAL_FIELDS,e);}
+ for(const a of s.behaviorAssignments??[])check(COORDINATION_FIELDS,a);
  const advanced=s.communicationLinks!==undefined||s.communicationDisruptions!==undefined||s.operationalEvents!==undefined||s.units?.some?.(u=>u.statusReports||u.periodicReports||u.communication?.medium||u.sensor?.medium)||s.behaviorAssignments?.some?.(a=>a.coordination);
  if(s.version<4&&advanced)errors.push('媒体・障害・状態報告はversion 4を使用してください。');
  return errors;

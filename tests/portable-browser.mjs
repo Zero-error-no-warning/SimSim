@@ -4,7 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {importScenario} from '../src/scenario-import.js?v=20261009-authoring-display-27';
+import {importScenario} from '../src/scenario-import.js?v=20261009-configuration-contract-28';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=fileURLToPath(new URL('..',import.meta.url)),copy=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-portable-')),requests=[];
 const names=['index.html','styles.css','main.js','worker.js','analysis-worker.js'];

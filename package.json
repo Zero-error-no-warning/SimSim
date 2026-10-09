@@ -2,7 +2,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:portable": "node tools/build-portable.mjs"
+    "build:portable": "node tools/build-portable.mjs",
+    "check:configuration": "node tools/check-configuration.mjs",
+    "prebuild:portable": "node tools/check-configuration.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

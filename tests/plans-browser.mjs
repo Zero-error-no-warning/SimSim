@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restorePlansResult,summarizePlans} from '../src/plans.js?v=20261009-authoring-display-27';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
+import {restorePlansResult,summarizePlans} from '../src/plans.js?v=20261009-configuration-contract-28';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-sensitivity-'));
 const server=http.createServer((req,res)=>{
@@ -27,7 +27,7 @@ try{
   await page.locator('#analysis-open').click();assert.equal(await page.locator('#mission-enabled').count(),0);await page.locator('#mission-state').selectOption('b');await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#analysis-rows tr').length===1);await page.locator('#analysis-close').click();
   const nameDialog=async name=>{await page.locator('#plan-name').fill(name);await page.locator('#plan-name-submit').click();assert(await page.locator('#plan-name-dialog').isHidden());};
   const menu=async id=>{await page.locator('#plan-menu > summary').click();await page.locator('#'+id).click();};
-  const waitNode=async(value)=>{await page.locator('.unit-item[data-id="group__1"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await page.locator('#behavior-canvas [data-node="a"] > rect:first-child').click();if(value!==undefined){await page.locator('#node-value').fill(String(value));await page.locator('#node-value').press('Tab');await page.locator('#behavior-apply').click();}else{const n=Number(await page.locator('#node-value').inputValue());await page.locator('#behavior-cancel').click();return n;}};
+  const waitNode=async(value)=>{await page.locator('.unit-item[data-id="group__1"]').click();await page.locator('#unit-task-open').click();await page.locator('#graph-edit-tab').click();await page.locator('#behavior-fit').click();await page.locator('#behavior-canvas [data-node="a"] > rect:first-child').click();if(value!==undefined){await page.locator('#node-value').fill(String(value));await page.locator('#node-value').press('Tab');await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();}else{const n=Number(await page.locator('#node-value').inputValue());await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();return n;}};
   const downloadScenario=async name=>{const [d]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const p=path.join(folder,name);await d.saveAs(p);return p;};
   await page.locator('#plan-save').click();await nameDialog('A：待機3秒');assert.equal(await page.locator('#plan-select').inputValue(),'plan-1');assert.equal(await page.locator('#plan-save').textContent(),'更新');assert(await page.locator('#plan-save').isDisabled());
   await waitNode(1);assert((await page.locator('#plan-current').textContent()).includes('未更新'));await menu('plan-new');await nameDialog('B：待機1秒');assert.equal(await page.locator('#plan-select').inputValue(),'plan-2');

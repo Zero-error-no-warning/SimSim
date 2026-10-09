@@ -1,10 +1,10 @@
-import {validateInformationMetrics} from './information-metrics.js?v=20261009-authoring-display-27';
-import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
-import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261009-authoring-display-27';
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261009-authoring-display-27';
-export { RECORD_MODEL,recordModel,compatibleModel } from './recorded-engine.js?v=20261009-authoring-display-27';
-import { clone } from './engine.js?v=20261009-authoring-display-27';
-import { RecordedSimulation, RECORD_MODEL,recordModel,compatibleModel, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261009-authoring-display-27';
+import {validateInformationMetrics} from './information-metrics.js?v=20261009-configuration-contract-28';
+import {MODEL_BUILD} from './model-version.js?v=20261009-configuration-contract-28';
+import {measurePoints,validateMeasurements} from './measurement-points.js?v=20261009-configuration-contract-28';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261009-configuration-contract-28';
+export { RECORD_MODEL,recordModel,compatibleModel } from './recorded-engine.js?v=20261009-configuration-contract-28';
+import { clone } from './engine.js?v=20261009-configuration-contract-28';
+import { RecordedSimulation, RECORD_MODEL,recordModel,compatibleModel, STATUS, MAX_RECORD_BYTES } from './recorded-engine.js?v=20261009-configuration-contract-28';
 export const MAX_FILE_BYTES = 256 * 1048576;
 const encode = a => {
   const bytes=new Uint8Array(a.buffer,a.byteOffset,a.byteLength);

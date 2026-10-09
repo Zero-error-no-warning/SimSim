@@ -1,10 +1,10 @@
-import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
-import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261009-authoring-display-27';
-import {random01} from './random.js?v=20261009-authoring-display-27';
-import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261009-authoring-display-27';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-authoring-display-27';
-import {wilson} from './detection.js?v=20261009-authoring-display-27';
-import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
+import {clone,validateScenario} from './engine.js?v=20261009-configuration-contract-28';
+import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261009-configuration-contract-28';
+import {random01} from './random.js?v=20261009-configuration-contract-28';
+import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261009-configuration-contract-28';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261009-configuration-contract-28';
+import {wilson} from './detection.js?v=20261009-configuration-contract-28';
+import {MODEL_BUILD} from './model-version.js?v=20261009-configuration-contract-28';
 export function controlValues(e,index,phase='explore',bounds={}){
  const values={};for(const c of e.controls){const [min,max]=bounds[c.id]??[c.min,c.max],u=random01((e.designSeed??'SimSim-design')+'|'+phase+'|'+index+'|'+c.id);let value=min+u*(max-min);if(parameter(c.parameter).integer)value=Math.round(value);values[c.id]=value;}return values;
 }

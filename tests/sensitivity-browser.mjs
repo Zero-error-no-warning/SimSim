@@ -4,8 +4,8 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restoreSensitivityResult,summarizeSensitivity} from '../src/sensitivity.js?v=20261009-authoring-display-27';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
+import {restoreSensitivityResult,summarizeSensitivity} from '../src/sensitivity.js?v=20261009-configuration-contract-28';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-sensitivity-'));
 const source=JSON.parse(fs.readFileSync(new URL('fixtures/state-measurement.txt',import.meta.url)));
@@ -37,7 +37,7 @@ try{
   await page.locator('#analysis-run').click();await page.waitForFunction(()=>!document.getElementById('analysis-run').disabled&&document.querySelectorAll('#sensitivity-rows tr').length===4);
   const node=page.locator('#sensitivity-rows tr').filter({hasText:'状態 a'}).first();assert((await node.textContent()).includes('-2秒'));assert((await page.locator('#sensitivity-rows').textContent()).includes('0 / 2'));
   await node.click();await page.locator('#sensitivity-focus').click();assert(await page.locator('#behavior-dialog').isVisible());assert(await page.locator('#graph-editor').isVisible());assert.equal(await page.locator('#node-value').inputValue(),'3');assert.equal(await page.locator('.unit-item.sensitivity-target').count(),2);
-  await page.locator('#behavior-cancel').click();await page.locator('#analysis-open').click();
+  await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();await page.locator('#analysis-open').click();
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#analysis-export').click()]);const file=path.join(folder,'sensitivity.txt');await download.saveAs(file);const payload=JSON.parse(fs.readFileSync(file));assert.equal(payload.type,'SimSim-sensitivity');const restored=restoreSensitivityResult(payload);assert.equal(restored.completed,10);assert.equal(summarizeSensitivity(restored.source,restored.rows).find(r=>r.condition.candidate.target==='behavior:g').delta,-2);
   // Replays use the same trial number but different single-parameter settings.
   await page.locator('#sensitivity-trial').selectOption('1');await page.locator('#sensitivity-replay-changed').click();await page.waitForFunction(()=>!document.getElementById('play').disabled);

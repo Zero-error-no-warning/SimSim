@@ -1,20 +1,22 @@
-import {resourceErrors} from './resources.js?v=20261009-authoring-display-27';
-import {experimentErrors} from './experiment-settings.js?v=20261009-authoring-display-27';
-import {communicationErrors} from './communication.js?v=20261009-authoring-display-27';
-import {informationErrors} from './information-settings.js?v=20261009-authoring-display-27';
-import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261009-authoring-display-27';
-import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-authoring-display-27';
-import {measurementErrors} from './measurement-points.js?v=20261009-authoring-display-27';
-import {Terrain} from './terrain.js?v=20261009-authoring-display-27';
-export {Terrain} from './terrain.js?v=20261009-authoring-display-27';
-import {navigationProfileErrors} from './route-planner.js?v=20261009-authoring-display-27';
-import {materializeRoutes} from './route-planner.js?v=20261009-authoring-display-27';
-import {stateGoalErrors} from './state-measurement.js?v=20261009-authoring-display-27';
-import { readParameter } from './parameters.js?v=20261009-authoring-display-27';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261009-authoring-display-27';
-import { actionErrors } from './action-settings.js?v=20261009-authoring-display-27';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261009-authoring-display-27';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261009-authoring-display-27';
+import {fieldErrors} from './configuration-schema.js?v=20261009-configuration-contract-28';
+import {BASE_FIELDS,POSITION_FIELDS,MOVEMENT_FIELDS,MOTION_FIELDS,GROUP_FIELDS} from './configuration-fields.js?v=20261009-configuration-contract-28';
+import {resourceErrors} from './resources.js?v=20261009-configuration-contract-28';
+import {experimentErrors} from './experiment-settings.js?v=20261009-configuration-contract-28';
+import {communicationErrors} from './communication.js?v=20261009-configuration-contract-28';
+import {informationErrors} from './information-settings.js?v=20261009-configuration-contract-28';
+import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261009-configuration-contract-28';
+import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261009-configuration-contract-28';
+import {measurementErrors} from './measurement-points.js?v=20261009-configuration-contract-28';
+import {Terrain} from './terrain.js?v=20261009-configuration-contract-28';
+export {Terrain} from './terrain.js?v=20261009-configuration-contract-28';
+import {navigationProfileErrors} from './route-planner.js?v=20261009-configuration-contract-28';
+import {materializeRoutes} from './route-planner.js?v=20261009-configuration-contract-28';
+import {stateGoalErrors} from './state-measurement.js?v=20261009-configuration-contract-28';
+import { readParameter } from './parameters.js?v=20261009-configuration-contract-28';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261009-configuration-contract-28';
+import { actionErrors } from './action-settings.js?v=20261009-configuration-contract-28';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261009-configuration-contract-28';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261009-configuration-contract-28';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -50,14 +52,8 @@ export function validateScenario(value) {
       errors.push('groupはオブジェクトにしてください。');
       continue;
     }
-    if(g.enabled!==undefined&&typeof g.enabled!=='boolean')errors.push('group.enabledはbooleanにしてください。');
     if(typeof g.id!=='string'||! /^[a-zA-Z0-9_-]{1,50}$/.test(g.id)||groupIds.has(g.id)) errors.push('group.idは重複しない英数字・_・-（50文字以下）にしてください。');
-    groupIds.add(g.id);
-    if(typeof g.name!=='string'||!g.name.trim()||g.name.length>100) errors.push('group.nameは1～100文字にしてください。');
-    if(!Number.isInteger(g.count)||g.count<1||g.count>MAX_UNITS) errors.push('group.countは1～2000にしてください。');
-    if(g.loopStartMode!==undefined&&!['template','even','random'].includes(g.loopStartMode))errors.push('group.loopStartModeはtemplate、even、randomにしてください。');
-    if(!['grid','random'].includes(g.placement)) errors.push('group.placementはgridまたはrandomにしてください。');
-    for(const k of ['width','height'])if(!finite(g[k])||g[k]<0||g[k]>100000)errors.push('group.'+k+'は0～100000mにしてください。');
+    groupIds.add(g.id);errors.push(...fieldErrors(GROUP_FIELDS,g).map(e=>'group: '+e));
   }
   if (!Array.isArray(value.units) || value.units.length > MAX_UNITS) errors.push('unitsは最大2000件の配列にしてください。');
   else {
@@ -69,23 +65,15 @@ export function validateScenario(value) {
       }
       if (typeof u.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(u.id) || (index<value.units.length && ids.has(u.id))) errors.push(prefix+': idは重複しない英数字・_・-にしてください。');
       if(index<value.units.length)ids.add(u.id);
-      if (typeof u.name !== 'string' || !u.name.trim() || u.name.length > 120) errors.push(prefix+': nameは1～120文字にしてください。');
+      errors.push(...fieldErrors([...BASE_FIELDS.filter(f=>f.path!=='id'),...POSITION_FIELDS,...MOVEMENT_FIELDS],u,{scenario:value}).map(e=>prefix+': '+e));
       errors.push(...sensorErrors(u,prefix),...actionErrors(u,prefix,recipientIds));
       if(value.version>=3&&u.behavior)errors.push(prefix+': 旧行動ルールは読み込み時にノードへ変換してください。');
       if(u.navigation!==undefined)errors.push(...navigationProfileErrors(u.navigation));
-      if (!DOMAINS.includes(u.domain)) errors.push(prefix+': domainが不正です。');
-      if (!['friendly','hostile','neutral'].includes(u.faction)) errors.push(prefix+': factionが不正です。');
-      if(u.enabled!==undefined&&typeof u.enabled!=='boolean')errors.push(prefix+': enabledはbooleanにしてください。');
-      if (typeof u.manned !== 'boolean') errors.push(prefix+': mannedはbooleanにしてください。');
-      if (!finite(u.speed) || u.speed < 0 || u.speed > 1500) errors.push(prefix+': speedは0～1500m/sにしてください。');
-      if (!pointValid(u.initial)) errors.push(prefix+': initialのx,y,zが必要です。');
       if (!['once','loop','pingpong'].includes(u.routeMode)) errors.push(prefix+': routeModeが不正です。');
       if(u.groupId!==undefined && index<value.units.length) errors.push(prefix+': groupIdは生成ユニット専用です。');
       if(u.motion!==undefined) {
         if(!u.motion||typeof u.motion!=='object'||Array.isArray(u.motion)) errors.push(prefix+': motionはオブジェクトにしてください。');
-        else for(const [key,min,max] of [['horizontal',0,10000],['vertical',0,3000],['commonHorizontal',0,10000],['scale',10,100000],['startDelay',0,86400],['speedVariation',0,1],['loopStart',0,1]]) {
-          if(u.motion[key]!==undefined && (!finite(u.motion[key])||u.motion[key]<min||u.motion[key]>max))errors.push(prefix+': motion.'+key+'は'+min+'～'+max+'にしてください。');
-        }
+        else errors.push(...fieldErrors(MOTION_FIELDS,u).map(e=>prefix+': '+e));
       }
       if (!Array.isArray(u.route) || u.route.length > 500 || u.route.some(p => !pointValid(p))) errors.push(prefix+': routeは最大500件、各点にx,y,zが必要です。');
     });

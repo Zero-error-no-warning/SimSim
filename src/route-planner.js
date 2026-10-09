@@ -1,4 +1,4 @@
-import {Terrain} from './terrain.js?v=20261009-authoring-display-27';
+import {Terrain} from './terrain.js?v=20261009-configuration-contract-28';
 const DOMAINS=['ground','surface','subsurface','air'];
 const finite=Number.isFinite,lerp=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);

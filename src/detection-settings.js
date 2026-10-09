@@ -1,20 +1,13 @@
-import { variableErrors } from './parameters.js?v=20261009-authoring-display-27';
+import {fieldErrors} from './configuration-schema.js?v=20261009-configuration-contract-28';
+import {MOVEMENT_FIELDS,SENSOR_FIELDS} from './configuration-fields.js?v=20261009-configuration-contract-28';
+import { variableErrors } from './parameters.js?v=20261009-configuration-contract-28';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
-export function sensorErrors(unit,prefix='unit') {
-  const errors=[],s=unit.sensor;
-  if(unit.detectability!==undefined&&(!finite(unit.detectability)||unit.detectability<0||unit.detectability>10))errors.push(prefix+': detectabilityは0～10にしてください。');
-  if(s!==undefined) {
-    if(!s||typeof s!=='object'||Array.isArray(s))return [...errors,prefix+': sensorはオブジェクトにしてください。'];
-    if(typeof s.enabled!=='boolean')errors.push(prefix+': sensor.enabledはbooleanにしてください。');
-    if(!finite(s.range)||s.range<=0||s.range>100000)errors.push(prefix+': sensor.rangeは0より大きく100000m以下にしてください。');
-    if(!finite(s.probabilityPerMinute)||s.probabilityPerMinute<0||s.probabilityPerMinute>1)errors.push(prefix+': sensor.probabilityPerMinuteは0～1にしてください。');
-    if(!Array.isArray(s.domains)||!s.domains.length||s.domains.some(d=>!DOMAIN_KEYS.includes(d)))errors.push(prefix+': sensor.domainsには対象領域を1つ以上指定してください。');
-    if(typeof s.terrainLOS!=='boolean')errors.push(prefix+': sensor.terrainLOSはbooleanにしてください。');
-    if(s.mountHeight!==undefined&&(!finite(s.mountHeight)||s.mountHeight<0||s.mountHeight>1000))errors.push(prefix+': sensor.mountHeightは0～1000mにしてください。');
-  }
-  return errors;
+export function sensorErrors(unit,prefix='unit'){
+ const errors=fieldErrors(MOVEMENT_FIELDS.filter(f=>f.path==='detectability'),unit);
+ if(unit.sensor!==undefined)errors.push(...fieldErrors(SENSOR_FIELDS,unit.sensor,{unit,scenario:{}}));
+ return errors.map(e=>prefix+': '+e);
 }
 export function missionErrors(m,duration) {
   if(m===undefined)return [];

@@ -1,10 +1,10 @@
-import { editableDefinition } from './editor.js?v=20261009-authoring-display-27';
-import { sharedAssignment } from './shared-settings.js?v=20261009-authoring-display-27';
-import {taskPresentations} from './map-presentation.js?v=20261009-authoring-display-27';
-import {resourceName} from './resource-ui.js?v=20261009-authoring-display-27';
+import { editableDefinition } from './editor.js?v=20261009-configuration-contract-28';
+import { sharedAssignment } from './shared-settings.js?v=20261009-configuration-contract-28';
+import {taskPresentations} from './map-presentation.js?v=20261009-configuration-contract-28';
+import {resourceName} from './resource-ui.js?v=20261009-configuration-contract-28';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261009-authoring-display-27';
+import { Terrain, Simulation } from './engine.js?v=20261009-configuration-contract-28';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };

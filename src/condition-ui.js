@@ -1,20 +1,16 @@
-import {conditionErrors} from './decision.js?v=20261009-authoring-display-27';
+import {stateField,decisionStateFields} from './state-contract.js?v=20261009-configuration-contract-28';
+import {conditionErrors} from './decision.js?v=20261009-configuration-contract-28';
 
 const defaults=()=>({field:'knowledge.selectedContact.age',op:'lte',value:30});
 const operators=[['lt','より小さい'],['lte','以下'],['gt','より大きい'],['gte','以上'],['eq','と等しい'],['neq','と異なる'],['exists','情報がある']];
-const typeOf=field=>field==='self.operational'?'boolean':field==='self.status'||field.endsWith('.reportedState')?'string':'number';
-const stringValues=field=>field==='self.status'?[['idle','未開始'],['moving','移動中'],['arrived','到着'],['blocked','経路制約で停止'],['waiting','待機中'],['standby','情報・起動待ち'],['preparing','準備中'],['disabled','無効・停止'],['depleted','資源枯渇']]:[['operational','稼働'],['disabled','停止']];
+const typeOf=field=>stateField(field)?.type??'number';
+const stringValues=field=>[...(stateField(field)?.choices??[])];
 const initialValue=field=>typeOf(field)==='boolean'?true:typeOf(field)==='string'?stringValues(field)[0][0]:percentage(field)?0.2:30;
-const percentage=field=>field.endsWith('.fraction')||field.endsWith('.confidence');
+const percentage=field=>stateField(field)?.scale===100;
 const element=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
 const select=(items,value,label)=>{const e=element('select');e.setAttribute('aria-label',label);e.replaceChildren(...items.map(([id,text])=>new Option(text,id)));e.value=value;return e;};
-export function conditionFields(source){
- const fields=[['knowledge.selectedContact.age','接触情報の経過時間（秒）'],['knowledge.selectedContact.identity.confidence','接触の識別確信度（%）'],['knowledge.selectedContact.positionErrorRadius','接触の位置誤差（m）'],['clock','開始からの時間（秒）'],['self.status','自分の動作状態'],['self.operational','自分が稼働している']];
- const resources=new Set([...source.units,...(source.groups??[]).map(g=>g.template)].flatMap(u=>Object.keys(u.resources??{})));
- for(const id of resources){fields.push(['self.resources.'+id+'.fraction',({fuel:'燃料',energy:'電池・エネルギー',battery:'電池'}[id]??id)+'の残量（%）'],['self.resources.'+id+'.remaining',({fuel:'燃料',energy:'電池・エネルギー',battery:'電池'}[id]??id)+'の残量（量）']);}
- for(const u of source.units.filter(u=>u.faction==='friendly'))fields.push(['knowledge.friendlyReports.'+u.id+'.age',u.name+'の状態報告からの時間（秒）'],['knowledge.friendlyReports.'+u.id+'.reportedState',u.name+'の報告された稼働状態']);
- return fields;
-}
+export const conditionFields=source=>decisionStateFields(source).map(f=>[f.field,f.label]);
+
 export class ConditionUI{
  constructor(host,onChange){this.host=host;this.onChange=onChange;}
  render(condition,source){

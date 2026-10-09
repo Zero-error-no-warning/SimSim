@@ -1,6 +1,6 @@
-import {sharedAssignment} from './shared-settings.js?v=20261009-authoring-display-27';
-import {routeFor,destinationFor} from './navigation.js?v=20261009-authoring-display-27';
-import {aggregateTasks} from './resources.js?v=20261009-authoring-display-27';
+import {sharedAssignment} from './shared-settings.js?v=20261009-configuration-contract-28';
+import {routeFor,destinationFor} from './navigation.js?v=20261009-configuration-contract-28';
+import {aggregateTasks} from './resources.js?v=20261009-configuration-contract-28';
 const center=points=>({x:points.reduce((n,p)=>n+p.x,0)/points.length,y:points.reduce((n,p)=>n+p.y,0)/points.length,z:points.reduce((n,p)=>n+p.z,0)/points.length});
 export function taskPresentations(source,snapshot){
  const units=new Map(source.units.map(u=>[u.id,u])),graphs=new Map(source.behaviors.map(g=>[g.id,g]));

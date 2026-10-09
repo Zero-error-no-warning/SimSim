@@ -1,28 +1,98 @@
-import {clone,validateScenario} from './engine.js?v=20261009-authoring-display-27';
-import {definition} from './editor.js?v=20261009-authoring-display-27';
-export const resourceName=id=>({fuel:'燃料',energy:'電池・エネルギー',battery:'電池'}[id]??id);
-const el=(tag,text)=>{const e=document.createElement(tag);if(text)e.textContent=text;return e;};
-export class ResourceUI{
- constructor({getScenario,getSelected,commit}){
-  Object.assign(this,{getScenario,getSelected,commit});this.dialog=el('dialog');this.dialog.id='resource-dialog';this.dialog.className='resource-dialog';
-  this.dialog.innerHTML='<div class="panel-heading"><h2>燃料・電池などの資源</h2><button id="resource-close">閉じる</button></div><p id="resource-owner"></p><p class="route-help">容量と消費率をユニットに割り当てます。単位は各資源で統一してください。群を選んだ場合は群の全員に適用します。</p><div id="resource-cards"></div><button id="resource-add">＋ 資源を追加</button><output id="resource-error" role="status"></output><div class="dialog-actions"><button id="resource-cancel">取消</button><button id="resource-apply" class="primary">適用</button></div>';
-  document.body.append(this.dialog);this.$=id=>this.dialog.querySelector('#'+id);this.$('resource-close').onclick=this.$('resource-cancel').onclick=()=>this.dialog.close();
-  this.$('resource-add').onclick=()=>{if(this.items.length>=8)return;const used=new Set(this.items.map(r=>r.id));let id=used.has('fuel')?'energy':'fuel',index=1;while(used.has(id))id='resource-'+index++;this.items.push({id,config:{capacity:100,initial:100,perSecond:0,perMetre:0,perMessage:0},fresh:true});this.render();};
-  this.$('resource-apply').onclick=()=>this.apply();
- }
- open(){this.id=this.getSelected();const s=this.getScenario(),d=definition(s,this.id);if(!d)return;this.items=Object.entries(d.unit.resources??{}).map(([id,config])=>({id,config:clone(config),fresh:false}));this.$('resource-owner').textContent=d.group?d.group.name+' · 群の全員':d.unit.name;this.$('resource-error').textContent='';this.render();this.dialog.showModal();}
- field(card,label,key,value,{min=0,max=1e12,factor=1,onchange}={}){const l=el('label',label);l.className='field';const input=el('input');input.type='number';input.step='any';input.min=min;input.max=max;input.value=value*factor;input.dataset.resourceField=key;input.onchange=()=>{if(input.value.trim()&&input.checkValidity())onchange(Number(input.value)/factor);};l.append(input);card.append(l);}
- render(){
-  const host=this.$('resource-cards');host.replaceChildren();this.$('resource-add').disabled=this.items.length>=8;
-  if(!this.items.length)host.append(el('p','資源は未設定です。容量・消費による制約はありません。'));
-  for(const item of this.items){const r=item.config,card=el('section');card.className='resource-card';card.dataset.resourceId=item.id;const head=el('div');head.className='panel-heading';head.append(el('h3',resourceName(item.id)));const remove=el('button','削除');remove.onclick=()=>{this.items.splice(this.items.indexOf(item),1);this.render();};head.append(remove);card.append(head);
-   const id=el('label','資源ID');id.className='field';const input=el('input');input.value=item.id;input.readOnly=!item.fresh;input.pattern='[A-Za-z0-9_\\-]{1,64}';input.dataset.resourceField='id';input.onchange=()=>{if(input.checkValidity())item.id=input.value;};id.append(input);card.append(id);
-   const fields=el('div');fields.className='fields-two';
-   for(const [name,key,def,options] of [['容量（最大量）','capacity',100,{min:.000001}],['初期残量','initial',r.capacity,{}],['時間当たりの消費（量/秒）','perSecond',0,{}],['移動当たりの消費（量/km）','perMetre',0,{factor:1000}],['送信1回の消費量','perMessage',0,{}]])this.field(fields,name,key,r[key]??def,{...options,onchange:v=>r[key]=v});card.append(fields);
-   const effects=el('fieldset');effects.append(el('legend','空になったら停止する機能'));for(const [key,name] of [['movement','移動'],['sensor','探知'],['communication','通信']]){const l=el('label');l.className='check-field';const check=el('input');check.type='checkbox';check.checked=(r.effects??['movement','sensor','communication']).includes(key);check.onchange=()=>{const values=r.effects??['movement','sensor','communication'];r.effects=check.checked?[...new Set([...values,key])]:values.filter(v=>v!==key);};l.append(check,name);effects.append(l);}card.append(effects);
-   const supplement=el('details');supplement.append(el('summary','動作別の追加消費・補給'));for(const [kind,name] of [['follow','経路移動'],['patrol','周回'],['move','目的地への移動'],['wait','時間待ち'],['signal','情報待ち'],['report','報告'],['stop','停止']])this.field(supplement,name+'の追加消費（量/秒）','node-'+kind,r.byNodeKind?.[kind]??0,{max:1e9,onchange:v=>{r.byNodeKind??={};r.byNodeKind[kind]=v;}});
-   const l=el('label','補給する地点');l.className='field';const dest=el('select');dest.dataset.resourceField='replenish-destination';dest.replaceChildren(new Option('補給しない',''),...(this.getScenario().destinations??[]).filter(d=>d.kind==='point').map(d=>new Option(d.name,d.id)));dest.value=r.replenish?.destinationId??'';let replenishRate=r.replenish?.rate??1;dest.onchange=()=>{if(dest.value)r.replenish={destinationId:dest.value,rate:replenishRate};else delete r.replenish;};l.append(dest);supplement.append(l);this.field(supplement,'補給速度（量/秒）','replenish-rate',r.replenish?.rate??1,{min:.000001,max:1e9,onchange:v=>{replenishRate=v;if(dest.value)r.replenish={destinationId:dest.value,rate:v};}});supplement.append(el('p','補給地点で「時間待ち・情報待ち・停止」の動作中に補給します。移動中は補給しません。'));card.append(supplement);host.append(card);
+import { renderFields } from "./settings-form.js?v=20261009-configuration-contract-28";
+import { RESOURCE_CONTRACT, RESOURCE_FIELDS } from "./resource-schema.js?v=20261009-configuration-contract-28";
+export const resourceName = (id) => ({ fuel: "燃料", energy: "電池・エネルギー", battery: "電池" })[id] ?? id;
+const el = (tag, text) => {
+  const e = document.createElement(tag);
+  if (text) e.textContent = text;
+  return e;
+};
+export function renderResourceCollection(host, unit, context, changed, rerender) {
+  const entries = Object.entries(unit.resources ?? {});
+  if (!entries.length) host.append(el("p", RESOURCE_CONTRACT.absentMeaning));
+  for (const [id, record] of entries) {
+    const card = el("section");
+    card.className = "settings-collection-item";
+    card.dataset.resourceId = id;
+    const heading = el("div");
+    heading.className = "panel-heading";
+    heading.append(el("h4", resourceName(id) + " · " + id));
+    const remove = el("button", "削除");
+    remove.type = "button";
+    remove.onclick = () => {
+      delete unit.resources[id];
+      if (!Object.keys(unit.resources).length) delete unit.resources;
+      changed();
+      rerender();
+    };
+    heading.append(remove);
+    card.append(heading);
+    const normal = el("div");
+    normal.className = "settings-field-grid";
+    renderFields(normal, RESOURCE_FIELDS.filter((f) => !f.section), record, context, (field, value) => changed(field, value, record));
+    card.append(normal);
+    const details = el("details");
+    details.dataset.settingsSection = "resource." + id + ".advanced";
+    details.append(el("summary", "動作別の追加消費・補給"));
+    const advanced = el("div");
+    advanced.className = "settings-field-grid";
+    renderFields(advanced, RESOURCE_FIELDS.filter((f) => f.section === "詳細"), record, context, (field, value) => changed(field, value, record));
+    details.append(advanced);
+    const label = el("label");
+    label.className = "settings-boolean";
+    const replenish = el("input");
+    replenish.type = "checkbox";
+    replenish.checked = record.replenish !== void 0;
+    replenish.onchange = () => {
+      if (replenish.checked) record.replenish = { destinationId: context.scenario.destinations?.find((d) => d.kind === "point")?.id ?? "", rate: 1 };
+      else delete record.replenish;
+      changed();
+      rerender();
+    };
+    label.append(replenish, "地点で補給する");
+    details.append(label);
+    if (record.replenish) {
+      const fields = el("div");
+      fields.className = "settings-field-grid";
+      renderFields(fields, RESOURCE_FIELDS.filter((f) => f.section === "補給"), record, context, (field, value) => changed(field, value, record));
+      details.append(fields, el("p", "補給地点の時間待ち・情報待ち・停止中に補給します。"));
+    }
+    card.append(details);
+    host.append(card);
   }
- }
- apply(){try{for(const input of this.dialog.querySelectorAll('input'))if(!input.checkValidity()||input.type==='number'&&!input.value.trim())throw Error('空欄・範囲外の値を修正してください。');if(new Set(this.items.map(r=>r.id)).size!==this.items.length)throw Error('資源IDが重複しています。');const next=clone(this.getScenario()),d=definition(next,this.id);if(!d)throw Error('対象ユニットがありません。');next.version=4;d.unit.resources=Object.fromEntries(this.items.map(({id,config})=>[id,clone(config)]));if(!this.items.length)delete d.unit.resources;validateScenario(next);if(this.commit(next,'資源を設定しました。計算を実行してください。'))this.dialog.close();}catch(error){this.$('resource-error').textContent=error.message;}}
+  const add = el("button", "＋ 資源を追加");
+  add.id = "resource-add";
+  add.type = "button";
+  add.disabled = entries.length >= RESOURCE_CONTRACT.maxItems;
+  add.onclick = () => {
+    let id = "fuel", index = 1;
+    while (Object.hasOwn(unit.resources ?? {}, id)) id = "resource-" + index++;
+    unit.resources ??= {};
+    unit.resources[id] = { capacity: 100, initial: 100 };
+    changed();
+    rerender();
+  };
+  host.append(add);
+  const custom = el("label", "新しい資源ID");
+  custom.className = "settings-field";
+  const input = el("input");
+  input.placeholder = "例: battery";
+  input.maxLength = 64;
+  const create = el("button", "指定IDで追加");
+  create.type = "button";
+  create.disabled = add.disabled;
+  create.onclick = () => {
+    const id = input.value.trim();
+    if (!new RegExp(RESOURCE_CONTRACT.keyPattern).test(id) || Object.hasOwn(unit.resources ?? {}, id)) {
+      input.setCustomValidity("重複しない英数字・_・-で指定してください。");
+      input.reportValidity();
+      return;
+    }
+    unit.resources ??= {};
+    Object.defineProperty(unit.resources, id, { value: { capacity: 100, initial: 100 }, writable: true, enumerable: true, configurable: true });
+    changed();
+    rerender();
+  };
+  input.oninput = () => input.setCustomValidity("");
+  custom.append(input, create);
+  host.append(custom);
 }

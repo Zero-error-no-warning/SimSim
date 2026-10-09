@@ -1,4 +1,4 @@
-import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261009-authoring-display-27';
+import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261009-configuration-contract-28';
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function planEditor(s){
   const c=s.analysis?.plans;

@@ -53,7 +53,7 @@ try{
   await page.locator('.task-item[data-task="t"]').click();assert.equal(await page.locator('.unit-item.related').count(),2);
   assert.equal(await page.locator('.unit-item').count(),3); // Unassigned units stay available.
   assert.equal(await page.locator('#behavior-dialog').evaluate(e=>e.open),false);
-  await page.locator('.task-edit').click();assert(await page.locator('#behavior-dialog').isVisible());await page.locator('#behavior-cancel').click();
+  await page.locator('.task-edit').click();assert(await page.locator('#behavior-dialog').isVisible());await page.locator('#behavior-cancel').click();if(await page.locator('#settings-editor').isVisible())await page.locator('#settings-back').click();
   await page.locator('.unit-item[data-id="group__2"]').hover();await page.waitForTimeout(100);
   assert(await page.locator('#labels line[data-unit="group__2"]').isVisible());
   await page.locator('.unit-item[data-id="group__2"]').click();assert(await page.locator('.unit-item[data-id="group__2"]').evaluate(e=>e.classList.contains('selected')));
@@ -69,7 +69,7 @@ try{
   await page.locator('#unit-search').fill('template');await page.locator('.unit-item[data-id="template"]').click();await page.locator('#unit-search').fill('');assert.equal(await page.locator('.unit-item[data-id="group__100"]').count(),0);
   const mapBox=await page.locator('#map>canvas').boundingBox();await page.mouse.click(mapBox.x+targetPoint.x,mapBox.y+targetPoint.y);
   await page.waitForFunction(()=>document.querySelector('.unit-item[data-id="group__100"]')?.classList.contains('selected'));
-  assert.equal(await page.locator('#unit-name').inputValue(),'群 100');
+  assert.equal(await page.locator('#inspector-name').textContent(),'群 100');
   assert(await page.locator('.unit-item[data-id="group__100"]').evaluate(e=>{const r=e.getBoundingClientRect(),p=e.parentElement.getBoundingClientRect();return r.top>=p.top&&r.bottom<=p.bottom+1;}));
   const before=await page.locator('.unit-panel').boundingBox(),handle=page.locator('.pane-resizer[data-pane="unit"]'),box=await handle.boundingBox();
   await page.mouse.move(box.x+3,box.y+50);await page.mouse.down();await page.mouse.move(box.x+43,box.y+50);await page.mouse.up();

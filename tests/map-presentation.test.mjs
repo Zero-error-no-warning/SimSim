@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createSimulation} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
-import {taskPresentations} from '../src/map-presentation.js?v=20261009-authoring-display-27';
+import {createSimulation} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
+import {taskPresentations} from '../src/map-presentation.js?v=20261009-configuration-contract-28';
 const source=()=>JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));
 test('initial task and resource presentation works before calculation, including stationary assignments',()=>{
  const s=source();s.units[2].resources={fuel:{capacity:100,initial:25}};const model=createSimulation(s),snapshot=model.evaluate(0),tasks=taskPresentations(model.scenario,snapshot);

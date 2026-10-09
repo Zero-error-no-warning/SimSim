@@ -1,14 +1,15 @@
-import {conditionErrors} from './decision.js?v=20261009-authoring-display-27';
-import {ConditionUI} from './condition-ui.js?v=20261009-authoring-display-27';
-import {ContextMenu} from './context-menu.js?v=20261009-authoring-display-27';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261009-authoring-display-27';
-import {isParameterRef} from './behavior-parameters.js?v=20261009-authoring-display-27';
-import {NavigationUI} from './navigation-ui.js?v=20261009-authoring-display-27';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261009-authoring-display-27';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261009-authoring-display-27';
-import { clone,validateScenario } from './engine.js?v=20261009-authoring-display-27';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261009-authoring-display-27';
-import { requireElement } from './ui-dom.js?v=20261009-authoring-display-27';
+import {showEditorDialog} from './ui-dom.js?v=20261009-configuration-contract-28';
+import {conditionErrors} from './decision.js?v=20261009-configuration-contract-28';
+import {ConditionUI} from './condition-ui.js?v=20261009-configuration-contract-28';
+import {ContextMenu} from './context-menu.js?v=20261009-configuration-contract-28';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261009-configuration-contract-28';
+import {isParameterRef} from './behavior-parameters.js?v=20261009-configuration-contract-28';
+import {NavigationUI} from './navigation-ui.js?v=20261009-configuration-contract-28';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261009-configuration-contract-28';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261009-configuration-contract-28';
+import { clone,validateScenario } from './engine.js?v=20261009-configuration-contract-28';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261009-configuration-contract-28';
+import { requireElement } from './ui-dom.js?v=20261009-configuration-contract-28';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -381,7 +382,7 @@ export class BehaviorUI{
     this.future=[];
     this.render();
     this.tab('task');
-    this.dialog.showModal();
+    showEditorDialog(this.dialog);
     this.canvasView=null;
   }
   measureSelected(){
@@ -520,7 +521,7 @@ export class BehaviorUI{
     });
   }
   cancelPointPick(){
-    this.dialog.showModal();
+    showEditorDialog(this.dialog);
     if(this.navigationMode){this.navigationMode=null;this.navigation.fields();this.navigation.dialog.showModal();}
   }
   startRoute(){
@@ -537,19 +538,19 @@ export class BehaviorUI{
     return this.assignment().route.length;
   }
   finishRoute(){
-    if(this.navigationMode==='route'){this.navigationMode=null;this.dialog.showModal();this.navigation.finishRoute();return;}
+    if(this.navigationMode==='route'){this.navigationMode=null;showEditorDialog(this.dialog);this.navigation.finishRoute();return;}
     if(this.assignment().route.length<(this.graph().nodes.some(n=>n.kind==='patrol')?3:2))this.assignment().route=this.oldRoute.length?this.oldRoute:undefined;
     this.render();
-    this.dialog.showModal();
+    showEditorDialog(this.dialog);
   }
   setBase(p){
-    if(this.navigationMode==='point'){this.navigationMode=null;this.dialog.showModal();this.navigation.setPoint(p);return;}
+    if(this.navigationMode==='point'){this.navigationMode=null;showEditorDialog(this.dialog);this.navigation.setPoint(p);return;}
     this.remember();
     this.assignment().base={
       ...p
     };
     this.render();
-    this.dialog.showModal();
+    showEditorDialog(this.dialog);
   }
   edgeOptions(kind,edge){
     const select=$('edge-condition');

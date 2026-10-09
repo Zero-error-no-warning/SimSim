@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261009-authoring-display-27';
-import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
-import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261009-authoring-display-27';
-import {trialScenario} from '../src/parameters.js?v=20261009-authoring-display-27';
-import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261009-authoring-display-27';
-import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261009-authoring-display-27';
+import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261009-configuration-contract-28';
+import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
+import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261009-configuration-contract-28';
+import {trialScenario} from '../src/parameters.js?v=20261009-configuration-contract-28';
+import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261009-configuration-contract-28';
+import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261009-configuration-contract-28';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 const run=(s,record=true)=>{const model=new RecordedSimulation(s),g=sharedSteps(model,s.mission,undefined,{horizon:s.duration,record});let v=g.next();while(!v.done)v=g.next();return {model,result:v.value};};
 validateScenario(source);assert.deepEqual(stateMembers(source),['group__1','group__2']);

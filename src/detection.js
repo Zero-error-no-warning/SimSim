@@ -1,14 +1,14 @@
-import {expandGroups} from './random.js?v=20261009-authoring-display-27';
-import {validateInformationMetrics} from './information-metrics.js?v=20261009-authoring-display-27';
-import {MODEL_BUILD} from './model-version.js?v=20261009-authoring-display-27';
-import {validateMeasurements} from './measurement-points.js?v=20261009-authoring-display-27';
-import {stateSummary,validateStateResult} from './state-measurement.js?v=20261009-authoring-display-27';
-import { sharedSteps,RecordedSimulation,RECORD_MODEL,compatibleModel } from './recorded-engine.js?v=20261009-authoring-display-27';
-import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261009-authoring-display-27';
-import { clone,validateScenario } from './engine.js?v=20261009-authoring-display-27';
-import { missionErrors,analysisErrors } from './detection-settings.js?v=20261009-authoring-display-27';
-export { terrainVisible,contactProbability } from './contact.js?v=20261009-authoring-display-27';
-import { importScenario } from './scenario-import.js?v=20261009-authoring-display-27';
+import {expandGroups} from './random.js?v=20261009-configuration-contract-28';
+import {validateInformationMetrics} from './information-metrics.js?v=20261009-configuration-contract-28';
+import {MODEL_BUILD} from './model-version.js?v=20261009-configuration-contract-28';
+import {validateMeasurements} from './measurement-points.js?v=20261009-configuration-contract-28';
+import {stateSummary,validateStateResult} from './state-measurement.js?v=20261009-configuration-contract-28';
+import { sharedSteps,RecordedSimulation,RECORD_MODEL,compatibleModel } from './recorded-engine.js?v=20261009-configuration-contract-28';
+import { analysisConditions,trialScenario,readParameter,bindingKey } from './parameters.js?v=20261009-configuration-contract-28';
+import { clone,validateScenario } from './engine.js?v=20261009-configuration-contract-28';
+import { missionErrors,analysisErrors } from './detection-settings.js?v=20261009-configuration-contract-28';
+export { terrainVisible,contactProbability } from './contact.js?v=20261009-configuration-contract-28';
+import { importScenario } from './scenario-import.js?v=20261009-configuration-contract-28';
 export function* detectionSteps(model,mission=model.scenario.mission,step=model.scenario.analysis?.step??10,options={
 }) {
   if(!(model instanceof RecordedSimulation)&&model.source.version<3&&step!==undefined){

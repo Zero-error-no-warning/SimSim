@@ -2631,3 +2631,168 @@ periodicReportsは移動と並行する観測・状態報告（receiverIds、int
 記録量の実測はtools/benchmark-information.mjs。上限は維持し、複数Workerはまだ実装しない。主体別の情報履歴を索引化し、画面への保有情報転送は選択主体だけにする。運用設定・情報伝達・資源を増やした分の処理費用は基準ケースと分けて評価する。
 
 保存した記録・分析・実験・定石のimplementationはMODEL_BUILDで照合する。画面やキャッシュ用のUI_BUILDとは独立し、画面だけの更新では計算モデル26の保存データを引き続き開ける。計算の意味が変わった時にはモデル実装版を更新する。
+
+[GENERATED CONFIGURATION CONTRACT]
+設定契約から生成した入力台帳（画面版28）
+保存は従来のシナリオ形式。配列・資源IDごとの項目は各要素に適用。
+表示倍率は保存値→画面値。省略値は表示のために解決し、編集しない限りファイルへ追加しない。
+関連制約・参照・シナリオ版はvalidateScenarioで追加検証する。
+
+基本属性 / entity.basic / 所有者: entity / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  entity.id → id | ID | text 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 編集不可: 識別子
+  entity.name → name | 名称 | text 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  entity.domain → domain | 領域 | select 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  entity.faction → faction | 陣営 | select 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  entity.manned → manned | 有人で運用 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  entity.enabled → enabled | 計算に使用する | boolean | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: true | 分析未対応
+
+初期位置・経路の基準点 / entity.position / 所有者: entity / 編集: position / 未設定: 省略した属性には既存モデルの既定値を使用
+  entity.initial.x → initial.x | 東西 x（km） | number 必須 | 範囲: 省略可〜省略可 | 表示倍率: 0.001 | 既定: 省略可 | 分析未対応
+  entity.initial.y → initial.y | 南北 y（km） | number 必須 | 範囲: 省略可〜省略可 | 表示倍率: 0.001 | 既定: 省略可 | 分析未対応
+  entity.initial.z → initial.z | 高度・深度の座標 z（m） | number 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+
+群の配置 / group.placement / 所有者: group / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  group.name → name | 群の名称 | text 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  group.enabled → enabled | 群全員を計算に使用する | boolean | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: true | 分析未対応
+  group.count → count | 個数 | number 必須 | 範囲: 1〜2000 | 表示倍率: 1 | 既定: 省略可 | 分析: capacity.population
+  group.placement → placement | 配置 | select 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  group.width → width | 配置幅 x（km） | number 必須 | 範囲: 0〜100000 | 表示倍率: 0.001 | 既定: 省略可 | 分析: extent.deployment.width
+  group.height → height | 配置幅 y（km） | number 必須 | 範囲: 0〜100000 | 表示倍率: 0.001 | 既定: 省略可 | 分析: extent.deployment.height
+  group.loopStartMode → loopStartMode | 周回の開始割合 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: template | 分析未対応
+
+移動・被探知性能 / entity.movement / 所有者: entity / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  entity.speed → speed | 移動速度（km/h） | number 必須 | 範囲: 0〜1500 | 表示倍率: 3.6 | 既定: 0 | 分析: rate.movement.speed
+  entity.detectability → detectability | 被探知係数 | number | 範囲: 0〜10 | 表示倍率: 1 | 既定: 1 | 分析: extent.signature.coefficient
+
+探知装置 / entity.sensor / 所有者: entity / 編集: fields / 未設定: 未搭載
+  sensor.enabled → sensor.enabled | 探知を使用 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: true | 分析未対応
+  sensor.range → sensor.range | 最大探知距離（km） | number 必須 | 範囲: 5e-324〜100000 | 表示倍率: 0.001 | 既定: 1000 | 分析: extent.sense.radius
+  sensor.probability → sensor.probabilityPerMinute | 距離0で1分の探知確率（%） | number 必須 | 範囲: 0〜1 | 表示倍率: 100 | 既定: 0.5 | 分析: interaction.detection.probability
+  sensor.domains → sensor.domains | 対象領域 | multi 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: ground, surface, subsurface, air | 分析未対応
+  sensor.terrainLOS → sensor.terrainLOS | 地形による遮蔽を判定 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: false | 分析未対応
+  sensor.medium → sensor.medium | 媒体 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: ideal | 分析未対応
+  sensor.mountHeight → sensor.mountHeight | 取付高（m） | number | 範囲: 0〜1000 | 表示倍率: 1 | 既定: 対象・関連値から解決 | 分析: extent.sense.mountHeight
+  sensor.earthFactor → sensor.earthFactor | 実効地球半径係数 | number | 範囲: 0.5〜2 | 表示倍率: 1 | 既定: 1 | 分析未対応
+  sensor.propagationSpeed → sensor.propagationSpeed | 伝搬速度（m/s） | number | 範囲: 1〜299792458 | 表示倍率: 1 | 既定: 省略可 | 編集不可: 現モデルの探知計算は使用しない旧来の属性
+  sensor.failureModel → sensor.failureModel | 継続障害のモデル | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: independent | 編集不可: 現モデルの探知計算は使用しない旧来の属性
+  sensor.windowSeconds → sensor.windowSeconds | 障害区間（秒） | number | 範囲: 0.1〜86400 | 表示倍率: 1 | 既定: 60 | 編集不可: 現モデルの探知計算は使用しない旧来の属性
+  sensor.outageProbability → sensor.outageProbability | 継続障害の確率（%） | number | 範囲: 0〜1 | 表示倍率: 100 | 既定: 0 | 編集不可: 現モデルの探知計算は使用しない旧来の属性
+
+通信装置 / entity.communication / 所有者: entity / 編集: fields / 未設定: 未搭載
+  communication.enabled → communication.enabled | 通信を使用 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: true | 分析未対応
+  communication.range → communication.range | 最大通信距離（km） | number 必須 | 範囲: 0.001〜100000 | 表示倍率: 0.001 | 既定: 10000 | 分析: extent.communication.radius
+  communication.delay → communication.delay | 通信遅延（秒） | number 必須 | 範囲: 0〜86400 | 表示倍率: 1 | 既定: 0 | 分析: interaction.communication.delay
+  communication.probability → communication.probability | 通信成功確率（%） | number 必須 | 範囲: 0〜1 | 表示倍率: 100 | 既定: 1 | 分析: interaction.communication.probability
+  communication.terrainLOS → communication.terrainLOS | 地形による遮蔽を判定 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: false | 分析未対応
+  communication.medium → communication.medium | 媒体 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: ideal | 分析未対応
+  communication.mountHeight → communication.mountHeight | 取付高（m） | number | 範囲: 0〜10000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  communication.earthFactor → communication.earthFactor | 実効地球半径係数 | number | 範囲: 0.5〜2 | 表示倍率: 1 | 既定: 1 | 分析未対応
+  communication.propagationSpeed → communication.propagationSpeed | 伝搬速度（m/s） | number | 範囲: 1〜299792458 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  communication.failureModel → communication.failureModel | 継続障害のモデル | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: independent | 分析未対応
+  communication.windowSeconds → communication.windowSeconds | 障害区間（秒） | number | 範囲: 0.1〜86400 | 表示倍率: 1 | 既定: 60 | 分析未対応
+  communication.outageProbability → communication.outageProbability | 継続障害の確率（%） | number | 範囲: 0〜1 | 表示倍率: 100 | 既定: 0 | 分析未対応
+
+燃料・電池などの資源 / unit.resources / 所有者: entity / 編集: resourceCollection / 未設定: 資源による制約なし
+  resource.capacity → resources.capacity | 容量（最大量） | number 必須 | 範囲: 0.000001〜1000000000000 | 表示倍率: 1 | 既定: 100 | 分析未対応
+  resource.initial → resources.initial | 初期残量 | number | 範囲: 0〜対象・関連値から解決 | 表示倍率: 1 | 既定: 対象・関連値から解決 | 分析未対応
+  resource.perSecond → resources.perSecond | 時間当たりの消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.perMetre → resources.perMetre | 移動当たりの消費（量/km） | number | 範囲: 0〜1000000000 | 表示倍率: 1000 | 既定: 0 | 分析未対応
+  resource.perMessage → resources.perMessage | 送信1回の消費量 | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.effects → resources.effects | 空になったら停止する機能 | multi | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: movement, sensor, communication | 分析未対応
+  resource.node.follow → resources.byNodeKind.follow | 経路移動の追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.node.patrol → resources.byNodeKind.patrol | 周回の追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.node.move → resources.byNodeKind.move | 目的地移動の追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.node.wait → resources.byNodeKind.wait | 時間待ちの追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.node.signal → resources.byNodeKind.signal | 情報待ちの追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.node.report → resources.byNodeKind.report | 報告の追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.node.stop → resources.byNodeKind.stop | 停止の追加消費（量/秒） | number | 範囲: 0〜1000000000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  resource.replenish.destination → resources.replenish.destinationId | 補給する地点 | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  resource.replenish.rate → resources.replenish.rate | 補給速度（量/秒） | number 必須 | 範囲: 0.000001〜1000000000 | 表示倍率: 1 | 既定: 1 | 分析未対応
+
+航跡のばらつき・開始割合 / entity.motion / 所有者: entity / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  entity.motion.horizontal → motion.horizontal | 個体の水平ずれ（m） | number | 範囲: 0〜10000 | 表示倍率: 1 | 既定: 0 | 分析: motion.horizontal
+  entity.motion.commonHorizontal → motion.commonHorizontal | 群共通の水平ずれ（m） | number | 範囲: 0〜10000 | 表示倍率: 1 | 既定: 0 | 分析: motion.commonHorizontal
+  entity.motion.vertical → motion.vertical | 上下ずれ（m） | number | 範囲: 0〜3000 | 表示倍率: 1 | 既定: 0 | 分析: motion.vertical
+  entity.motion.scale → motion.scale | 変動間隔（m） | number | 範囲: 10〜100000 | 表示倍率: 1 | 既定: 2000 | 分析: motion.scale
+  entity.motion.startDelay → motion.startDelay | 出発遅れ上限（秒） | number | 範囲: 0〜86400 | 表示倍率: 1 | 既定: 0 | 分析: motion.startDelay
+  entity.motion.speedVariation → motion.speedVariation | 速度ばらつき（±%） | number | 範囲: 0〜1 | 表示倍率: 100 | 既定: 0 | 分析: motion.speedVariation
+  entity.motion.loopStart → motion.loopStart | 周回の出発点（%） | number | 範囲: 0〜1 | 表示倍率: 100 | 既定: 0 | 分析: state.route.phase
+
+担当タスクの協調 / assignment.coordination / 所有者: assignment / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  assignment.coordination → coordination | 協調に使う位置 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: ideal | 分析未対応
+  assignment.reportMaxAge → reportMaxAge | 味方報告の有効時間（秒） | number | 範囲: 0〜86400 | 表示倍率: 1 | 既定: 60 | 分析未対応
+  assignment.missingReport → missingReport | 報告がないときの移動 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: cruise | 分析未対応
+
+経路と担当タスク / entity.route / 所有者: entity / 編集: navigation / 未設定: 省略した属性には既存モデルの既定値を使用
+
+移動と並行する報告 / entity.periodicReports / 所有者: entity / 編集: collection / 未設定: 追加設定なし
+  report.kind → periodicReports.messageKind | 報告内容 | select 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: observation | 分析未対応
+  report.receivers → periodicReports.receiverIds | 報告先 | multi 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定:  | 分析未対応
+  report.interval → periodicReports.interval | 報告周期（秒） | number 必須 | 範囲: 0.1〜86400 | 表示倍率: 1 | 既定: 30 | 分析未対応
+
+命令の許可元 / entity.commands / 所有者: entity / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  information.commandSources → commandSources | 命令を受け付ける送信元 | multi | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定:  | 分析未対応
+
+初期に持つ情報 / scenario.initialInformation / 所有者: scenario / 編集: collection / 未設定: 追加設定なし
+  initial.owner → initialInformation.ownerId | 情報の所有者 | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  initial.kind → initialInformation.observation.messageKind | 情報の種類 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: observation | 分析未対応
+  initial.target → initialInformation.observation.targetId | 観測した対象 | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  initial.subject → initialInformation.observation.subjectId | 報告されたユニット | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  initial.reportedState → initialInformation.observation.reportedState | 報告された稼働状態 | select 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: operational | 分析未対応
+  initial.position.x → initialInformation.observation.targetPosition.x | 観測位置 x（km） | number 必須 | 範囲: 省略可〜省略可 | 表示倍率: 0.001 | 既定: 0 | 分析未対応
+  initial.position.y → initialInformation.observation.targetPosition.y | 観測位置 y（km） | number 必須 | 範囲: 省略可〜省略可 | 表示倍率: 0.001 | 既定: 0 | 分析未対応
+  initial.position.z → initialInformation.observation.targetPosition.z | 観測位置 z（m） | number 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  initial.time → initialInformation.observation.observationTime | 観測時刻（秒） | number 必須 | 範囲: -86400〜0 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  initial.confidence → initialInformation.observation.confidence | 識別確信度（%） | number | 範囲: 0〜1 | 表示倍率: 100 | 既定: 1 | 分析未対応
+  initial.error → initialInformation.observation.positionErrorRadius | 位置誤差の半径（m） | number | 範囲: 0〜省略可 | 表示倍率: 1 | 既定: 0 | 分析未対応
+
+有向通信リンク / scenario.links / 所有者: scenario / 編集: collection / 未設定: 追加設定なし
+  link.id → communicationLinks.id | リンクID | text 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: link | 分析未対応
+  link.sender → communicationLinks.senderId | 送信元 | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  link.receiver → communicationLinks.receiverId | 受信先 | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  link.enabled → communicationLinks.enabled | 通信を使用 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: true | 分析未対応
+  link.range → communicationLinks.range | 最大通信距離（km） | number 必須 | 範囲: 0.001〜100000 | 表示倍率: 0.001 | 既定: 10000 | 分析: extent.communication.radius
+  link.delay → communicationLinks.delay | 通信遅延（秒） | number 必須 | 範囲: 0〜86400 | 表示倍率: 1 | 既定: 0 | 分析: interaction.communication.delay
+  link.probability → communicationLinks.probability | 通信成功確率（%） | number 必須 | 範囲: 0〜1 | 表示倍率: 100 | 既定: 1 | 分析: interaction.communication.probability
+  link.terrainLOS → communicationLinks.terrainLOS | 地形による遮蔽を判定 | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: false | 分析未対応
+  link.medium → communicationLinks.medium | 媒体 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: ideal | 分析未対応
+  link.mountHeight → communicationLinks.mountHeight | 取付高（m） | number | 範囲: 0〜10000 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  link.earthFactor → communicationLinks.earthFactor | 実効地球半径係数 | number | 範囲: 0.5〜2 | 表示倍率: 1 | 既定: 1 | 分析未対応
+  link.propagationSpeed → communicationLinks.propagationSpeed | 伝搬速度（m/s） | number | 範囲: 1〜299792458 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  link.failureModel → communicationLinks.failureModel | 継続障害のモデル | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: independent | 分析未対応
+  link.windowSeconds → communicationLinks.windowSeconds | 障害区間（秒） | number | 範囲: 0.1〜86400 | 表示倍率: 1 | 既定: 60 | 分析未対応
+  link.outageProbability → communicationLinks.outageProbability | 継続障害の確率（%） | number | 範囲: 0〜1 | 表示倍率: 100 | 既定: 0 | 分析未対応
+
+継続通信障害 / scenario.disruptions / 所有者: scenario / 編集: collection / 未設定: 追加設定なし
+  disruption.start → communicationDisruptions.start | 開始時刻（秒） | number 必須 | 範囲: 0〜対象・関連値から解決 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  disruption.end → communicationDisruptions.end | 終了時刻（秒） | number 必須 | 範囲: 0〜対象・関連値から解決 | 表示倍率: 1 | 既定: 対象・関連値から解決 | 分析未対応
+  disruption.medium → communicationDisruptions.medium | 対象媒体 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  disruption.links → communicationDisruptions.linkIds | 対象リンク | multi | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  disruption.available → communicationDisruptions.available | 通信を利用可能にする | boolean | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: false | 分析未対応
+  disruption.probability → communicationDisruptions.probabilityMultiplier | 成功確率の倍率 | number | 範囲: 0〜1 | 表示倍率: 1 | 既定: 1 | 分析未対応
+  disruption.delay → communicationDisruptions.delayAdded | 追加遅延（秒） | number | 範囲: 0〜86400 | 表示倍率: 1 | 既定: 0 | 分析未対応
+
+停止・復旧事象 / scenario.operational / 所有者: scenario / 編集: collection / 未設定: 追加設定なし
+  operational.unit → operationalEvents.unitId | 停止・復旧するユニット | reference 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: 省略可 | 分析未対応
+  operational.time → operationalEvents.time | 発生時刻（秒） | number 必須 | 範囲: 0〜対象・関連値から解決 | 表示倍率: 1 | 既定: 0 | 分析未対応
+  operational.value → operationalEvents.operational | 発生後に稼働している | boolean 必須 | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: false | 分析未対応
+
+モデルの前提と計測 / scenario.assumptions / 所有者: scenario / 編集: fields / 未設定: 省略した属性には既存モデルの既定値を使用
+  assumption.information → modelAssumptions.information | 情報参照 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: restricted | 分析未対応
+  assumption.identity → modelAssumptions.identityMatching | 対象との対応付け | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: perfect | 分析未対応
+  assumption.position → modelAssumptions.positionObservation | 観測位置 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: exact | 分析未対応
+  assumption.transmission → modelAssumptions.communicationTransmission | 通信経路の評価 | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: instant | 分析未対応
+  assumption.geometry → modelAssumptions.geometry | 幾何モデル | select | 範囲: 省略可〜省略可 | 表示倍率: 1 | 既定: local-plane-spherical-horizon | 分析未対応
+  information.maxAge → informationMetrics.maxContactAge | 鮮度計測の基準（秒） | number | 範囲: 0〜86400 | 表示倍率: 1 | 既定: 30 | 分析未対応
+
+判断状態の台帳
+clock | number | 開始からの時間（秒） | 参照: clock | 表示倍率: 1 | 未知: missing | 集約: unsupported
+self.status | string | 自分の動作状態 | 参照: self | 表示倍率: 1 | 未知: missing | 集約: unsupported
+self.operational | boolean | 自分が稼働している | 参照: self | 表示倍率: 1 | 未知: missing | 集約: unsupported
+knowledge.selectedContact.age | number | 接触情報の経過時間（秒） | 参照: selected-contact | 表示倍率: 1 | 未知: missing | 集約: unsupported
+knowledge.selectedContact.identity.confidence | number | 接触の識別確信度（%） | 参照: selected-contact | 表示倍率: 100 | 未知: missing | 集約: unsupported
+knowledge.selectedContact.positionErrorRadius | number | 接触の位置誤差（m） | 参照: selected-contact | 表示倍率: 1 | 未知: missing | 集約: unsupported
+self.resources.{id}.fraction | number | 資源の残量（%） | 参照: self | 表示倍率: 100 | 未知: missing | 集約: unsupported
+self.resources.{id}.remaining | number | 資源の残量（量） | 参照: self | 表示倍率: 1 | 未知: missing | 集約: unsupported
+knowledge.friendlyReports.{id}.age | number | 状態報告からの時間（秒） | 参照: received-report | 表示倍率: 1 | 未知: missing | 集約: unsupported
+knowledge.friendlyReports.{id}.reportedState | string | 報告された稼働状態 | 参照: received-report | 表示倍率: 1 | 未知: missing | 集約: unsupported

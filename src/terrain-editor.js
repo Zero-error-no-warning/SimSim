@@ -1,4 +1,4 @@
-import {Terrain} from './engine.js?v=20261009-authoring-display-27';
+import {Terrain} from './engine.js?v=20261009-configuration-contract-28';
 // Edit the existing elevation grid; display exaggeration never changes SI data.
 export function sampleTerrainHeight(data,point){
   if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return null;

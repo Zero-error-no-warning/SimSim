@@ -1,5 +1,6 @@
-import { sharedAssignment } from './shared-settings.js?v=20261009-authoring-display-27';
-import { random01,streamKey } from './random.js?v=20261009-authoring-display-27';
+import {analysisFieldDescriptors} from './configuration-fields.js?v=20261009-configuration-contract-28';
+import { sharedAssignment } from './shared-settings.js?v=20261009-configuration-contract-28';
+import { random01,streamKey } from './random.js?v=20261009-configuration-contract-28';
 // One registry connects semantic primitive names, units, validation and current engine fields.
 // The serialized scenario fields remain authoritative; no mirrored attribute values are stored.
 const define=(key,label,family,path,min,max,options={
@@ -7,29 +8,9 @@ const define=(key,label,family,path,min,max,options={
   key,label,family,path,min,max,scale:1,scope:'entity',...options
 });
 export const PARAMETERS=[
-define('rate.movement.speed','移動速度','Rate','speed',0,1500,{
-  unit:'m/s',default:0
-}),
-define('extent.sense.radius','最大探知距離','Extent','sensor.range',.001,100000,{
-  unit:'km',scale:1000,sensor:true
-}),
-define('interaction.detection.probability','距離0で1分の探知確率','Interaction','sensor.probabilityPerMinute',0,1,{
-  unit:'%',scale:.01,sensor:true
-}),
-define('extent.communication.radius','最大通信距離','Extent','communication.range',.001,100000,{
-  unit:'km',scale:1000,communication:true
-}),
-define('interaction.communication.delay','通信遅延','Interaction','communication.delay',0,86400,{
-  unit:'s',communication:true
-}),
-define('interaction.communication.probability','通信成功確率','Interaction','communication.probability',0,1,{
-  unit:'%',scale:.01,communication:true
-}),
+...analysisFieldDescriptors(),
 define('behavior.preparation','出発準備時間','Behavior','preparation',0,86400,{
   unit:'s',scope:'assignment',preparation:true,default:0
-}),
-define('extent.signature.coefficient','被探知係数','Extent','detectability',0,10,{
-  unit:'倍',default:1
 }),
 define('state.position.x','配置・経路の中心 x','State','initial.x',-1000000,1000000,{
   unit:'km',scale:1000,translate:'x'
@@ -39,39 +20,6 @@ define('state.position.y','配置・経路の中心 y','State','initial.y',-1000
 }),
 define('state.position.z','高度・深度 z','State','initial.z',-20000,100000,{
   unit:'m',translate:'z',vertical:true
-}),
-define('extent.sense.mountHeight','センサー取付高','Extent','sensor.mountHeight',0,1000,{
-  unit:'m',sensor:true,default:0
-}),
-define('state.route.phase','周回の出発点','State','motion.loopStart',0,1,{
-  unit:'%',scale:.01,default:0,loopOnly:true
-}),
-define('motion.horizontal','個体の水平ずれ上限','Motion','motion.horizontal',0,10000,{
-  unit:'m',default:0
-}),
-define('motion.commonHorizontal','群共通の水平ずれ上限','Motion','motion.commonHorizontal',0,10000,{
-  unit:'m',default:0
-}),
-define('motion.vertical','上下ずれ上限','Motion','motion.vertical',0,3000,{
-  unit:'m',default:0,vertical:true
-}),
-define('motion.scale','航跡の変動間隔','Motion','motion.scale',10,100000,{
-  unit:'m',default:2000
-}),
-define('motion.startDelay','出発遅れ上限','Motion','motion.startDelay',0,86400,{
-  unit:'s',default:0
-}),
-define('motion.speedVariation','個体速度のばらつき','Motion','motion.speedVariation',0,1,{
-  unit:'±%',scale:.01,default:0
-}),
-define('capacity.population','群の個数','Capacity','count',0,2000,{
-  unit:'個',scope:'group',integer:true
-}),
-define('extent.deployment.width','配置幅 x','Extent','width',0,100000,{
-  unit:'km',scale:1000,scope:'group'
-}),
-define('extent.deployment.height','配置幅 y','Extent','height',0,100000,{
-  unit:'km',scale:1000,scope:'group'
 }),
 define('task.route.x','共有経路の基準 x','State','route.0.x',-1000000,1000000,{
   unit:'km',scale:1000,scope:'assignment',routeAxis:'x'

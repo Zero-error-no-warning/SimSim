@@ -4,7 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {restoreRecording} from '../src/recorded-engine.js?v=20261009-authoring-display-27';
+import {restoreRecording} from '../src/recorded-engine.js?v=20261009-configuration-contract-28';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
 const root=path.resolve(process.env.SIMSIM_WEB_ROOT??fileURLToPath(new URL('..',import.meta.url))),folder=fs.mkdtempSync(path.join(os.tmpdir(),'simsim-new-task-'));
 const server=http.createServer((req,res)=>{
@@ -29,7 +29,7 @@ try{
   await page.locator('#node-height-mode').selectOption('target');await page.locator('#behavior-undo').click();assert.equal(await page.locator('#node-height-mode').inputValue(),'keep');
   await page.locator('#node-destination-edit').click();assert.equal(await page.locator('#navigation-kind').inputValue(),'received');assert((await page.locator('#navigation-kind option:checked').textContent()).includes('探知・受信'));assert(await page.locator('#navigation-point-fields').isHidden());assert(await page.locator('#navigation-unit-field').isHidden());
   await page.locator('#navigation-kind').selectOption('unit');assert(await page.locator('#navigation-unit-field').isVisible());await page.locator('#navigation-kind').selectOption('received');await page.locator('#navigation-save').click();
-  await page.locator('#behavior-apply').click();
+  await page.locator('#behavior-apply').click();if(await page.locator('#behavior-dialog').isHidden()&&await page.locator('#settings-editor').isVisible())await page.locator('#settings-apply').click();
   const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);const file=path.join(folder,'received.txt');await download.saveAs(file);const saved=JSON.parse(fs.readFileSync(file));
   assert.deepEqual(saved.destinations[0],{id:'received',name:'受信した目標位置',kind:'received'});assert.equal(saved.behaviors[2].nodes.find(n=>n.id==='move').heightMode,'keep');assert.equal(saved.behaviors[2].triggers[0].once,false);
   await page.locator('#new-scenario').click();await page.locator('#file').setInputFiles(file);await page.waitForFunction(()=>document.getElementById('title').value==='受信した観測位置へ移動');
