@@ -1,10 +1,11 @@
-import { editableDefinition } from './editor.js?v=20261009-select-state-30';
-import { sharedAssignment } from './shared-settings.js?v=20261009-select-state-30';
-import {taskPresentations} from './map-presentation.js?v=20261009-select-state-30';
-import {resourceName} from './resource-ui.js?v=20261009-select-state-30';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261012-briefing-map-31';
+import { editableDefinition } from './editor.js?v=20261012-briefing-map-31';
+import { sharedAssignment } from './shared-settings.js?v=20261012-briefing-map-31';
+import {taskPresentations} from './map-presentation.js?v=20261012-briefing-map-31';
+import {resourceName} from './resource-ui.js?v=20261012-briefing-map-31';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261009-select-state-30';
+import { Terrain, Simulation } from './engine.js?v=20261012-briefing-map-31';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -350,15 +351,8 @@ export class MapView {
   }
   previewTerrain(data){
     this.terrainPreviewData=data;this.terrain=new Terrain(data);this.terrainKey=null;
-    const layout=[data.columns,data.rows,data.spacing,data.spacingY??data.spacing,data.origin.x,data.origin.y].join('|');
-    if(layout!==this.meshTerrainLayout){this.buildTerrain(data);return;}
-    const geometry=this.terrainMesh.geometry,position=geometry.getAttribute('position'),color=geometry.getAttribute('color');
-    const deep=new THREE.Color('#244960'),shallow=new THREE.Color('#397c87'),lowland=new THREE.Color('#5c896c'),peak=new THREE.Color('#d9d6b6');
-    for(let i=0;i<data.elevations.length;i++){
-      const h=data.elevations[i];position.setY(i,h*this.exaggeration);
-      const c=h<=data.seaLevel?deep.clone().lerp(shallow,Math.max(0,1-(data.seaLevel-h)/1000)):lowland.clone().lerp(peak,Math.min(1,(h-data.seaLevel)/1000));color.setXYZ(i,c.r,c.g,c.b);
-    }
-    position.needsUpdate=true;color.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();
+    // Grid and coastline also depend on elevations and sea level.
+    this.buildTerrain(data);
   }
   setAuthoring(enabled){
     this.cancelDrag();
@@ -401,12 +395,13 @@ export class MapView {
     this.controls=new OrbitControls(this.camera,this.renderer.domElement);
     this.controls.enableDamping=true;
     this.controls.dampingFactor=.12;
-    this.controls.maxPolarAngle=this.mode==='top'?Math.PI:Math.PI*.48;
+    this.controls.maxPolarAngle=Math.PI-.01;
+    this.controls.minPolarAngle=.01;
     this.controls.minDistance=1500;
     this.controls.maxDistance=180000;
     this.controls.minZoom=.35;
     this.controls.maxZoom=30;
-    this.controls.screenSpacePanning=this.mode==='top';
+    this.controls.screenSpacePanning=true;
     this.controls.enableRotate=this.mode==='3d';
     this.controls.mouseButtons.MIDDLE=THREE.MOUSE.PAN;
     this.cameraLimits();
@@ -442,15 +437,15 @@ export class MapView {
     if(!this.terrain)return;
     this.cameraLimits();
     const t=this.terrain,cx=(t.minX+t.maxX)/2,cy=(t.minY+t.maxY)/2;
-    const width=t.maxX-t.minX,height=t.maxY-t.minY,span=Math.max(width,height);
+    const width=t.maxX-t.minX,height=t.maxY-t.minY,span=Math.max(width,height),sea=this.scenario.terrain.seaLevel*this.exaggeration;
     const aspect=Math.max(.35,this.sceneWidth/this.element.clientHeight),distance=span*Math.max(1,1.25/aspect);
-    this.camera3d.position.set(cx+distance*.75,distance*1.15,-cy+distance*1.05);
-    this.camera3d.lookAt(cx,0,-cy);
+    this.camera3d.position.set(cx+distance*.75,sea+distance*1.15,-cy+distance*1.05);
+    this.camera3d.lookAt(cx,sea,-cy);
     this.topHeight=Math.max(height/2+2000,(width/2+2000)/Math.max(.2,this.sceneWidth/this.element.clientHeight));
-    this.cameraTop.position.set(cx,span*3,-cy);
+    this.cameraTop.position.set(cx,sea+span*3,-cy);
     this.cameraTop.zoom=1;
-    this.cameraTop.lookAt(cx,0,-cy);
-    this.controls.target.set(cx,0,-cy);
+    this.cameraTop.lookAt(cx,sea,-cy);
+    this.controls.target.set(cx,sea,-cy);
     this.controls.update();
     this.resize();
   }
@@ -591,6 +586,11 @@ export class MapView {
     this.units.add(this.selectedMarker);
     this.relatedMarkers=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:this.ringTexture(),transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide}),Math.max(1,scenario.units.length));
     this.relatedMarkers.count=0;this.relatedMarkers.frustumCulled=false;this.relatedMarkers.renderOrder=12;this.units.add(this.relatedMarkers);
+    const count=scenario.units.length;
+    this.altitudeLines=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(new Float32Array(count*6),3)).setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(count*6),3)),new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:.65,depthTest:false,depthWrite:false}));
+    this.altitudeLines.frustumCulled=false;this.altitudeLines.renderOrder=5;this.units.add(this.altitudeLines);
+    this.projectionPoints=new THREE.InstancedMesh(new THREE.RingGeometry(.65,1,20),new THREE.MeshBasicMaterial({transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}),Math.max(1,count));
+    this.projectionPoints.frustumCulled=false;this.projectionPoints.renderOrder=6;this.units.add(this.projectionPoints);
     this.matrix=new THREE.Matrix4();
     this.markerScale=new THREE.Vector3();
     this.setSelected(selected);
@@ -598,13 +598,10 @@ export class MapView {
   buildTerrain(d=this.scenario.terrain) {
     disposal(this.environment);
     this.meshTerrainLayout=[d.columns,d.rows,d.spacing,d.spacingY??d.spacing,d.origin.x,d.origin.y].join('|');
-    const positions=[],colors=[],indices=[];
-    const deep=new THREE.Color('#244960'),shallow=new THREE.Color('#397c87'),lowland=new THREE.Color('#5c896c'),peak=new THREE.Color('#d9d6b6');
+    const positions=[],indices=[];
     for(let row=0;row<d.rows;row++)for(let col=0;col<d.columns;col++) {
       const h=d.elevations[row*d.columns+col];
       positions.push(d.origin.x+col*d.spacing,h*this.exaggeration,-(d.origin.y+row*(d.spacingY??d.spacing)));
-      const color=h<=d.seaLevel?deep.clone().lerp(shallow,Math.max(0,1-(d.seaLevel-h)/1000)):lowland.clone().lerp(peak,Math.min(1,(h-d.seaLevel)/1000));
-      colors.push(color.r,color.g,color.b);
       if(row<d.rows-1&&col<d.columns-1){
         const a=row*d.columns+col,b=a+1,c=a+d.columns,e=c+1;
         indices.push(a,b,c,b,e,c);
@@ -612,44 +609,45 @@ export class MapView {
     }
     const geometry=new THREE.BufferGeometry();
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-    geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
-    this.terrainMesh=new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({
-      vertexColors:true,roughness:1,side:THREE.DoubleSide
+    this.terrainMesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({
+      color:'#96acb8',transparent:true,opacity:.08,depthWrite:false,side:THREE.DoubleSide
     }));
     this.environment.add(this.terrainMesh);
     const t=this.terrain,width=t.maxX-t.minX,height=t.maxY-t.minY;
     this.water=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({
-      color:'#4e94bd',transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide
+      color:'#89bfd5',transparent:true,opacity:.06,depthWrite:false,side:THREE.DoubleSide
     }));
     this.water.rotation.x=-Math.PI/2;
     this.water.position.set((t.minX+t.maxX)/2,d.seaLevel*this.exaggeration,-(t.minY+t.maxY)/2);
     this.water.renderOrder=2;
     this.water.visible=this.showWater;
     this.environment.add(this.water);
-    const grid=[];
-    for(let x=Math.ceil(t.minX/5000)*5000;x<=t.maxX;x+=5000)grid.push(x,8,-t.minY,x,8,-t.maxY);
-    for(let y=Math.ceil(t.minY/5000)*5000;y<=t.maxY;y+=5000)grid.push(t.minX,8,-y,t.maxX,8,-y);
-    const gridGeometry=new THREE.BufferGeometry();
-    gridGeometry.setAttribute('position',new THREE.Float32BufferAttribute(grid,3));
-    this.environment.add(new THREE.LineSegments(gridGeometry,new THREE.LineBasicMaterial({
-      color:'#90bfd5',transparent:true,opacity:.18
-    })));
+    const grid=terrainGrid(t);this.gridSpacing=grid.spacing;
+    const lines=(points,color,opacity,offset=0)=>{
+      const vertices=[];for(let i=0;i<points.length;i+=3)vertices.push(points[i],points[i+1]*this.exaggeration+offset,-points[i+2]);
+      const line=new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position',new THREE.Float32BufferAttribute(vertices,3)),new THREE.LineBasicMaterial({color,transparent:true,opacity,depthWrite:false}));
+      this.environment.add(line);return line;
+    };
+    this.terrainGrid=lines(grid.positions,'#8da4b1',.30,1);
+    this.terrainMajorGrid=lines(grid.major,'#bed0d9',.48,1);
+    this.coastline=lines(coastline(t),'#dcf4ff',.85,2);
     const border=[{
-      x:t.minX,y:t.minY,z:0
+      x:t.minX,y:t.minY,z:d.seaLevel
     },{
-      x:t.maxX,y:t.minY,z:0
+      x:t.maxX,y:t.minY,z:d.seaLevel
     },{
-      x:t.maxX,y:t.maxY,z:0
+      x:t.maxX,y:t.maxY,z:d.seaLevel
     },{
-      x:t.minX,y:t.maxY,z:0
+      x:t.minX,y:t.maxY,z:d.seaLevel
     },{
-      x:t.minX,y:t.minY,z:0
+      x:t.minX,y:t.minY,z:d.seaLevel
     }].map(p=>this.world(p,12));
-    this.environment.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(border),new THREE.LineBasicMaterial({
-      color:'#658ba5',transparent:true,opacity:.5
-    })));
+    this.seaBorder=new THREE.Line(new THREE.BufferGeometry().setFromPoints(border),new THREE.LineBasicMaterial({
+      color:'#a5d9ed',transparent:true,opacity:.7,depthWrite:false
+    }));
+    this.environment.add(this.seaBorder);this.seaBorder.visible=this.showWater;
   }
   symbolTexture(unit,selected) {
     const canvas=document.createElement('canvas');
@@ -803,6 +801,8 @@ export class MapView {
     }else {this.routes.visible=this.showRoutes;status.textContent='解析用の真状態 · 個体表示'+(snapshot.actionsPending?' · 未計算（初期配置）':'');}
     this.sensorRangeGroup.visible=this.showSensor&&!this.taskAggregation&&(!this.knowledgeOwner||this.selected===this.knowledgeOwner);
     if(this.showResources)for(const state of snapshot.units){if(this.displayedIds&&!this.displayedIds.has(state.id)||!Object.keys(state.resources??{}).length)continue;dataLabels.push({id:state.id,kind:'resource',position:state.position,text:this.markers.get(state.id)?.unit.name??state.id,resources:state.resources});}
+    const selectedState=snapshot.units.find(u=>u.id===this.selected);
+    if(selectedState&&(!this.displayedIds||this.displayedIds.has(this.selected))){const delta=selectedState.position.z-this.scenario.terrain.seaLevel;dataLabels.unshift({id:this.selected,kind:'altitude',position:selectedState.position,text:Math.abs(delta)<.5?'海面':delta<0?'深度 '+Math.abs(delta).toFixed(0)+' m':'海面上 '+delta.toFixed(0)+' m'});}
     this.buildDataLabels(dataLabels);
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {
@@ -885,6 +885,8 @@ export class MapView {
       place??={x:baseX,y:baseY,w,h};occupied.push(place);node.style.transform='translate('+place.x+'px,'+place.y+'px)';for(const [key,value] of [['x1',p.x],['y1',p.y],['x2',place.x],['y2',place.y+Math.min(h/2,15)]])line.setAttribute(key,value);
     }
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
+    let altitudeIndex=0;
+    const linePositions=this.altitudeLines.geometry.getAttribute('position'),lineColors=this.altitudeLines.geometry.getAttribute('color'),projectionRotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);
     for(const [id,marker] of sorted) {
       const pixels=id===this.selected?36:this.scenario.units.length>80?15:30;
       const scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*marker.position.distanceTo(this.camera.position)/height*pixels;
@@ -892,7 +894,16 @@ export class MapView {
       this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);
       marker.mesh.setMatrixAt(marker.index,this.matrix);
       if(id===this.selected)this.selectedMarker.scale.copy(this.markerScale);
+      if(!this.displayedIds||this.displayedIds.has(id)){
+        const base=new THREE.Vector3(marker.position.x,this.scenario.terrain.seaLevel*this.exaggeration,marker.position.z),color=new THREE.Color(id===this.selected?'#ffd18b':marker.unit.enabled===false?'#788391':COLORS[marker.unit.faction]);
+        linePositions.setXYZ(altitudeIndex*2,marker.position.x,marker.position.y,marker.position.z);linePositions.setXYZ(altitudeIndex*2+1,base.x,base.y,base.z);
+        for(let i=0;i<2;i++)lineColors.setXYZ(altitudeIndex*2+i,color.r,color.g,color.b);
+        this.matrix.compose(base,projectionRotation,new THREE.Vector3().setScalar(Math.max(1,pixelSize(base)*(id===this.selected?7:4))));
+        this.projectionPoints.setMatrixAt(altitudeIndex,this.matrix);this.projectionPoints.setColorAt(altitudeIndex,color);altitudeIndex++;
+      }
     }
+    this.altitudeLines.geometry.setDrawRange(0,altitudeIndex*2);linePositions.needsUpdate=true;lineColors.needsUpdate=true;
+    this.projectionPoints.count=altitudeIndex;this.projectionPoints.instanceMatrix.needsUpdate=true;if(this.projectionPoints.instanceColor)this.projectionPoints.instanceColor.needsUpdate=true;
     this.selectedMarker.visible=!this.displayedIds||this.displayedIds.has(this.selected);
     this.updateListLinks(width,height);
     for(const h of this.handles){

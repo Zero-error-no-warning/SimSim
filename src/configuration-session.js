@@ -1,7 +1,7 @@
-import { sharedAssignment } from "./shared-settings.js?v=20261009-select-state-30";
-import { configurationTarget } from "./configuration-contract.js?v=20261009-select-state-30";
-import { getValue, setValue } from "./configuration-schema.js?v=20261009-select-state-30";
-import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261009-select-state-30";
+import { sharedAssignment } from "./shared-settings.js?v=20261012-briefing-map-31";
+import { configurationTarget } from "./configuration-contract.js?v=20261012-briefing-map-31";
+import { getValue, setValue } from "./configuration-schema.js?v=20261012-briefing-map-31";
+import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261012-briefing-map-31";
 export class ConfigurationSession {
   constructor(source, id, revision, scope = "entity") {
     this.draft = structuredClone(source);

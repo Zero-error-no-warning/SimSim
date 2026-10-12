@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261009-select-state-30';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261009-select-state-30';
-import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-select-state-30';
-import {trialScenario} from '../src/parameters.js?v=20261009-select-state-30';
-import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261009-select-state-30';
-import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261009-select-state-30';
-import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261009-select-state-30';
+import {clone,validateScenario} from '../src/engine.js?v=20261012-briefing-map-31';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261012-briefing-map-31';
+import {runDetection,prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261012-briefing-map-31';
+import {trialScenario} from '../src/parameters.js?v=20261012-briefing-map-31';
+import {measurePoints,summarizeMeasurements} from '../src/measurement-points.js?v=20261012-briefing-map-31';
+import {removeAssignment,pruneReferences,newScenario} from '../src/editor.js?v=20261012-briefing-map-31';
+import {layoutLabels,layoutDockedLabels} from '../src/label-layout.js?v=20261012-briefing-map-31';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 source.mission.deadline=2; // Additional points must execute beyond the main goal's deadline.
 source.measurements=[

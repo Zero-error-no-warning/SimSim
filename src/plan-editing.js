@@ -1,4 +1,4 @@
-import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261009-select-state-30';
+import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261012-briefing-map-31';
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function planEditor(s){
   const c=s.analysis?.plans;

@@ -1,8 +1,8 @@
-import {clone} from './engine.js?v=20261009-select-state-30';
-import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261009-select-state-30';
-import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261009-select-state-30';
-import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261009-select-state-30';
-import {requireElement as $} from './ui-dom.js?v=20261009-select-state-30';
+import {clone} from './engine.js?v=20261012-briefing-map-31';
+import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261012-briefing-map-31';
+import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261012-briefing-map-31';
+import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261012-briefing-map-31';
+import {requireElement as $} from './ui-dom.js?v=20261012-briefing-map-31';
 const number=n=>n===null?'—':Number(n.toFixed(3)).toString();
 export class SensitivityUI{
   constructor(owner){

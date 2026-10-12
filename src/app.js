@@ -1,30 +1,30 @@
-import {SelectUI} from './select-ui.js?v=20261009-select-state-30';
-import {surveillanceTemplate} from './mission-templates.js?v=20261009-select-state-30';
-import {SettingsUI} from './settings-ui.js?v=20261009-select-state-30';
-import {resourceName} from './resource-ui.js?v=20261009-select-state-30';
-import {taskPresentations} from './map-presentation.js?v=20261009-select-state-30';
-import {planEditor} from './plan-editing.js?v=20261009-select-state-30';
-import {verifiedWorker} from './worker-client.js?v=20261009-select-state-30';
-import {restorePlansResult} from './plans.js?v=20261009-select-state-30';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261009-select-state-30';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261009-select-state-30';
-import {parameter} from './parameters.js?v=20261009-select-state-30';
-import {WorkspaceUI} from './workspace-ui.js?v=20261009-select-state-30';
-import {NavigationUI} from './navigation-ui.js?v=20261009-select-state-30';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261009-select-state-30';
-import {ContextMenu} from './context-menu.js?v=20261009-select-state-30';
-import {TerrainUI} from './terrain-ui.js?v=20261009-select-state-30';
-import { BehaviorUI } from './behavior-ui.js?v=20261009-select-state-30';
-import { createSimulation } from './recorded-engine.js?v=20261009-select-state-30';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261009-select-state-30';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261009-select-state-30';
-import { importScenario } from './scenario-import.js?v=20261009-select-state-30';
-import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261009-select-state-30';
-import { restoreAnalysisResult } from './detection.js?v=20261009-select-state-30';
-import { AnalysisUI } from './analysis-ui.js?v=20261009-select-state-30';
-import { MapView } from './view.js?v=20261009-select-state-30';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261009-select-state-30';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261009-select-state-30';
+import {SelectUI} from './select-ui.js?v=20261012-briefing-map-31';
+import {surveillanceTemplate} from './mission-templates.js?v=20261012-briefing-map-31';
+import {SettingsUI} from './settings-ui.js?v=20261012-briefing-map-31';
+import {resourceName} from './resource-ui.js?v=20261012-briefing-map-31';
+import {taskPresentations} from './map-presentation.js?v=20261012-briefing-map-31';
+import {planEditor} from './plan-editing.js?v=20261012-briefing-map-31';
+import {verifiedWorker} from './worker-client.js?v=20261012-briefing-map-31';
+import {restorePlansResult} from './plans.js?v=20261012-briefing-map-31';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261012-briefing-map-31';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261012-briefing-map-31';
+import {parameter} from './parameters.js?v=20261012-briefing-map-31';
+import {WorkspaceUI} from './workspace-ui.js?v=20261012-briefing-map-31';
+import {NavigationUI} from './navigation-ui.js?v=20261012-briefing-map-31';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261012-briefing-map-31';
+import {ContextMenu} from './context-menu.js?v=20261012-briefing-map-31';
+import {TerrainUI} from './terrain-ui.js?v=20261012-briefing-map-31';
+import { BehaviorUI } from './behavior-ui.js?v=20261012-briefing-map-31';
+import { createSimulation } from './recorded-engine.js?v=20261012-briefing-map-31';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261012-briefing-map-31';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261012-briefing-map-31';
+import { importScenario } from './scenario-import.js?v=20261012-briefing-map-31';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261012-briefing-map-31';
+import { restoreAnalysisResult } from './detection.js?v=20261012-briefing-map-31';
+import { AnalysisUI } from './analysis-ui.js?v=20261012-briefing-map-31';
+import { MapView } from './view.js?v=20261012-briefing-map-31';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261012-briefing-map-31';
+import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261012-briefing-map-31';
 assertDocumentVersion();
 
 const $=requireElement;
@@ -45,7 +45,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='停止・計算対象外';STATUS_NAMES.depleted='移動資源枯渇';
-const worker=verifiedWorker(new URL('./worker.js?v=20261009-select-state-30',import.meta.url),{
+const worker=verifiedWorker(new URL('./worker.js?v=20261012-briefing-map-31',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 $('record-run').disabled=true;$('analysis-open').disabled=true;
@@ -889,7 +889,7 @@ for(const [id,mode] of [['view3d','3d'],['viewtop','top']])$(id).addEventListene
 });
 $('fit').addEventListener('click',()=>view.fit());
 function updateCaption(){
-  $('view-caption').textContent=(view.mode==='top'?'真上':'3D')+' / 高さ表示 ×'+view.exaggeration;
+  $('view-caption').textContent=(view.mode==='top'?'真上':'3D')+' / 高さ表示 ×'+view.exaggeration+' / 格子 '+(view.gridSpacing/1000)+' km / 投影面：海面';
 }
 $('exaggeration').addEventListener('change',()=>{
   view.setExaggeration(Number($('exaggeration').value));updateCaption();
@@ -900,7 +900,7 @@ $('show-sensor').addEventListener('change',()=>{
 });
 $('show-resources').onchange=()=>{view.showResources=$('show-resources').checked;view.updateSnapshot(snapshot);};
 $('show-water').addEventListener('change',()=>{
-  view.showWater=$('show-water').checked;view.water.visible=view.showWater;
+  view.showWater=$('show-water').checked;view.water.visible=view.showWater;view.seaBorder.visible=view.showWater;
 });
 $('show-routes').addEventListener('change',()=>{
   view.showRoutes=$('show-routes').checked;view.updateSnapshot(snapshot);

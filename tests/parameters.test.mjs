@@ -1,10 +1,10 @@
-import {importScenario} from '../src/scenario-import.js?v=20261009-select-state-30';
+import {importScenario} from '../src/scenario-import.js?v=20261012-briefing-map-31';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261009-select-state-30';
-import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261009-select-state-30';
-import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261009-select-state-30';
-import {numericScale} from '../src/chart-scale.js?v=20261009-select-state-30';
+import {clone,Simulation,validateScenario} from '../src/engine.js?v=20261012-briefing-map-31';
+import {prepareAnalysis,runDetection,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261012-briefing-map-31';
+import {analysisConditions,trialScenario,readParameter,writeParameter,bindingKey,normalizedAnalysis} from '../src/parameters.js?v=20261012-briefing-map-31';
+import {numericScale} from '../src/chart-scale.js?v=20261012-briefing-map-31';
 const source=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/detection-demo.txt',import.meta.url),'utf8'));
 const range={target:'group:observers',parameter:'extent.sense.radius',values:[300,900]};
 const speed={target:'unit:hostile-transit',parameter:'rate.movement.speed',distribution:'uniform',min:10,max:24};

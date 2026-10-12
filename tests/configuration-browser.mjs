@@ -1,5 +1,5 @@
 import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261009-select-state-30';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261012-briefing-map-31';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
