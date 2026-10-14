@@ -1,11 +1,11 @@
-import {MODEL_BUILD} from './model-version.js?v=20261014-inline-route-editor-35';
-import {importScenario} from './scenario-import.js?v=20261014-inline-route-editor-35';
-import {clone,validateScenario} from './engine.js?v=20261014-inline-route-editor-35';
-import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261014-inline-route-editor-35';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261014-inline-route-editor-35';
-import {median} from './measurement-points.js?v=20261014-inline-route-editor-35';
-import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
-import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261014-inline-route-editor-35';
+import {MODEL_BUILD} from './model-version.js?v=20261015-direction-markers-36';
+import {importScenario} from './scenario-import.js?v=20261015-direction-markers-36';
+import {clone,validateScenario} from './engine.js?v=20261015-direction-markers-36';
+import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261015-direction-markers-36';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261015-direction-markers-36';
+import {median} from './measurement-points.js?v=20261015-direction-markers-36';
+import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261015-direction-markers-36';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261015-direction-markers-36';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;

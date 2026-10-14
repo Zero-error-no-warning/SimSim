@@ -1,11 +1,11 @@
-import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261014-inline-route-editor-35';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
-import {bindingTargetExists} from './parameters.js?v=20261014-inline-route-editor-35';
-import {clone} from './engine.js?v=20261014-inline-route-editor-35';
-import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261014-inline-route-editor-35';
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
-import {summarizePlans} from './plans.js?v=20261014-inline-route-editor-35';
-import {requireElement as $} from './ui-dom.js?v=20261014-inline-route-editor-35';
+import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261015-direction-markers-36';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261015-direction-markers-36';
+import {bindingTargetExists} from './parameters.js?v=20261015-direction-markers-36';
+import {clone} from './engine.js?v=20261015-direction-markers-36';
+import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261015-direction-markers-36';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261015-direction-markers-36';
+import {summarizePlans} from './plans.js?v=20261015-direction-markers-36';
+import {requireElement as $} from './ui-dom.js?v=20261015-direction-markers-36';
 const format=(n,kind,delta=false)=>n===null?'—':(delta&&n>0?'+':'')+Number((n*(kind==='rate'?100:1)).toFixed(2))+(kind==='rate'?(delta?'ポイント':'%'):'秒');
 export class PlansUI{
   constructor(owner){

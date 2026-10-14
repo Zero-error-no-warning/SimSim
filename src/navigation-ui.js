@@ -1,8 +1,8 @@
-import {SpeedProfileUI} from './speed-profile-ui.js?v=20261014-inline-route-editor-35';
-import {showEditorDialog} from './ui-dom.js?v=20261014-inline-route-editor-35';
-import {navigationErrors} from './navigation.js?v=20261014-inline-route-editor-35';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261014-inline-route-editor-35';
-import {requireElement} from './ui-dom.js?v=20261014-inline-route-editor-35';
+import {SpeedProfileUI} from './speed-profile-ui.js?v=20261015-direction-markers-36';
+import {showEditorDialog} from './ui-dom.js?v=20261015-direction-markers-36';
+import {navigationErrors} from './navigation.js?v=20261015-direction-markers-36';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261015-direction-markers-36';
+import {requireElement} from './ui-dom.js?v=20261015-direction-markers-36';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

@@ -1,21 +1,21 @@
-import {MODEL_BUILD} from './model-version.js?v=20261014-inline-route-editor-35';
-import {ExperimentUI} from './experiment-ui.js?v=20261014-inline-route-editor-35';
-import {verifiedWorker} from './worker-client.js?v=20261014-inline-route-editor-35';
-import {PlansUI} from './plans-ui.js?v=20261014-inline-route-editor-35';
-import {preparePlans,planTrialSource} from './plans.js?v=20261014-inline-route-editor-35';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261014-inline-route-editor-35';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261014-inline-route-editor-35';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
-import {HistoryUI} from './history-ui.js?v=20261014-inline-route-editor-35';
-import {MeasurementUI} from './measurement-ui.js?v=20261014-inline-route-editor-35';
-import {stateMembers} from './state-measurement.js?v=20261014-inline-route-editor-35';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261014-inline-route-editor-35';
-import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-inline-route-editor-35';
-import { numericScale } from './chart-scale.js?v=20261014-inline-route-editor-35';
-import { clone,validateScenario } from './engine.js?v=20261014-inline-route-editor-35';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261014-inline-route-editor-35';
-import { ParameterEditor } from './parameter-ui.js?v=20261014-inline-route-editor-35';
-import { requireElement } from './ui-dom.js?v=20261014-inline-route-editor-35';
+import {MODEL_BUILD} from './model-version.js?v=20261015-direction-markers-36';
+import {ExperimentUI} from './experiment-ui.js?v=20261015-direction-markers-36';
+import {verifiedWorker} from './worker-client.js?v=20261015-direction-markers-36';
+import {PlansUI} from './plans-ui.js?v=20261015-direction-markers-36';
+import {preparePlans,planTrialSource} from './plans.js?v=20261015-direction-markers-36';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261015-direction-markers-36';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261015-direction-markers-36';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261015-direction-markers-36';
+import {HistoryUI} from './history-ui.js?v=20261015-direction-markers-36';
+import {MeasurementUI} from './measurement-ui.js?v=20261015-direction-markers-36';
+import {stateMembers} from './state-measurement.js?v=20261015-direction-markers-36';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261015-direction-markers-36';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261015-direction-markers-36';
+import { numericScale } from './chart-scale.js?v=20261015-direction-markers-36';
+import { clone,validateScenario } from './engine.js?v=20261015-direction-markers-36';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261015-direction-markers-36';
+import { ParameterEditor } from './parameter-ui.js?v=20261015-direction-markers-36';
+import { requireElement } from './ui-dom.js?v=20261015-direction-markers-36';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -26,7 +26,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261014-inline-route-editor-35',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261015-direction-markers-36',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

@@ -1,9 +1,9 @@
-import {sampleRoute} from './route-curves.js?v=20261014-inline-route-editor-35';
-import {inspectRoute} from './route-planner.js?v=20261014-inline-route-editor-35';
-import {Terrain} from './terrain.js?v=20261014-inline-route-editor-35';
-import {expandGroups} from './random.js?v=20261014-inline-route-editor-35';
-import {resolveGraph} from './behavior-parameters.js?v=20261014-inline-route-editor-35';
-import {routeFor} from './navigation.js?v=20261014-inline-route-editor-35';
+import {sampleRoute} from './route-curves.js?v=20261015-direction-markers-36';
+import {inspectRoute} from './route-planner.js?v=20261015-direction-markers-36';
+import {Terrain} from './terrain.js?v=20261015-direction-markers-36';
+import {expandGroups} from './random.js?v=20261015-direction-markers-36';
+import {resolveGraph} from './behavior-parameters.js?v=20261015-direction-markers-36';
+import {routeFor} from './navigation.js?v=20261015-direction-markers-36';
 // Inspect nominal, fixed routes. A moving destination or a future event join has
 // no predetermined segment; the execution engine checks those as they execute.
 export function scenarioRouteIssues(s){

@@ -237,10 +237,10 @@ h2 {
   border-color:#376b92
 }
 .unit-symbol {
-  font-size:21px;
-  line-height:27px;
-  flex:0 0 23px;
-  text-align:center
+  width:30px;
+  height:30px;
+  flex:0 0 30px;
+  align-self:center
 }
 .friendly {
   color:#6bd0fa

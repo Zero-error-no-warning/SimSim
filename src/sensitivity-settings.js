@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261014-inline-route-editor-35';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261015-direction-markers-36';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){

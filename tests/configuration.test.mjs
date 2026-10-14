@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {CONFIGURATION_MODULES,configurationTarget,configurationContractErrors} from '../src/configuration-contract.js?v=20261014-inline-route-editor-35';
-import {ConfigurationSession} from '../src/configuration-session.js?v=20261014-inline-route-editor-35';
-import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261014-inline-route-editor-35';
-import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261014-inline-route-editor-35';
-import {fieldErrors,setValue} from '../src/configuration-schema.js?v=20261014-inline-route-editor-35';
-import {RESOURCE_FIELDS} from '../src/resource-schema.js?v=20261014-inline-route-editor-35';
-import {validateScenario} from '../src/engine.js?v=20261014-inline-route-editor-35';
-import {stateField} from '../src/state-contract.js?v=20261014-inline-route-editor-35';
-import {conditionErrors,evaluateCondition,UNKNOWN} from '../src/decision.js?v=20261014-inline-route-editor-35';
+import {CONFIGURATION_MODULES,configurationTarget,configurationContractErrors} from '../src/configuration-contract.js?v=20261015-direction-markers-36';
+import {ConfigurationSession} from '../src/configuration-session.js?v=20261015-direction-markers-36';
+import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261015-direction-markers-36';
+import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261015-direction-markers-36';
+import {fieldErrors,setValue} from '../src/configuration-schema.js?v=20261015-direction-markers-36';
+import {RESOURCE_FIELDS} from '../src/resource-schema.js?v=20261015-direction-markers-36';
+import {validateScenario} from '../src/engine.js?v=20261015-direction-markers-36';
+import {stateField} from '../src/state-contract.js?v=20261015-direction-markers-36';
+import {conditionErrors,evaluateCondition,UNKNOWN} from '../src/decision.js?v=20261015-direction-markers-36';
 const sample=()=>JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));
 const module=id=>CONFIGURATION_MODULES.find(m=>m.id===id);
 test('public contract rejects missing editor or input type; resource ranges and destinations use the same fields',()=>{

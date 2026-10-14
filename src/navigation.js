@@ -1,6 +1,6 @@
-import {routeFeatureErrors} from './route-curves.js?v=20261014-inline-route-editor-35';
-import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261014-inline-route-editor-35';
-import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261014-inline-route-editor-35';
+import {routeFeatureErrors} from './route-curves.js?v=20261015-direction-markers-36';
+import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261015-direction-markers-36';
+import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261015-direction-markers-36';
 // Named navigation resources, shared by state nodes and proximity conditions.
 export function routeFor(s,a,n,u){
   const graph=s.behaviors?.find(g=>g.id===a?.behaviorId),id=resolveValue(n?.routeId,graph,a);

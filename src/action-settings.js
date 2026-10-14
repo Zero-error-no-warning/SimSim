@@ -1,5 +1,5 @@
-import {fieldErrors} from './configuration-schema.js?v=20261014-inline-route-editor-35';
-import {COMMUNICATION_FIELDS} from './configuration-fields.js?v=20261014-inline-route-editor-35';
+import {fieldErrors} from './configuration-schema.js?v=20261015-direction-markers-36';
+import {COMMUNICATION_FIELDS} from './configuration-fields.js?v=20261015-direction-markers-36';
 // Communication validation plus input-only validation for version 1/2 legacy rules.
 const finite=v=>typeof v==='number'&&Number.isFinite(v);
 export function actionErrors(unit,prefix='unit',recipientIds=new Set()) {

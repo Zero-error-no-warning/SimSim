@@ -1,4 +1,4 @@
-import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261014-inline-route-editor-35';
+import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261015-direction-markers-36';
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function planEditor(s){
   const c=s.analysis?.plans;

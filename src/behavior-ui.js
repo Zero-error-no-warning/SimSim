@@ -1,15 +1,15 @@
-import {showEditorDialog} from './ui-dom.js?v=20261014-inline-route-editor-35';
-import {conditionErrors} from './decision.js?v=20261014-inline-route-editor-35';
-import {ConditionUI} from './condition-ui.js?v=20261014-inline-route-editor-35';
-import {ContextMenu} from './context-menu.js?v=20261014-inline-route-editor-35';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261014-inline-route-editor-35';
-import {isParameterRef} from './behavior-parameters.js?v=20261014-inline-route-editor-35';
-import {NavigationUI} from './navigation-ui.js?v=20261014-inline-route-editor-35';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261014-inline-route-editor-35';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261014-inline-route-editor-35';
-import { clone,validateScenario } from './engine.js?v=20261014-inline-route-editor-35';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261014-inline-route-editor-35';
-import { requireElement } from './ui-dom.js?v=20261014-inline-route-editor-35';
+import {showEditorDialog} from './ui-dom.js?v=20261015-direction-markers-36';
+import {conditionErrors} from './decision.js?v=20261015-direction-markers-36';
+import {ConditionUI} from './condition-ui.js?v=20261015-direction-markers-36';
+import {ContextMenu} from './context-menu.js?v=20261015-direction-markers-36';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261015-direction-markers-36';
+import {isParameterRef} from './behavior-parameters.js?v=20261015-direction-markers-36';
+import {NavigationUI} from './navigation-ui.js?v=20261015-direction-markers-36';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261015-direction-markers-36';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261015-direction-markers-36';
+import { clone,validateScenario } from './engine.js?v=20261015-direction-markers-36';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261015-direction-markers-36';
+import { requireElement } from './ui-dom.js?v=20261015-direction-markers-36';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

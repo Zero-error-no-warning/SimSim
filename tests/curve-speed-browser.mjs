@@ -1,5 +1,5 @@
 import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261014-inline-route-editor-35';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261015-direction-markers-36';
 import assert from 'node:assert/strict';import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
 const {chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright'),root=path.resolve('.');
 const server=http.createServer((req,res)=>{const file=path.join(root,new URL(req.url,'http://local').pathname.replace(/^\/$/,'/index.html'));res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');try{res.end(fs.readFileSync(file));}catch{res.statusCode=404;res.end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;

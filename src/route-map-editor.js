@@ -1,8 +1,8 @@
-import {sampleRoute,smoothRoute,defaultProfile} from './route-curves.js?v=20261014-inline-route-editor-35';
-import {SpeedProfileUI} from './speed-profile-ui.js?v=20261014-inline-route-editor-35';
+import {sampleRoute,smoothRoute,defaultProfile} from './route-curves.js?v=20261015-direction-markers-36';
+import {SpeedProfileUI} from './speed-profile-ui.js?v=20261015-direction-markers-36';
 import * as THREE from '../vendor/three/three.module.min.js';
-import {Terrain} from './terrain.js?v=20261014-inline-route-editor-35';
-import {inspectRoute} from './route-planner.js?v=20261014-inline-route-editor-35';
+import {Terrain} from './terrain.js?v=20261015-direction-markers-36';
+import {inspectRoute} from './route-planner.js?v=20261015-direction-markers-36';
 export class RouteMapEditor {
   constructor(view,{item,unit,terrain,onFinish,onChange,inline=false,index,numberOffset=1}){
     Object.assign(this,{view,onFinish,onChange,inline,numberOffset});this.points=structuredClone(item.points??[]);this.mode=item.mode;this.speedProfile=structuredClone(item.speedProfile);this.baseSpeed=unit?.speed??10;this.linkHandles=true;this.terrain=new Terrain(terrain);

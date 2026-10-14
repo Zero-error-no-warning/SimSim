@@ -1,8 +1,8 @@
-import {clone} from './engine.js?v=20261014-inline-route-editor-35';
-import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261014-inline-route-editor-35';
-import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
-import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261014-inline-route-editor-35';
-import {requireElement as $} from './ui-dom.js?v=20261014-inline-route-editor-35';
+import {clone} from './engine.js?v=20261015-direction-markers-36';
+import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261015-direction-markers-36';
+import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261015-direction-markers-36';
+import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261015-direction-markers-36';
+import {requireElement as $} from './ui-dom.js?v=20261015-direction-markers-36';
 const number=n=>n===null?'—':Number(n.toFixed(3)).toString();
 export class SensitivityUI{
   constructor(owner){

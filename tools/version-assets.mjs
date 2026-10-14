@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261014-inline-route-editor-35';
+import {UI_BUILD,UI_VERSION} from '../src/ui-dom.js?v=20261015-direction-markers-36';
 // Run before publishing after changing UI_BUILD. Version the entire module graph,
 // including worker entry points; versioning only bootstrap leaves stale imports.
 const root=new URL('../',import.meta.url);

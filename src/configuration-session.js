@@ -1,7 +1,7 @@
-import { sharedAssignment } from "./shared-settings.js?v=20261014-inline-route-editor-35";
-import { configurationTarget } from "./configuration-contract.js?v=20261014-inline-route-editor-35";
-import { getValue, setValue } from "./configuration-schema.js?v=20261014-inline-route-editor-35";
-import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261014-inline-route-editor-35";
+import { sharedAssignment } from "./shared-settings.js?v=20261015-direction-markers-36";
+import { configurationTarget } from "./configuration-contract.js?v=20261015-direction-markers-36";
+import { getValue, setValue } from "./configuration-schema.js?v=20261015-direction-markers-36";
+import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261015-direction-markers-36";
 export class ConfigurationSession {
   constructor(source, id, revision, scope = "entity") {
     this.draft = structuredClone(source);

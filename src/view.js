@@ -1,15 +1,13 @@
-import {sampleRoute} from './route-curves.js?v=20261014-inline-route-editor-35';
-import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-inline-route-editor-35';
-import { editableDefinition } from './editor.js?v=20261014-inline-route-editor-35';
-import { sharedAssignment } from './shared-settings.js?v=20261014-inline-route-editor-35';
-import {taskPresentations} from './map-presentation.js?v=20261014-inline-route-editor-35';
-import {resourceName} from './resource-ui.js?v=20261014-inline-route-editor-35';
+import {drawUnitSymbol,routeHeading,DEFAULT_SYMBOL_MODE,UNIT_COLORS as COLORS} from './unit-symbols.js?v=20261015-direction-markers-36';
+import {sampleRoute} from './route-curves.js?v=20261015-direction-markers-36';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261015-direction-markers-36';
+import { editableDefinition } from './editor.js?v=20261015-direction-markers-36';
+import { sharedAssignment } from './shared-settings.js?v=20261015-direction-markers-36';
+import {taskPresentations} from './map-presentation.js?v=20261015-direction-markers-36';
+import {resourceName} from './resource-ui.js?v=20261015-direction-markers-36';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261014-inline-route-editor-35';
-const COLORS={
-  friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
-};
+import { Terrain, Simulation } from './engine.js?v=20261015-direction-markers-36';
 const disposal = group => {
   for(const object of [...group.children]) {
     group.remove(object);
@@ -32,7 +30,7 @@ export class MapView {
     this.onEdit=onEdit;
     this.onContext=onContext;
     this.onDragState=onDragState;
-    this.authoring=true;
+    this.authoring=true;this.symbolMode=DEFAULT_SYMBOL_MODE;
     this.handles=[];
     this.renderer=new THREE.WebGLRenderer({
       antialias:true,alpha:false
@@ -597,11 +595,11 @@ export class MapView {
       this.units.add(mesh);
       this.batches.push(mesh);
       units.forEach((unit,index)=>this.markers.set(unit.id,{
-        position:this.world(unit.initial,30),mesh,index,unit
+        position:this.world(unit.initial,30),mesh,index,unit,heading:routeHeading(this.model.paths.get(unit.id)?.nodes)
       }));
     }
-    this.selectedMarker=new THREE.Sprite(new THREE.SpriteMaterial({
-      depthTest:false,depthWrite:false
+    this.selectedMarker=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({
+      transparent:true,side:THREE.DoubleSide,depthTest:false,depthWrite:false
     }));
     this.selectedMarker.renderOrder=11;
     this.selectedMarker.userData.id=selected;
@@ -672,65 +670,13 @@ export class MapView {
     this.environment.add(this.seaBorder);this.seaBorder.visible=this.showWater;
   }
   symbolTexture(unit,selected) {
-    const canvas=document.createElement('canvas');
-    canvas.width=96;
-    canvas.height=96;
-    const c=canvas.getContext('2d');
-    c.fillStyle='#102437';
-    c.strokeStyle=selected?'#ffd18b':unit.enabled===false?'#788391':COLORS[unit.faction];
-    c.lineWidth=4;
-    c.beginPath();
-    c.arc(48,48,37,0,Math.PI*2);
-    c.fill();
-    c.stroke();
-    c.fillStyle=unit.enabled===false?'#788391':COLORS[unit.faction];
-    c.strokeStyle=unit.enabled===false?'#788391':COLORS[unit.faction];
-    c.lineWidth=3;
-    c.beginPath();
-    if(unit.domain==='ground'){
-      c.rect(32,32,32,32);
-      c.fill();
-    }
-    else if(unit.domain==='surface'){
-      c.moveTo(48,24);
-      c.lineTo(65,52);
-      c.lineTo(57,68);
-      c.lineTo(39,68);
-      c.lineTo(31,52);
-      c.closePath();
-      c.fill();
-    }
-    else if(unit.domain==='subsurface'){
-      c.ellipse(48,48,15,24,0,0,Math.PI*2);
-      c.fill();
-      c.fillRect(62,43,8,10);
-    }
-    else {
-      c.moveTo(48,23);
-      c.lineTo(55,43);
-      c.lineTo(72,55);
-      c.lineTo(72,61);
-      c.lineTo(53,55);
-      c.lineTo(53,67);
-      c.lineTo(61,73);
-      c.lineTo(35,73);
-      c.lineTo(43,67);
-      c.lineTo(43,55);
-      c.lineTo(24,61);
-      c.lineTo(24,55);
-      c.lineTo(41,43);
-      c.closePath();
-      c.fill();
-    }
-    if(!unit.manned){
-      c.fillStyle='#102437';
-      c.beginPath();
-      c.arc(48,48,4,0,Math.PI*2);
-      c.fill();
-    }
-    const texture=new THREE.CanvasTexture(canvas);
-    texture.colorSpace=THREE.SRGBColorSpace;
-    return texture;
+    const canvas=drawUnitSymbol(document.createElement('canvas'),unit,{mode:this.symbolMode,selected});
+    const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
+  }
+  setSymbolMode(mode){
+    if(!['direction','icons'].includes(mode)||mode===this.symbolMode)return;
+    this.symbolMode=mode;
+    if(this.scenario){const snapshot=this.rawSnapshot;this.setScenario(this.scenario,this.selected,this.model);if(snapshot)this.updateSnapshot(snapshot);}
   }
   setRouteWarnings(issues){this.routeWarnings=issues;this.buildRoutes();}
   buildRoutes() {
@@ -829,7 +775,10 @@ export class MapView {
     if(snapshot.time<this.latestTime || snapshot.time===0)this.resetTrails();
     for(const state of snapshot.units) {
       const marker=this.markers.get(state.id);
-      if(marker)marker.position.copy(this.world(state.position,30));
+      if(marker){
+        marker.position.copy(this.world(state.position,30));
+        marker.heading=snapshot.actionsPending&&(!this.knowledgeOwner||state.id===this.knowledgeOwner)?routeHeading(this.model.paths.get(state.id)?.nodes,state.position):Number.isFinite(state.heading)?state.heading:0;
+      }
       const points=snapshot.trails?.[state.id]??[];
       this.trailPoints.set(state.id,points.map(p=>this.world(p,35)));
     }
@@ -909,13 +858,15 @@ export class MapView {
     const sorted=[...this.markers.entries()].sort(([a],[b])=>(b===this.selected?1:0)-(a===this.selected?1:0));
     let altitudeIndex=0;
     const linePositions=this.altitudeLines.geometry.getAttribute('position'),lineColors=this.altitudeLines.geometry.getAttribute('color'),projectionRotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),-Math.PI/2);
+    const directionRotation=new THREE.Quaternion(),upAxis=new THREE.Vector3(0,1,0);
     for(const [id,marker] of sorted) {
       const pixels=id===this.selected?36:this.scenario.units.length>80?15:30;
       const scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*marker.position.distanceTo(this.camera.position)/height*pixels;
       this.markerScale.setScalar(this.displayedIds&&!this.displayedIds.has(id)?0:Math.max(10,scale));
-      this.matrix.compose(marker.position,this.camera.quaternion,this.markerScale);
+      const rotation=this.symbolMode==='direction'?directionRotation.setFromAxisAngle(upAxis,-marker.heading).multiply(projectionRotation):this.camera.quaternion;
+      this.matrix.compose(marker.position,rotation,this.markerScale);
       marker.mesh.setMatrixAt(marker.index,this.matrix);
-      if(id===this.selected)this.selectedMarker.scale.copy(this.markerScale);
+      if(id===this.selected){this.selectedMarker.scale.copy(this.markerScale);this.selectedMarker.quaternion.copy(rotation);}
       if(!this.displayedIds||this.displayedIds.has(id)){
         const base=new THREE.Vector3(marker.position.x,this.scenario.terrain.seaLevel*this.exaggeration,marker.position.z),color=new THREE.Color(id===this.selected?'#ffd18b':marker.unit.enabled===false?'#788391':COLORS[marker.unit.faction]);
         linePositions.setXYZ(altitudeIndex*2,marker.position.x,marker.position.y,marker.position.z);linePositions.setXYZ(altitudeIndex*2+1,base.x,base.y,base.z);
@@ -926,7 +877,7 @@ export class MapView {
     }
     this.altitudeLines.geometry.setDrawRange(0,altitudeIndex*2);linePositions.needsUpdate=true;lineColors.needsUpdate=true;
     this.projectionPoints.count=altitudeIndex;this.projectionPoints.instanceMatrix.needsUpdate=true;if(this.projectionPoints.instanceColor)this.projectionPoints.instanceColor.needsUpdate=true;
-    this.selectedMarker.visible=!this.displayedIds||this.displayedIds.has(this.selected);
+    this.selectedMarker.visible=this.markers.has(this.selected)&&(!this.displayedIds||this.displayedIds.has(this.selected));
     this.updateListLinks(width,height);
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;

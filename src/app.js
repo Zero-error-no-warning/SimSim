@@ -1,31 +1,32 @@
-import {RouteMapEditor} from './route-map-editor.js?v=20261014-inline-route-editor-35';
-import {SelectUI} from './select-ui.js?v=20261014-inline-route-editor-35';
-import {surveillanceTemplate} from './mission-templates.js?v=20261014-inline-route-editor-35';
-import {SettingsUI} from './settings-ui.js?v=20261014-inline-route-editor-35';
-import {resourceName} from './resource-ui.js?v=20261014-inline-route-editor-35';
-import {taskPresentations} from './map-presentation.js?v=20261014-inline-route-editor-35';
-import {planEditor} from './plan-editing.js?v=20261014-inline-route-editor-35';
-import {verifiedWorker} from './worker-client.js?v=20261014-inline-route-editor-35';
-import {restorePlansResult} from './plans.js?v=20261014-inline-route-editor-35';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261014-inline-route-editor-35';
-import {parameter} from './parameters.js?v=20261014-inline-route-editor-35';
-import {WorkspaceUI} from './workspace-ui.js?v=20261014-inline-route-editor-35';
-import {NavigationUI} from './navigation-ui.js?v=20261014-inline-route-editor-35';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261014-inline-route-editor-35';
-import {ContextMenu} from './context-menu.js?v=20261014-inline-route-editor-35';
-import {TerrainUI} from './terrain-ui.js?v=20261014-inline-route-editor-35';
-import { BehaviorUI } from './behavior-ui.js?v=20261014-inline-route-editor-35';
-import { createSimulation } from './recorded-engine.js?v=20261014-inline-route-editor-35';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261014-inline-route-editor-35';
-import { definition,editableDefinition,routeEditingData,updateEditedRoute,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,setInitialHeight,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261014-inline-route-editor-35';
-import { importScenario } from './scenario-import.js?v=20261014-inline-route-editor-35';
-import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-inline-route-editor-35';
-import { restoreAnalysisResult } from './detection.js?v=20261014-inline-route-editor-35';
-import { AnalysisUI } from './analysis-ui.js?v=20261014-inline-route-editor-35';
-import { MapView } from './view.js?v=20261014-inline-route-editor-35';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261014-inline-route-editor-35';
-import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261014-inline-route-editor-35';
+import {RouteMapEditor} from './route-map-editor.js?v=20261015-direction-markers-36';
+import {drawUnitSymbol} from './unit-symbols.js?v=20261015-direction-markers-36';
+import {SelectUI} from './select-ui.js?v=20261015-direction-markers-36';
+import {surveillanceTemplate} from './mission-templates.js?v=20261015-direction-markers-36';
+import {SettingsUI} from './settings-ui.js?v=20261015-direction-markers-36';
+import {resourceName} from './resource-ui.js?v=20261015-direction-markers-36';
+import {taskPresentations} from './map-presentation.js?v=20261015-direction-markers-36';
+import {planEditor} from './plan-editing.js?v=20261015-direction-markers-36';
+import {verifiedWorker} from './worker-client.js?v=20261015-direction-markers-36';
+import {restorePlansResult} from './plans.js?v=20261015-direction-markers-36';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261015-direction-markers-36';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261015-direction-markers-36';
+import {parameter} from './parameters.js?v=20261015-direction-markers-36';
+import {WorkspaceUI} from './workspace-ui.js?v=20261015-direction-markers-36';
+import {NavigationUI} from './navigation-ui.js?v=20261015-direction-markers-36';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261015-direction-markers-36';
+import {ContextMenu} from './context-menu.js?v=20261015-direction-markers-36';
+import {TerrainUI} from './terrain-ui.js?v=20261015-direction-markers-36';
+import { BehaviorUI } from './behavior-ui.js?v=20261015-direction-markers-36';
+import { createSimulation } from './recorded-engine.js?v=20261015-direction-markers-36';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261015-direction-markers-36';
+import { definition,editableDefinition,routeEditingData,updateEditedRoute,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,setInitialHeight,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261015-direction-markers-36';
+import { importScenario } from './scenario-import.js?v=20261015-direction-markers-36';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261015-direction-markers-36';
+import { restoreAnalysisResult } from './detection.js?v=20261015-direction-markers-36';
+import { AnalysisUI } from './analysis-ui.js?v=20261015-direction-markers-36';
+import { MapView } from './view.js?v=20261015-direction-markers-36';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261015-direction-markers-36';
+import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261015-direction-markers-36';
 assertDocumentVersion();
 
 const $=requireElement;
@@ -37,16 +38,13 @@ const mapMenu=new ContextMenu($('map-menu'));
 const FACTION_NAMES={
   friendly:'味方',hostile:'相手側',neutral:'中立'
 };
-const SYMBOLS={
-  ground:'■',surface:'◆',subsurface:'●',air:'▲'
-};
 const STATUS_NAMES={
   standby:'イベント待ち',preparing:'出発準備中',idle:'待機',moving:'移動中',arrived:'経路完了',blocked:'地形制約で停止',waiting:'時間待ち'
 };
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='停止・計算対象外';STATUS_NAMES.depleted='移動資源枯渇';
-const worker=verifiedWorker(new URL('./worker.js?v=20261014-inline-route-editor-35',import.meta.url),{
+const worker=verifiedWorker(new URL('./worker.js?v=20261015-direction-markers-36',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 $('record-run').disabled=true;$('analysis-open').disabled=true;
@@ -515,9 +513,8 @@ function renderUnits({
     const button=document.createElement('button');
     button.className='unit-item'+(unit.id===selected?' selected':'')+(unit.enabled===false?' inactive-unit':'');
     button.dataset.id=unit.id;
-    const symbol=document.createElement('span');
-    symbol.className='unit-symbol '+unit.faction;
-    symbol.textContent=SYMBOLS[unit.domain];
+    const symbol=document.createElement('canvas');
+    symbol.className='unit-symbol';symbol.setAttribute('aria-hidden','true');
     const description=document.createElement('span'),name=document.createElement('strong'),detail=document.createElement('small');
     name.textContent=unit.name;button.title=unit.name+' · '+unit.id;
     detail.textContent=(unit.enabled===false?'無効 · ':'')+DOMAIN_NAMES[unit.domain]+' · '+(unit.manned?'有人':'無人')+' · '+Math.round(unit.speed*3.6)+' km/h';
@@ -541,7 +538,18 @@ function renderUnits({
   }
 }
 function renderInspector(){settingsUI.inspector(scenario,selected,currentUnit());}
+function updateListSymbols(){
+  for(const button of $('unit-list').children){
+    const marker=view.markers.get(button.dataset.id),canvas=button.querySelector('.unit-symbol');if(!marker||!canvas)continue;
+    const heading=view.symbolMode==='direction'&&(!view.displayedIds||view.displayedIds.has(button.dataset.id))?marker.heading:0;
+    const chosen=button.dataset.id===selected,signature=[view.symbolMode,chosen,marker.unit.domain,marker.unit.faction,marker.unit.manned,marker.unit.enabled,heading].join('|');
+    if(canvas.dataset.signature===signature)continue;
+    drawUnitSymbol(canvas,marker.unit,{mode:view.symbolMode,selected:chosen,heading});canvas.dataset.signature=signature;canvas.dataset.mode=view.symbolMode;canvas.dataset.heading=String(heading);
+    canvas.title=view.symbolMode==='direction'?'先端は進行方向（一覧は北が上）':'盤面と同じユニット記号';
+  }
+}
 function updateListTelemetry() {
+  updateListSymbols();
   const states=new Map(snapshot?.units.map(u=>[u.id,u])??[]);
   for(const button of $('unit-list').children){
     const state=states.get(button.dataset.id),node=scenario.behaviors?.find(g=>g.id===state?.behaviorId)?.nodes.find(n=>n.id===state?.nodeId);
@@ -958,6 +966,8 @@ $('exaggeration').addEventListener('change',()=>{
   view.setExaggeration(Number($('exaggeration').value));updateCaption();
 });
 $('show-labels').addEventListener('change',()=>view.setLabelsVisible($('show-labels').checked));
+$('unit-symbol-mode').onchange=()=>{view.setSymbolMode($('unit-symbol-mode').value);updateListSymbols();};
+$('unit-symbol-mode').value=view.symbolMode;
 $('show-sensor').addEventListener('change',()=>{
   view.showSensor=$('show-sensor').checked;view.updateSnapshot(snapshot);
 });

@@ -1,6 +1,6 @@
-import {fieldErrors} from './configuration-schema.js?v=20261014-inline-route-editor-35';
-import {MOVEMENT_FIELDS,SENSOR_FIELDS} from './configuration-fields.js?v=20261014-inline-route-editor-35';
-import { variableErrors } from './parameters.js?v=20261014-inline-route-editor-35';
+import {fieldErrors} from './configuration-schema.js?v=20261015-direction-markers-36';
+import {MOVEMENT_FIELDS,SENSOR_FIELDS} from './configuration-fields.js?v=20261015-direction-markers-36';
+import { variableErrors } from './parameters.js?v=20261015-direction-markers-36';
 export const DOMAIN_KEYS=['ground','surface','subsurface','air'];
 export const FACTIONS=['friendly','hostile','neutral'];
 const finite=v=>typeof v==='number'&&Number.isFinite(v);

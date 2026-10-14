@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone} from '../src/engine.js?v=20261014-inline-route-editor-35';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-inline-route-editor-35';
+import {clone} from '../src/engine.js?v=20261015-direction-markers-36';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261015-direction-markers-36';
 
 const point=(x,y=0)=>({x,y,z:0});
 const fixture=JSON.parse(readFileSync(new URL('fixtures/patrol-transition.txt',import.meta.url)));
