@@ -1,10 +1,10 @@
-import {clone,validateScenario} from './engine.js?v=20261012-briefing-map-31';
-import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261012-briefing-map-31';
-import {random01} from './random.js?v=20261012-briefing-map-31';
-import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261012-briefing-map-31';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261012-briefing-map-31';
-import {wilson} from './detection.js?v=20261012-briefing-map-31';
-import {MODEL_BUILD} from './model-version.js?v=20261012-briefing-map-31';
+import {clone,validateScenario} from './engine.js?v=20261014-route-map-32';
+import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261014-route-map-32';
+import {random01} from './random.js?v=20261014-route-map-32';
+import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261014-route-map-32';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261014-route-map-32';
+import {wilson} from './detection.js?v=20261014-route-map-32';
+import {MODEL_BUILD} from './model-version.js?v=20261014-route-map-32';
 export function controlValues(e,index,phase='explore',bounds={}){
  const values={};for(const c of e.controls){const [min,max]=bounds[c.id]??[c.min,c.max],u=random01((e.designSeed??'SimSim-design')+'|'+phase+'|'+index+'|'+c.id);let value=min+u*(max-min);if(parameter(c.parameter).integer)value=Math.round(value);values[c.id]=value;}return values;
 }

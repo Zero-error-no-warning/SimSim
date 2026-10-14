@@ -1656,3 +1656,5 @@ select:disabled {opacity:.5;cursor:default}
 .select-option[aria-selected=true] .select-mark {color:#9de1ff;font-weight:900}
 .select-option-label {overflow-wrap:anywhere}
 .select-option[aria-disabled=true] {color:#91a6be;cursor:default;opacity:.55}
+
+.route-map-panel{position:absolute;z-index:35;right:14px;top:90px;width:255px;padding:14px;background:#112132f5;border:1px solid #59788e;border-radius:8px;box-shadow:0 8px 24px #0006;display:grid;gap:10px;max-height:calc(100% - 150px);overflow:auto}.route-map-panel p{font-size:12px;line-height:1.7;margin:0}.route-map-panel label{display:grid;gap:4px}.route-map-panel select,.route-map-panel input{width:100%;box-sizing:border-box}.route-map-panel>div{display:flex;gap:6px;flex-wrap:wrap}.route-map-panel small{font-size:11px;color:#b7cad7}.route-map-panel output{font-size:12px;color:#ffd18b}

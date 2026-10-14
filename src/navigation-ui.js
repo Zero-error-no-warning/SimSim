@@ -1,7 +1,7 @@
-import {showEditorDialog} from './ui-dom.js?v=20261012-briefing-map-31';
-import {navigationErrors} from './navigation.js?v=20261012-briefing-map-31';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261012-briefing-map-31';
-import {requireElement} from './ui-dom.js?v=20261012-briefing-map-31';
+import {showEditorDialog} from './ui-dom.js?v=20261014-route-map-32';
+import {navigationErrors} from './navigation.js?v=20261014-route-map-32';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261014-route-map-32';
+import {requireElement} from './ui-dom.js?v=20261014-route-map-32';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){
@@ -16,7 +16,7 @@ export class NavigationUI{
     $('navigation-delete').onclick=()=>this.remove();
     for(const id of ['navigation-close','navigation-cancel'])$(id).onclick=()=>this.dialog.close();
     $('navigation-kind').onchange=()=>{this.item.name=$('navigation-name').value.trim();this.item.kind=$('navigation-kind').value;this.fields();};
-    $('navigation-draw').onclick=()=>{try{this.collect(false);this.oldPoints=structuredClone(this.item.points??[]);this.item.points=[];this.dialog.close();this.pickRoute();}catch(e){this.error(e.message);}};
+    $('navigation-draw').onclick=()=>{try{this.collect();this.dialog.close();this.pickRoute(this.item,points=>{if(points)this.item.points=points;this.fields();showEditorDialog(this.dialog);});}catch(e){this.error(e.message);}};
     $('navigation-pick').onclick=()=>{this.collect(false);this.dialog.close();this.pickPoint();};
     $('navigation-domain').onchange=()=>this.heightField();
     $('navigation-via-current').onclick=()=>{try{this.collect();this.seedVia(true);}catch(e){this.error(e.message);}};
@@ -45,13 +45,13 @@ export class NavigationUI{
     const unit=$('navigation-unit');unit.replaceChildren(new Option('ユニットを選択してください',''));
     for(const u of this.getDraft().units)unit.append(new Option(u.name,u.id));unit.value=this.item.unitId??'';
     for(const axis of ['x','y','z'])$('navigation-'+axis).value=(this.item.point?.[axis]??0)/(axis==='z'?1:1000);
-    $('navigation-domain').disabled=false;
-    $('navigation-domain').value=this.item.navigation?.domain??this.getUnit()?.domain??'surface';
+    $('navigation-domain').disabled=!!this.commitRoute;
+    $('navigation-domain').value=this.commitRoute?this.getUnit()?.domain??'surface':this.item.navigation?.domain??this.getUnit()?.domain??'surface';
     $('navigation-clearance').value=this.item.navigation?.clearance??0;
     $('navigation-height').value=this.item.points?.[0]?.z??this.getUnit()?.initial?.z??0;
     this.heightField();this.seedVia();$('navigation-inspection').textContent='';
     $('navigation-resource').disabled=!!this.commitRoute;$('navigation-delete').hidden=!!this.commitRoute||!this.existing;
-    $('navigation-draw').hidden=!!this.commitRoute;
+    $('navigation-draw').hidden=!this.pickRoute;
     $('navigation-save').textContent=this.commitRoute?'経路を保存':'保存して選択';$('navigation-error').hidden=true;
   }
   collect(points=true){

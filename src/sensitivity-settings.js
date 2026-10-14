@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261012-briefing-map-31';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261014-route-map-32';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){

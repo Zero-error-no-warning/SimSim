@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import {Terrain,validateScenario,clone} from '../src/engine.js?v=20261012-briefing-map-31';
-import {generateRoute,inspectRoute,inspectSegment} from '../src/route-planner.js?v=20261012-briefing-map-31';
-import {scenarioRouteIssues} from '../src/route-inspection.js?v=20261012-briefing-map-31';
-import {importScenario} from '../src/scenario-import.js?v=20261012-briefing-map-31';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261012-briefing-map-31';
-import {editWaypoint} from '../src/editor.js?v=20261012-briefing-map-31';
+import {Terrain,validateScenario,clone} from '../src/engine.js?v=20261014-route-map-32';
+import {generateRoute,inspectRoute,inspectSegment} from '../src/route-planner.js?v=20261014-route-map-32';
+import {scenarioRouteIssues} from '../src/route-inspection.js?v=20261014-route-map-32';
+import {importScenario} from '../src/scenario-import.js?v=20261014-route-map-32';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-route-map-32';
+import {editWaypoint} from '../src/editor.js?v=20261014-route-map-32';
 const p=(x,y=0,z=-100)=>({x,y,z});
 const terrain={columns:17,rows:17,spacing:1000,spacingY:800,origin:{x:-8000,y:-6400},seaLevel:0,elevations:Array.from({length:289},(_,i)=>Math.round(-400+900*Math.exp(-(((i%17-8)/2)**2+((Math.floor(i/17)-8)/2)**2))))};
 const profile={domain:'subsurface',clearance:20},anchors=[p(-7000),p(7000)],request={...profile,height:-100,via:anchors};

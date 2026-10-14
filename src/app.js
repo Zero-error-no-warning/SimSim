@@ -1,30 +1,31 @@
-import {SelectUI} from './select-ui.js?v=20261012-briefing-map-31';
-import {surveillanceTemplate} from './mission-templates.js?v=20261012-briefing-map-31';
-import {SettingsUI} from './settings-ui.js?v=20261012-briefing-map-31';
-import {resourceName} from './resource-ui.js?v=20261012-briefing-map-31';
-import {taskPresentations} from './map-presentation.js?v=20261012-briefing-map-31';
-import {planEditor} from './plan-editing.js?v=20261012-briefing-map-31';
-import {verifiedWorker} from './worker-client.js?v=20261012-briefing-map-31';
-import {restorePlansResult} from './plans.js?v=20261012-briefing-map-31';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261012-briefing-map-31';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261012-briefing-map-31';
-import {parameter} from './parameters.js?v=20261012-briefing-map-31';
-import {WorkspaceUI} from './workspace-ui.js?v=20261012-briefing-map-31';
-import {NavigationUI} from './navigation-ui.js?v=20261012-briefing-map-31';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261012-briefing-map-31';
-import {ContextMenu} from './context-menu.js?v=20261012-briefing-map-31';
-import {TerrainUI} from './terrain-ui.js?v=20261012-briefing-map-31';
-import { BehaviorUI } from './behavior-ui.js?v=20261012-briefing-map-31';
-import { createSimulation } from './recorded-engine.js?v=20261012-briefing-map-31';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261012-briefing-map-31';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261012-briefing-map-31';
-import { importScenario } from './scenario-import.js?v=20261012-briefing-map-31';
-import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261012-briefing-map-31';
-import { restoreAnalysisResult } from './detection.js?v=20261012-briefing-map-31';
-import { AnalysisUI } from './analysis-ui.js?v=20261012-briefing-map-31';
-import { MapView } from './view.js?v=20261012-briefing-map-31';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261012-briefing-map-31';
-import { requireElement,assertDocumentVersion } from './ui-dom.js?v=20261012-briefing-map-31';
+import {RouteMapEditor} from './route-map-editor.js?v=20261014-route-map-32';
+import {SelectUI} from './select-ui.js?v=20261014-route-map-32';
+import {surveillanceTemplate} from './mission-templates.js?v=20261014-route-map-32';
+import {SettingsUI} from './settings-ui.js?v=20261014-route-map-32';
+import {resourceName} from './resource-ui.js?v=20261014-route-map-32';
+import {taskPresentations} from './map-presentation.js?v=20261014-route-map-32';
+import {planEditor} from './plan-editing.js?v=20261014-route-map-32';
+import {verifiedWorker} from './worker-client.js?v=20261014-route-map-32';
+import {restorePlansResult} from './plans.js?v=20261014-route-map-32';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-map-32';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261014-route-map-32';
+import {parameter} from './parameters.js?v=20261014-route-map-32';
+import {WorkspaceUI} from './workspace-ui.js?v=20261014-route-map-32';
+import {NavigationUI} from './navigation-ui.js?v=20261014-route-map-32';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261014-route-map-32';
+import {ContextMenu} from './context-menu.js?v=20261014-route-map-32';
+import {TerrainUI} from './terrain-ui.js?v=20261014-route-map-32';
+import { BehaviorUI } from './behavior-ui.js?v=20261014-route-map-32';
+import { createSimulation } from './recorded-engine.js?v=20261014-route-map-32';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261014-route-map-32';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261014-route-map-32';
+import { importScenario } from './scenario-import.js?v=20261014-route-map-32';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-route-map-32';
+import { restoreAnalysisResult } from './detection.js?v=20261014-route-map-32';
+import { AnalysisUI } from './analysis-ui.js?v=20261014-route-map-32';
+import { MapView } from './view.js?v=20261014-route-map-32';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261014-route-map-32';
+import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261014-route-map-32';
 assertDocumentVersion();
 
 const $=requireElement;
@@ -45,7 +46,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='停止・計算対象外';STATUS_NAMES.depleted='移動資源枯渇';
-const worker=verifiedWorker(new URL('./worker.js?v=20261012-briefing-map-31',import.meta.url),{
+const worker=verifiedWorker(new URL('./worker.js?v=20261014-route-map-32',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 $('record-run').disabled=true;$('analysis-open').disabled=true;
@@ -155,17 +156,26 @@ const analysisUI=new AnalysisUI({
   }
 });
 const behaviorUI=new BehaviorUI({
-  getScenario:()=>settingsDraft(),getSelected:()=>currentUnit(),commit:(next,message)=>applySettingsDraft(next,message),showError,pickRoute:()=>{
-    settingsUI?.suspendForMap();behaviorUI.startRoute();setEditMode('shared-route');view.placementUnit=behaviorUI.mapUnit();notify('地図を順にクリックして経路を指定。2点以上でEscを押して編集画面へ戻ります。');
+  getScenario:()=>settingsDraft(),getSelected:()=>currentUnit(),commit:(next,message)=>applySettingsDraft(next,message),showError,pickRoute:(item,done)=>{
+    const unit=behaviorUI.mapUnit();
+    if(item){openMapRoute(item,done,unit);return;}
+    const assignment=behaviorUI.assignment();
+    openMapRoute({points:assignment.route??[unit.initial,...unit.route],mode:'loop'},points=>{if(points){behaviorUI.remember();assignment.route=points;}behaviorUI.render();showEditorDialog(behaviorUI.dialog);},unit);
   },pickBase:()=>{
     settingsUI?.suspendForMap();setEditMode('shared-base');view.placementUnit=behaviorUI.mapUnit();notify('目的地を地図でクリックしてください。');
   }
 });
-const routeUI=new NavigationUI({getDraft:()=>settingsDraft(),getUnit:()=>editableDefinition(settingsDraft(),selected)?.unit,commitRoute:item=>{const next=clone(settingsDraft());
+const routeUI=new NavigationUI({pickRoute:(item,done)=>openMapRoute(item,done,editableDefinition(settingsDraft(),selected)?.unit),getDraft:()=>settingsDraft(),getUnit:()=>editableDefinition(settingsDraft(),selected)?.unit,commitRoute:item=>{const next=clone(settingsDraft());
   const d=editableDefinition(next,selected);if(d.navigationRoute){const r=next.routes.find(r=>r.id===d.navigationRoute.id);Object.assign(r,{points:item.points,mode:item.mode,navigation:item.navigation});}
   else{replaceRoute(next,selected,{initial:item.points[0],route:item.points.slice(1),routeMode:item.mode});definition(next,selected).unit.navigation=item.navigation;}
 applySettingsDraft(next,'経路を保存しました。地図上の点をドラッグして編集できます。');}});
 settingsUI=new SettingsUI({getScenario:()=>scenario,getRevision:()=>revision,getSelected:()=>selected,pause,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message,true),navigation:()=>openRoutePlanner(),behavior:()=>openSettingsBehavior(),analysis:(binding,kind)=>analysisUI.addConfigurationBinding(binding,kind)});
+function openMapRoute(item,done,unit){
+  pause();settingsUI?.suspendForMap();const dialogs=[...document.querySelectorAll('dialog[open]')];dialogs.forEach(d=>d.close());
+  setEditMode('navigation-route');const routesVisible=view.routes.visible;view.routes.visible=false;view.handles.forEach(h=>h.mesh.visible=false);
+  $('map-instruction').textContent='空白クリックで追加 · 点をドラッグで移動 · Shift＋ドラッグで高さ変更 · Escで取消';
+  new RouteMapEditor(view,{item,unit,terrain:settingsDraft().terrain,onFinish:points=>{view.routes.visible=routesVisible;setEditMode(null);settingsUI?.restoreFromMap();dialogs.forEach(d=>showEditorDialog(d));done(points);}});
+}
 function settingsDraft(){return settingsUI?.active?settingsUI.session.draft:scenario;}
 function applySettingsDraft(next,message){if(settingsUI?.active){settingsUI.session.assertRevision(revision);settingsUI.session.draft=clone(next);settingsUI.render();return true;}return commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message);}
 function openSettingsBehavior(){try{if(!settingsUI.active)settingsUI.open('operation','entity.route');settingsUI.dedicated($('behavior-dialog'),()=>behaviorUI.open());}catch(error){showError(error.message);}}
@@ -958,7 +968,7 @@ $('sample-picker').addEventListener('change',()=>{
   const file=$('sample-picker').value;if(file)loadDemo(false,file).catch(error=>showError(error.message));$('sample-picker').value='';
 });
 window.addEventListener('keydown',event=>{
-  if(document.querySelector('dialog[open]')||event.defaultPrevented)return;
+  if(view.routeEditor||document.querySelector('dialog[open]')||event.defaultPrevented)return;
   if(settingsUI?.active&&!settingsUI.mapPicking){if(event.key==='Escape'){event.preventDefault();if(settingsUI.navigate(()=>settingsUI.close()))settingsUI.close();}return;}
   if(event.key==='Escape'){
     if(editMode==='shared-route'){

@@ -1,21 +1,21 @@
-import {MODEL_BUILD} from './model-version.js?v=20261012-briefing-map-31';
-import {ExperimentUI} from './experiment-ui.js?v=20261012-briefing-map-31';
-import {verifiedWorker} from './worker-client.js?v=20261012-briefing-map-31';
-import {PlansUI} from './plans-ui.js?v=20261012-briefing-map-31';
-import {preparePlans,planTrialSource} from './plans.js?v=20261012-briefing-map-31';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261012-briefing-map-31';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261012-briefing-map-31';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261012-briefing-map-31';
-import {HistoryUI} from './history-ui.js?v=20261012-briefing-map-31';
-import {MeasurementUI} from './measurement-ui.js?v=20261012-briefing-map-31';
-import {stateMembers} from './state-measurement.js?v=20261012-briefing-map-31';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261012-briefing-map-31';
-import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261012-briefing-map-31';
-import { numericScale } from './chart-scale.js?v=20261012-briefing-map-31';
-import { clone,validateScenario } from './engine.js?v=20261012-briefing-map-31';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261012-briefing-map-31';
-import { ParameterEditor } from './parameter-ui.js?v=20261012-briefing-map-31';
-import { requireElement } from './ui-dom.js?v=20261012-briefing-map-31';
+import {MODEL_BUILD} from './model-version.js?v=20261014-route-map-32';
+import {ExperimentUI} from './experiment-ui.js?v=20261014-route-map-32';
+import {verifiedWorker} from './worker-client.js?v=20261014-route-map-32';
+import {PlansUI} from './plans-ui.js?v=20261014-route-map-32';
+import {preparePlans,planTrialSource} from './plans.js?v=20261014-route-map-32';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261014-route-map-32';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261014-route-map-32';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-map-32';
+import {HistoryUI} from './history-ui.js?v=20261014-route-map-32';
+import {MeasurementUI} from './measurement-ui.js?v=20261014-route-map-32';
+import {stateMembers} from './state-measurement.js?v=20261014-route-map-32';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261014-route-map-32';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-route-map-32';
+import { numericScale } from './chart-scale.js?v=20261014-route-map-32';
+import { clone,validateScenario } from './engine.js?v=20261014-route-map-32';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261014-route-map-32';
+import { ParameterEditor } from './parameter-ui.js?v=20261014-route-map-32';
+import { requireElement } from './ui-dom.js?v=20261014-route-map-32';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -26,7 +26,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261012-briefing-map-31',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261014-route-map-32',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

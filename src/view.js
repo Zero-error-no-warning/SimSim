@@ -1,11 +1,11 @@
-import {terrainGrid,coastline} from './terrain-presentation.js?v=20261012-briefing-map-31';
-import { editableDefinition } from './editor.js?v=20261012-briefing-map-31';
-import { sharedAssignment } from './shared-settings.js?v=20261012-briefing-map-31';
-import {taskPresentations} from './map-presentation.js?v=20261012-briefing-map-31';
-import {resourceName} from './resource-ui.js?v=20261012-briefing-map-31';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-route-map-32';
+import { editableDefinition } from './editor.js?v=20261014-route-map-32';
+import { sharedAssignment } from './shared-settings.js?v=20261014-route-map-32';
+import {taskPresentations} from './map-presentation.js?v=20261014-route-map-32';
+import {resourceName} from './resource-ui.js?v=20261014-route-map-32';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261012-briefing-map-31';
+import { Terrain, Simulation } from './engine.js?v=20261014-route-map-32';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -97,10 +97,10 @@ export class MapView {
     });
     canvas.addEventListener('pointerdown',event=>this.pointerDown(event),true);
     canvas.addEventListener('pointerup',event=>this.pointerUp(event),true);
-    canvas.addEventListener('pointercancel',()=>{this.cameraGesture=null;this.down=null;this.cameraButtons();this.cancelDrag();});
-    canvas.addEventListener('lostpointercapture',()=>this.cancelDrag());
+    canvas.addEventListener('pointercancel',()=>{this.routeEditor?.cancelDrag();this.cameraGesture=null;this.down=null;this.cameraButtons();this.cancelDrag();});
+    canvas.addEventListener('lostpointercapture',()=>{this.cancelDrag();this.routeEditor?.cancelDrag();});
     canvas.addEventListener('contextmenu',event=>{
-      event.preventDefault();if(this.spaceHeld||this.cameraGesture?.space)return;
+      event.preventDefault();if(this.routeEditor||this.spaceHeld||this.cameraGesture?.space)return;
       if(this.down&&(this.down.moved||Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5))return;
       if(this.cameraGesture){this.pendingMenu={clientX:event.clientX,clientY:event.clientY,shiftKey:event.shiftKey};return;}
       this.openContext(event);
@@ -185,6 +185,7 @@ export class MapView {
       if(event.button===1)event.preventDefault();
       this.cameraGesture={pointerId:event.pointerId,space:this.spaceHeld};this.cameraButtons();this.clearTerrainBrush();return;
     }
+    if(this.routeEditor){this.routeEditor.down(event);return;}
     if(event.button===0&&this.editMode==='terrain'){
       event.stopImmediatePropagation();event.preventDefault();this.updatePointer(event);
       const point=this.mapPoint();if(!point)return;
@@ -210,6 +211,7 @@ export class MapView {
   }
   pointerMove(event) {
     if(this.cameraGesture){if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)this.down.moved=true;return;}
+    if(this.routeEditor){this.routeEditor.movePointer(event);return;}
     this.updatePointer(event);
     if(this.editMode==='terrain'){
       const point=this.mapPoint();this.terrainBrush(point);
@@ -290,6 +292,7 @@ export class MapView {
         this.cameraButtons();if(this.pendingMenu){const context=this.pendingMenu;this.pendingMenu=null;if(this.down&&!this.down.moved&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<=5)this.openContext(context);}
       });return;
     }
+    if(this.routeEditor){this.routeEditor.up(event);return;}
     if(this.terrainStroke!==undefined){
       event.stopImmediatePropagation();if(event.pointerId!==this.terrainStroke)return;
       this.terrainStroke=undefined;this.controls.enabled=true;this.onTerrainStroke?.('end');
@@ -908,7 +911,7 @@ export class MapView {
     this.updateListLinks(width,height);
     for(const h of this.handles){
       const hp=this.screenPoint(h.mesh.position),sp=this.selectedMarker?this.screenPoint(this.selectedMarker.position):null;
-      h.mesh.visible=!this.knowledgeOwner&&!this.taskAggregation&&(h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24);
+      h.mesh.visible=!this.routeEditor&&!this.knowledgeOwner&&!this.taskAggregation&&(h.index!==-1||!sp||Math.hypot(hp.x-sp.x,hp.y-sp.y)>24);
       const pixels=22,scale=this.mode==='top'?(this.camera.top-this.camera.bottom)/this.camera.zoom/height*pixels:2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*h.mesh.position.distanceTo(this.camera.position)/height*pixels;
       h.mesh.scale.setScalar(Math.max(10,scale));
     }
@@ -920,6 +923,7 @@ export class MapView {
     center.project(this.camera);
     north.project(this.camera);
     document.getElementById('north-arrow').style.transform='rotate('+Math.atan2((north.x-center.x)*width,(north.y-center.y)*height)+'rad)';
+    this.routeEditor?.render();
     this.renderer.render(this.scene,this.camera);
   }
 }

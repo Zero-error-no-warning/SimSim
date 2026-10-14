@@ -1,15 +1,15 @@
-import {showEditorDialog} from './ui-dom.js?v=20261012-briefing-map-31';
-import {conditionErrors} from './decision.js?v=20261012-briefing-map-31';
-import {ConditionUI} from './condition-ui.js?v=20261012-briefing-map-31';
-import {ContextMenu} from './context-menu.js?v=20261012-briefing-map-31';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261012-briefing-map-31';
-import {isParameterRef} from './behavior-parameters.js?v=20261012-briefing-map-31';
-import {NavigationUI} from './navigation-ui.js?v=20261012-briefing-map-31';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261012-briefing-map-31';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261012-briefing-map-31';
-import { clone,validateScenario } from './engine.js?v=20261012-briefing-map-31';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261012-briefing-map-31';
-import { requireElement } from './ui-dom.js?v=20261012-briefing-map-31';
+import {showEditorDialog} from './ui-dom.js?v=20261014-route-map-32';
+import {conditionErrors} from './decision.js?v=20261014-route-map-32';
+import {ConditionUI} from './condition-ui.js?v=20261014-route-map-32';
+import {ContextMenu} from './context-menu.js?v=20261014-route-map-32';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261014-route-map-32';
+import {isParameterRef} from './behavior-parameters.js?v=20261014-route-map-32';
+import {NavigationUI} from './navigation-ui.js?v=20261014-route-map-32';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261014-route-map-32';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261014-route-map-32';
+import { clone,validateScenario } from './engine.js?v=20261014-route-map-32';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261014-route-map-32';
+import { requireElement } from './ui-dom.js?v=20261014-route-map-32';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -38,7 +38,7 @@ export class BehaviorUI{
       this.spaceHeld=false;this.pan=null;this.pendingMenu=null;this.svg.classList.remove('camera-ready');
       if(this.drag){if(this.drag.recorded)this.draft=this.past.pop();this.drag=null;this.render();}
     });
-    this.navigation=new NavigationUI({getDraft:()=>this.draft,getUnit:()=>this.mapUnit(),remember:()=>this.remember(),render:()=>this.render(),pickRoute:()=>{this.navigationMode='route';this.dialog.close();this.pickRoute();},pickPoint:()=>{this.navigationMode='point';this.dialog.close();this.pickBase();}});
+    this.navigation=new NavigationUI({getDraft:()=>this.draft,getUnit:()=>this.mapUnit(),remember:()=>this.remember(),render:()=>this.render(),pickRoute:(item,done)=>this.pickRoute(item,done),pickPoint:()=>{this.navigationMode='point';this.dialog.close();this.pickBase();}});
     this.parameters=new BehaviorParameterUI(this);
     this.conditions=new ConditionUI($('edge-condition-builder'),condition=>{const edge=this.edge();if(!edge)return;this.remember();edge.condition=condition;this.draft.version=4;this.render();});
     $('route-new').onclick=()=>this.openResource('route',false,true);

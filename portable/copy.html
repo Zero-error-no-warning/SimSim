@@ -7,14 +7,14 @@ body{font-family:system-ui,sans-serif;margin:24px auto;padding:0 20px;max-width:
 <h1>SimSim 持ち込み用ファイル</h1>
 <p>下の<strong>5ファイル</strong>をコピーし、社内サーバの同じフォルダに、表示された名前でUTF-8のテキストとして保存してください。<code>index.html</code> をHTTP／HTTPSで開くと起動します。サンプルとThree.jsは組み込み済みです。</p>
 <p>「表示」で全文を開き、「全文をコピー」を押してください。コピーが使えない場合は「全文を選択」→ Ctrl+Cでもコピーできます。「TXTを保存」は内容が同じ <code>ファイル名.txt</code> をダウンロードします。保存先では末尾の <code>.txt</code> を外してください。</p>
-<p class="build">版: 20261012-briefing-map-31-b607babe81eb</p>
+<p class="build">版: 20261014-route-map-32-c32504ab8b24</p>
 <table><thead><tr><th>保存する名前</th><th>サイズ</th><th>内容</th></tr></thead><tbody id="files"></tbody></table>
 <p id="status" role="status" aria-live="polite"></p>
 <section id="editor" hidden><h2 id="filename"></h2><button id="copy">全文をコピー</button><button id="select">全文を選択</button><button id="download">TXTを保存</button><textarea id="content" readonly spellcheck="false" aria-label="ファイルの全文"></textarea><p id="checksum"></p></section>
 <p><a href="index.html" target="_blank" rel="noopener">持ち込み版を試す</a> · <a href="../index.html">通常版へ戻る</a></p>
 <script>
 'use strict';
-const files=[{"name":"index.html","bytes":59495,"sha256":"739209c62de4450a97c58a15dee3284e15d2dbacf7a55ead749c3bb8b31a96f7"},{"name":"styles.css","bytes":43694,"sha256":"bfb0761c136a42140f7fdd9b4358a5462104a1b21e1cc4d292b5e6cb8e85d81a"},{"name":"main.js","bytes":1018971,"sha256":"c369592ca547e4b5565f7cb274be396a157c48dafe2b5b01cd9e9f37df2e3f04"},{"name":"worker.js","bytes":138705,"sha256":"7292bc8616e184618904ed340c496e54feddb7c5ee88d6e4719dedba566380c3"},{"name":"analysis-worker.js","bytes":145401,"sha256":"4abda25653e5d264e1f4d7a49294d8e35fc689a5350ffc3fa1b1c4f92bf7df01"}],build='20261012-briefing-map-31-b607babe81eb',status=document.getElementById('status'),content=document.getElementById('content');
+const files=[{"name":"index.html","bytes":59533,"sha256":"d1c9bb5029cca805a063ee8c109df512a2c2476c867726c9f644cdc98bb5d289"},{"name":"styles.css","bytes":44290,"sha256":"52fc9fb9631431f219ee8b443a9f318bb71ff070fd73e873de72e684e2d877a8"},{"name":"main.js","bytes":1027831,"sha256":"600401fbe06ce3ab85baac1e0691dd26361e4d3510a2c4831a843a88b22cd4e8"},{"name":"worker.js","bytes":138696,"sha256":"00a46c1ae690153af6593b47306a5333b4277f08bb93344c9a34e446bb472f7b"},{"name":"analysis-worker.js","bytes":145392,"sha256":"b926925deb6ec3fa7aea1a025a6b49aececc1cadde7b276b2381c5b69cacb239"}],build='20261014-route-map-32-c32504ab8b24',status=document.getElementById('status'),content=document.getElementById('content');
 let selected=null;
 for(const file of files){
   const row=document.createElement('tr'),name=document.createElement('td'),size=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');

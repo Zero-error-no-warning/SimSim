@@ -1,6 +1,6 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261012-briefing-map-31';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261012-briefing-map-31';
-import {conditionErrors} from './decision.js?v=20261012-briefing-map-31';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261014-route-map-32';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261014-route-map-32';
+import {conditionErrors} from './decision.js?v=20261014-route-map-32';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
