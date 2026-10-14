@@ -1,15 +1,15 @@
-import {showEditorDialog} from './ui-dom.js?v=20261014-placement-height-33';
-import {conditionErrors} from './decision.js?v=20261014-placement-height-33';
-import {ConditionUI} from './condition-ui.js?v=20261014-placement-height-33';
-import {ContextMenu} from './context-menu.js?v=20261014-placement-height-33';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261014-placement-height-33';
-import {isParameterRef} from './behavior-parameters.js?v=20261014-placement-height-33';
-import {NavigationUI} from './navigation-ui.js?v=20261014-placement-height-33';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261014-placement-height-33';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261014-placement-height-33';
-import { clone,validateScenario } from './engine.js?v=20261014-placement-height-33';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261014-placement-height-33';
-import { requireElement } from './ui-dom.js?v=20261014-placement-height-33';
+import {showEditorDialog} from './ui-dom.js?v=20261014-route-curves-speed-34';
+import {conditionErrors} from './decision.js?v=20261014-route-curves-speed-34';
+import {ConditionUI} from './condition-ui.js?v=20261014-route-curves-speed-34';
+import {ContextMenu} from './context-menu.js?v=20261014-route-curves-speed-34';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261014-route-curves-speed-34';
+import {isParameterRef} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
+import {NavigationUI} from './navigation-ui.js?v=20261014-route-curves-speed-34';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261014-route-curves-speed-34';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261014-route-curves-speed-34';
+import { clone,validateScenario } from './engine.js?v=20261014-route-curves-speed-34';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import { requireElement } from './ui-dom.js?v=20261014-route-curves-speed-34';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({
@@ -511,7 +511,7 @@ export class BehaviorUI{
     const reference=kind==='route'?n?.routeId:c?.destinationId??n?.destinationId;
     let preset;
     if(edit&&!reference){
-      if(kind==='route'){const u=this.mapUnit();if(u)preset={points:structuredClone(routeFor(this.draft,this.assignment(),n,u).points),mode:routeFor(this.draft,this.assignment(),n,u).mode,name:'担当の経路'};}
+      if(kind==='route'){const u=this.mapUnit();if(u)preset={points:structuredClone(routeFor(this.draft,this.assignment(),n,u).points),mode:routeFor(this.draft,this.assignment(),n,u).mode,speedProfile:routeFor(this.draft,this.assignment(),n,u).speedProfile,name:'担当の経路'};}
       else{const d=destinationFor(this.draft,this.assignment(),n);if(d)preset={...structuredClone(d),name:'担当の目的地'};}
     }
     this.navigation.open(kind,edit?reference:null,preset,id=>{

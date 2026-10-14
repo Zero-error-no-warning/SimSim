@@ -1,23 +1,23 @@
 <!doctype html>
-<html lang="ja" data-simsim-build="20261014-placement-height-33">
+<html lang="ja" data-simsim-build="20261014-route-curves-speed-34">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SimSim — シナリオワークスペース</title>
-<link rel="stylesheet" href="styles.css?v=20261014-placement-height-33">
-<script src="src/bootstrap.js?v=20261014-placement-height-33" defer></script>
+<link rel="stylesheet" href="styles.css?v=20261014-route-curves-speed-34">
+<script src="src/bootstrap.js?v=20261014-route-curves-speed-34" defer></script>
 </head>
 <body>
 <header class="app-header"><div class="brand">
 <span class="brand-mark">S</span><div>
-<h1>SimSim <span id="app-version">v2026.10.14.33</span>
+<h1>SimSim <span id="app-version">v2026.10.14.34</span>
 </h1>
 <p>シナリオワークスペース</p>
 </div>
 </div>
 <div class="header-actions">
 <button id="new-scenario" title="現在の地形を保持してユニットと設定を空にする">新規</button><select id="sample-picker" aria-label="サンプルを開く"><option value="">サンプルを開く…</option>
-<option value="information-mission.txt">情報制約・監視から対処まで</option><option value="sustainment-mission.txt">資源・帰投・補給と監視交代</option><option value="island-patrol-demo.txt">島間通過・周回UUV</option><option value="route-planning-demo.txt">島を避ける経路の自動生成</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
+<option value="curved-route-demo.txt">3次元の曲線と速度変化</option><option value="information-mission.txt">情報制約・監視から対処まで</option><option value="sustainment-mission.txt">資源・帰投・補給と監視交代</option><option value="island-patrol-demo.txt">島間通過・周回UUV</option><option value="route-planning-demo.txt">島を避ける経路の自動生成</option></select><button id="load">開く</button><button id="save" class="primary">.txtを保存</button><details class="menu-popover"><summary>ヘルプ</summary><div>
 <a href="environment-check/check.html" target="_blank" rel="noopener">動作環境の確認</a><a href="docs/workspace-v3.md" target="_blank">操作とモデルの仕様</a><a href="portable/copy.html" target="_blank" rel="noopener">社内持ち込み用ファイル</a>
 </div></details>
 </div>
@@ -136,7 +136,7 @@
 <dialog id="workspace-results-dialog" class="workspace-dialog" aria-labelledby="workspace-results-title"><div class="dialog-head"><h2 id="workspace-results-title">表示中の結果</h2><button id="workspace-results-close">閉じる</button></div><p id="workspace-result-time"></p><p id="mission-status">成功条件は未設定</p><p id="recording-info"></p><div class="compact-actions"><button id="events-open">計算履歴</button><button id="record-save" disabled>記録保存</button><button id="route-check-open">経路を検査</button></div><p id="route-check-status" role="status"></p><section id="task-summary-panel" hidden><table class="results-table"><thead><tr><th>タスク</th><th>担当／稼働</th><th>現在のノード別人数</th><th>資源残量の合計</th></tr></thead><tbody id="task-summary"></tbody></table><small>線はタスクの計画経路です。表を選択するか、盤面の経路をダブルクリックすると個体とノードへ展開します。</small></section></dialog>
 <dialog id="behavior-parameter-dialog"><h2>担当時に指定する値</h2><p class="route-help">挙動では名前を参照し、具体的な値は「担当・共有設定」で指定します。秒・m・速度比は表示単位で入力してください。</p><p id="behavior-parameter-error" class="validation-message" role="alert" hidden></p><label class="field">編集する値<select id="behavior-parameter-list"></select></label><label class="field">名前<input id="behavior-parameter-name" maxlength="120"></label><label class="field">種類<select id="behavior-parameter-type"><option value="number">数値</option><option value="route">経路</option><option value="destination">目的地</option><option value="unit">単体ユニット</option></select></label><label class="field">単位<select id="behavior-parameter-unit"><option value="s">秒</option><option value="m">m</option><option value="ratio">速度比（%）</option></select></label><label class="check-field"><input id="behavior-parameter-default-enabled" type="checkbox">挙動に既定値を設定する</label><label class="field">既定値<input id="behavior-parameter-number" type="number" step="any"></label><label class="field">既定値<select id="behavior-parameter-reference"></select></label><button id="behavior-parameter-delete">削除</button><div class="dialog-actions"><button id="behavior-parameter-close">閉じる</button><button id="behavior-parameter-cancel">取消</button><button id="behavior-parameter-save" class="primary">保存</button></div></dialog>
 <dialog id="navigation-dialog"><h2 id="navigation-title">経路・目的地</h2><p id="navigation-error" class="validation-message" role="alert" hidden></p><label class="field">編集する経路・目的地<select id="navigation-resource"></select></label><label class="field">名前<input id="navigation-name" maxlength="120"></label><section id="navigation-route-fields"><button id="navigation-draw">地図で経路を作成・編集</button><label class="field">経路の繰り返し<select id="navigation-mode"><option value="once">一度だけ</option><option value="loop">周回</option><option value="pingpong">往復</option></select></label><label class="field">経路の座標（m）：一行に 東西, 南北, 高度・深度<textarea id="navigation-points" rows="7" placeholder="0, 0, 0
-1000, 0, 0"></textarea></label><p class="route-help">高さはz座標です。海面が0mの場合、水中は負の値です。地図ではクリックで追加、点のドラッグで移動、Shift＋ドラッグで高さを変更できます。2点以上必要です。協調して周回する経路は3点以上にしてください。</p><details id="navigation-planning"><summary>地形の検査・自動生成</summary>
+1000, 0, 0"></textarea></label><p class="route-help">高さはz座標です。海面が0mの場合、水中は負の値です。地図ではクリックで追加、点のドラッグで移動、Shift＋ドラッグで高さを変更できます。2点以上必要です。協調して周回する経路は3点以上にしてください。</p><details id="navigation-speed"><summary>経路全体の速度グラフ</summary><div id="navigation-speed-host"></div></details><details id="navigation-planning"><summary>地形の検査・自動生成</summary>
 <label class="field">使用する領域<select id="navigation-domain"><option value="subsurface">水中</option><option value="surface">水上</option><option value="air">空中</option><option value="ground">地上</option></select></label>
 <label class="field">生成する高度・深度のz座標（m）<input id="navigation-height" type="number" step="any"></label>
 <label class="field">追加の余裕（m）<input id="navigation-clearance" type="number" min="0" max="10000" step="any" value="0"></label>

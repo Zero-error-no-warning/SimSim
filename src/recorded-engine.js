@@ -1,19 +1,20 @@
-import {createResources,hasResource,resourceBoundary,updateResources,chargeMessage,aggregateTasks} from './resources.js?v=20261014-placement-height-33';
-import {InformationMetrics} from './information-metrics.js?v=20261014-placement-height-33';
-import {measurePoints} from './measurement-points.js?v=20261014-placement-height-33';
-import {StateTracker,stateSummary} from './state-measurement.js?v=20261014-placement-height-33';
-import {resolveGraph} from './behavior-parameters.js?v=20261014-placement-height-33';
-import { Simulation } from './engine.js?v=20261014-placement-height-33';
-import { importScenario } from './scenario-import.js?v=20261014-placement-height-33';
-import { random01, streamKey } from './random.js?v=20261014-placement-height-33';
-import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261014-placement-height-33';
-import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261014-placement-height-33';
-import { graphTriggers } from './shared-settings.js?v=20261014-placement-height-33';
-import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261014-placement-height-33';
-import {transmissionAttempts,periodicReports} from './communication.js?v=20261014-placement-height-33';
-import {propagationVisible} from './propagation.js?v=20261014-placement-height-33';
-import {chooseDecision} from './decision.js?v=20261014-placement-height-33';
-export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261014-placement-height-33';
+import {pathDuration,pathTravel,pathTime,pathSpeed} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {createResources,hasResource,resourceBoundary,resourceRate,updateResources,chargeMessage,aggregateTasks} from './resources.js?v=20261014-route-curves-speed-34';
+import {InformationMetrics} from './information-metrics.js?v=20261014-route-curves-speed-34';
+import {measurePoints} from './measurement-points.js?v=20261014-route-curves-speed-34';
+import {StateTracker,stateSummary} from './state-measurement.js?v=20261014-route-curves-speed-34';
+import {resolveGraph} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
+import { Simulation } from './engine.js?v=20261014-route-curves-speed-34';
+import { importScenario } from './scenario-import.js?v=20261014-route-curves-speed-34';
+import { random01, streamKey } from './random.js?v=20261014-route-curves-speed-34';
+import { terrainVisible, contactProbability, mounted, makeIndex, neighbors } from './contact.js?v=20261014-route-curves-speed-34';
+import {routeFor,destinationFor,conditionKey,measuredDistance} from './navigation.js?v=20261014-route-curves-speed-34';
+import { graphTriggers } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import {createKnowledge,rememberInformation,knownPosition,selectedContact,restrictedInformation,knowledgeAt} from './knowledge.js?v=20261014-route-curves-speed-34';
+import {transmissionAttempts,periodicReports} from './communication.js?v=20261014-route-curves-speed-34';
+import {propagationVisible} from './propagation.js?v=20261014-route-curves-speed-34';
+import {chooseDecision} from './decision.js?v=20261014-route-curves-speed-34';
+export { recordingPayload, restoreRecording, MAX_FILE_BYTES } from './recording.js?v=20261014-route-curves-speed-34';
 export const RECORD_MODEL = 'trigger-behavior-v3';
 export const INFORMATION_MODEL='information-behavior-v4';
 export const recordModel=s=>s.version>=4?INFORMATION_MODEL:RECORD_MODEL;
@@ -68,7 +69,7 @@ export class RecordedSimulation extends Simulation {
       const initialNode=graph?.nodes.find(n=>n.id===graph.initial),chosen=routeFor(this.source,assignment,initialNode,u);
       const shared=assignment?.route?.length>=2||initialNode?.routeId;
       const geometry=shared?{
-        ...u,initial:chosen.points[0],route:chosen.points.slice(1),routeMode:initialNode?.kind==='patrol'?'loop':chosen.mode,motion:{...u.motion,loopStart:0}
+        ...u,speedProfile:chosen.speedProfile,initial:chosen.points[0],route:chosen.points.slice(1),routeMode:initialNode?.kind==='patrol'?'loop':chosen.mode,motion:{...u.motion,loopStart:0}
       }:u;
       const path=this.compile(geometry);
       this.paths.set(u.id,path);
@@ -119,7 +120,7 @@ export class RecordedSimulation extends Simulation {
       if(initial)s.pathCache.set(key,s.path);
       if(!s.pathCache.has(key)){
         const legacy=!s.node.routeId;
-        s.pathCache.set(key,this.compile({...s.unit,initial:selected.points[0],route:selected.points.slice(1),routeMode:selected.mode,motion:{...s.unit.motion,...(legacy?{}:{loopStart:0})}}));
+        s.pathCache.set(key,this.compile({...s.unit,speedProfile:selected.speedProfile,initial:selected.points[0],route:selected.points.slice(1),routeMode:selected.mode,motion:{...s.unit.motion,...(legacy?{}:{loopStart:0})}}));
       }
       s.path=s.pathCache.get(key);this.paths.set(s.unit.id,s.path);
     }
@@ -139,6 +140,7 @@ export class RecordedSimulation extends Simulation {
         // zero-distance join would otherwise consume a whole calculation step.
         s.join=dist(s.position,nearest.point)>1e-7?nearest.point:null;
       }
+      s.profileClock=pathTime(s.path,s.progress);
       s.readyAt=t+(initial?s.path.delay:0);
       s.status=t<s.readyAt?'waiting':'moving';
     } else if (s.node.kind==='follow') {
@@ -148,7 +150,7 @@ export class RecordedSimulation extends Simulation {
         const entry=s.node.joinMode==='nearest'?closestPathPoint(s.path,s.position):{point:s.path.nodes[0],along:0};
         s.routeOffset=entry.along;s.routeTravel=entry.along;s.routeArrived=false;
         s.join=(!initial||s.node.joinMode==='nearest')&&dist(s.position,entry.point)>1e-7?entry.point:null;
-        s.routeStarted=s.join?null:t-(s.path.actualSpeed?s.routeOffset/s.path.actualSpeed:0)-(s.routeOffset>0?s.path.delay:0);
+        s.routeStarted=s.join?null:t-(pathTime(s.path,s.routeOffset))-(s.routeOffset>0?s.path.delay:0);
 
       }
       s.status=s.join?'moving':t<(s.routeStarted??t)+(initial?s.path.delay:0)?'waiting':s.path.length&&s.path.actualSpeed?'moving':'idle';
@@ -244,7 +246,7 @@ export class RecordedSimulation extends Simulation {
       return Simulation.prototype.evaluateUnit.call(this,s.unit,Math.max(0,seconds-offset),false).position;
     }
     const dt=Math.max(0,seconds-(this.currentTime??0));
-    if(s.node.kind==='patrol'&&!s.join)return pathPoint(s.path,mod(s.progress+(speeds.get(s.unit.id)??s.path.actualSpeed)*Math.max(0,seconds-Math.max(this.currentTime??0,s.readyAt)),s.path.length||1)).point;
+    if(s.node.kind==='patrol'&&!s.join){const dt=Math.max(0,seconds-Math.max(this.currentTime??0,s.readyAt)),scale=s.path.actualSpeed?(speeds.get(s.unit.id)??s.path.actualSpeed)/s.path.actualSpeed:0,advance=s.path.clock?pathTravel(s.path,(s.profileClock??0)+dt*scale)-pathTravel(s.path,s.profileClock??0):(speeds.get(s.unit.id)??s.path.actualSpeed)*dt;return pathPoint(s.path,mod(s.progress+advance,s.path.length||1)).point;}
     const target=s.join??(s.node.kind==='move'?this.movementDestination(s,positions):null);
     if(!target)return s.position;
     const projected=this.terrain.project(target,s.unit.domain);if(projected.error)return s.position;
@@ -260,14 +262,14 @@ export class RecordedSimulation extends Simulation {
     }
     const node=s.replayRoutes.findLast(entry=>entry.time<=t)?.node;if(!node)return s.basePath;
     const selected=routeFor(this.source,s.assignment,node,s.unit),key=selected.id+'|'+node.kind;
-    if(!s.pathCache.has(key))s.pathCache.set(key,this.compile({...s.unit,initial:selected.points[0],route:selected.points.slice(1),routeMode:selected.mode,motion:{...s.unit.motion,...(!node.routeId?{}:{loopStart:0})}}));
+    if(!s.pathCache.has(key))s.pathCache.set(key,this.compile({...s.unit,speedProfile:selected.speedProfile,initial:selected.points[0],route:selected.points.slice(1),routeMode:selected.mode,motion:{...s.unit.motion,...(!node.routeId?{}:{loopStart:0})}}));
     return s.pathCache.get(key);
   }
   stateSnapshot(s,path=s.path) {
     return {
       id:s.unit.id,position:{
         x:s.position.x,y:s.position.y,z:s.position.z
-      },heading:s.heading,status:s.status,distance:s.distance,routeDistance:path.length,error:s.error,errorAt:path.errorAt,actualSpeed:path.actualSpeed,startDelay:path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null,
+      },heading:s.heading,status:s.status,distance:s.distance,routeDistance:path.length,error:s.error,errorAt:path.errorAt,actualSpeed:path.clock?(s.actualSpeed??path.actualSpeed):path.actualSpeed,startDelay:path.delay,nodeId:s.node?.id,behaviorId:s.graph?.id,eta:null,
       ...(this.source.version>=4?{resources:structuredClone(s.resources),operational:s.operational!==false}:{})
     };
   }
@@ -498,7 +500,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       if(!s.join&&(!s.graph||['follow','patrol'].includes(s.node?.kind))&&s.path.actualSpeed&&s.path.length){
         const along=s.node?.kind==='patrol'?s.progress:mod((s.routeTravel??s.distance),s.path.length);
         const next=s.path.nodes.find(p=>p.d>along+1e-7);
-        if(next)end=Math.min(end,start+(next.d-along)/(speeds.get(s.unit.id)??s.path.actualSpeed));
+        if(next){const scale=s.path.actualSpeed?(speeds.get(s.unit.id)??s.path.actualSpeed)/s.path.actualSpeed:0;const span=s.path.clock?(pathTime(s.path,next.d)-pathTime(s.path,along))/(scale||1):(next.d-along)/(speeds.get(s.unit.id)??s.path.actualSpeed);if(span>1e-8)end=Math.min(end,start+span);}
       }
     }
     const future=new Map(states.map(s=>[s.unit.id,model.predict(s,end,speeds,positions)]));
@@ -632,7 +634,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
       }
       if((!s.graph||s.node?.kind==='follow')&&!s.join&&!s.path.periodic&&s.path.length&&s.path.actualSpeed&&!s.routeArrived){
-        const at=(s.graph?s.routeStarted??0:0)+s.path.delay+s.path.length/s.path.actualSpeed;
+        const at=(s.graph?s.routeStarted??0:0)+s.path.delay+pathDuration(s.path);
         if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);
       }
       if(s.join&&s.path.actualSpeed){const at=start+dist(s.position,s.join)/s.path.actualSpeed;if(at>start+1e-8)nextEvent=Math.min(nextEvent,at);}
@@ -643,7 +645,25 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
     }
     model.currentTime=start;
     const speeds=controls();
-    for(const s of resourceStates)if(s.operational){const speed=!hasResource(s,'movement')?0:['move','follow','patrol'].includes(s.node?.kind)||!s.graph?(speeds.get(s.unit.id)??s.path.actualSpeed):0;nextEvent=Math.min(nextEvent,resourceBoundary(s,start,speed,model.source));}
+    for(const s of states)if(s.path.clock&&s.operational&&s.status!=='blocked'&&!s.join&&(!s.graph||['follow','patrol'].includes(s.node?.kind)))nextEvent=Math.min(nextEvent,start+Math.max(.01,pathDuration(s.path)/128));
+    for(const s of states)if(s.path.curved&&s.path.actualSpeed>0&&s.operational&&s.status!=='blocked'&&!s.join&&(!s.graph||['follow','patrol'].includes(s.node?.kind))){
+      const along=s.node?.kind==='patrol'?s.progress:s.path.periodic?mod(s.routeTravel??s.distance,s.path.length):s.routeTravel??s.distance,segment=pathPoint(s.path,along).segment,next=s.path.nodes[segment+1];
+      const scale=s.node?.kind==='patrol'?(speeds.get(s.unit.id)??s.path.actualSpeed)/s.path.actualSpeed:1;
+      const elapsed=s.node?.kind==='patrol'?s.profileClock??pathTime(s.path,along):Math.max(0,start-(s.graph?s.routeStarted??0:0)-s.path.delay),phase=s.path.periodic?mod(elapsed,pathDuration(s.path)):elapsed;
+      if(next&&scale>0){const span=(pathTime(s.path,next.d)-phase)/scale;if(span>1e-7)nextEvent=Math.min(nextEvent,start+span);}
+    }
+    for(const s of resourceStates)if(s.operational){
+      const speed=!hasResource(s,'movement')?0:['move','follow','patrol'].includes(s.node?.kind)||!s.graph?(speeds.get(s.unit.id)??s.path.actualSpeed):0;
+      if(s.path.clock&&speed>0&&!s.join&&(!s.graph||['follow','patrol'].includes(s.node?.kind))){
+        const finish=Math.min(nextContact,nextEvent),scale=s.node?.kind==='patrol'?speed/s.path.actualSpeed:1;
+        const origin=s.node?.kind==='patrol'?s.profileClock??0:Math.max(0,start-(s.graph?s.routeStarted??0:0)-s.path.delay);
+        const travel=dt=>pathTravel(s.path,origin+dt*scale)-pathTravel(s.path,origin);
+        for(const [id,r] of Object.entries(s.resources)){const rate=resourceRate(s,id,0,model.source),perMetre=s.unit.resources[id].perMetre??0,amount=dt=>rate*dt+perMetre*travel(dt);
+          if(r.remaining>1e-9&&amount(finish-start)>=r.remaining){let lo=0,hi=finish-start;for(let i=0;i<40;i++){const mid=(lo+hi)/2;if(amount(mid)<r.remaining)lo=mid;else hi=mid;}if(hi>1e-8)nextEvent=Math.min(nextEvent,start+hi);}
+        }
+      }else nextEvent=Math.min(nextEvent,resourceBoundary(s,start,speed,model.source));
+    }
+
     const end=proximityBoundary(start,Math.min(nextContact,nextEvent),speeds),step=end-start,previousDistances=new Map(resourceStates.map(s=>[s.unit.id,s.distance]));
     const positions=new Map(states.map(s=>[s.unit.id,{...s.position}])),future=new Map(states.map(s=>[s.unit.id,model.predict(s,end,speeds,positions)]));
     let changed=false;
@@ -651,7 +671,7 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
       if(s.status==='blocked'||!s.operational||s.resourceConfigured&&!hasResource(s,'movement'))continue;
       if(s.graph&&!s.node)continue;
       if(s.node?.kind==='follow'&&s.join){
-        if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end-(s.path.actualSpeed?s.routeOffset/s.path.actualSpeed:0)-(s.routeOffset>0?s.path.delay:0);s.routeTravel=s.routeOffset;}
+        if(moveTo(model,s,s.join,s.path.actualSpeed,step)){s.join=null;s.routeStarted=end-(pathTime(s.path,s.routeOffset))-(s.routeOffset>0?s.path.delay:0);s.routeTravel=s.routeOffset;}
         changed=true;continue;
       }
       if(!s.graph||s.node.kind==='follow'){
@@ -681,7 +701,8 @@ export function* sharedSteps(input, mission=input.source?.mission??input.scenari
           changed=true;
           continue;
         }
-        const advance=(speeds.get(s.unit.id)??s.path.actualSpeed)*activeStep,next=s.progress+advance;
+        const scale=s.path.actualSpeed?(speeds.get(s.unit.id)??s.path.actualSpeed)/s.path.actualSpeed:0,oldClock=s.profileClock??pathTime(s.path,s.progress),clock=oldClock+activeStep*scale,advance=s.path.clock?pathTravel(s.path,clock)-pathTravel(s.path,oldClock):(speeds.get(s.unit.id)??s.path.actualSpeed)*activeStep,next=s.progress+advance;
+        s.profileClock=clock;s.actualSpeed=activeStep>0?advance/activeStep:0;
         if(s.path.error&&next>=s.path.length){
           s.position={
             ...s.path.nodes.at(-1)

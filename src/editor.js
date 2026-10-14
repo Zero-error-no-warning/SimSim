@@ -1,8 +1,8 @@
-import {Terrain} from './terrain.js?v=20261014-placement-height-33';
-import {bindingTargetExists} from './parameters.js?v=20261014-placement-height-33';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-placement-height-33';
-import {resolveValue} from './behavior-parameters.js?v=20261014-placement-height-33';
-import { sharedAssignment } from './shared-settings.js?v=20261014-placement-height-33';
+import {Terrain} from './terrain.js?v=20261014-route-curves-speed-34';
+import {bindingTargetExists} from './parameters.js?v=20261014-route-curves-speed-34';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-curves-speed-34';
+import {resolveValue} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
+import { sharedAssignment } from './shared-settings.js?v=20261014-route-curves-speed-34';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -35,7 +35,7 @@ export function editableDefinition(s,id) {
   const graph=s.behaviors?.find(g=>g.id===assignment?.behaviorId),initial=graph?.nodes.find(n=>n.id===graph.initial),navigationRoute=s.routes?.find(r=>r.id===resolveValue(initial?.routeId,graph,assignment)),points=navigationRoute?.points??assignment?.route;
   const navigationJoin=initial?.joinMode==='nearest';
   return points?.length?{
-    ...d,assignment,navigationRoute,navigationJoin,unit:{...d.unit,initial:navigationJoin?d.unit.initial:points[0],route:navigationJoin?points:points.slice(1),routeMode:initial?.kind==='patrol'?'loop':navigationRoute?.mode??assignment?.routeMode??'once'}
+    ...d,assignment,navigationRoute,navigationJoin,unit:{...d.unit,speedProfile:navigationRoute?.speedProfile??assignment?.speedProfile,initial:navigationJoin?d.unit.initial:points[0],route:navigationJoin?points:points.slice(1),routeMode:initial?.kind==='patrol'?'loop':navigationRoute?.mode??assignment?.routeMode??'once'}
   }:{...d,assignment};
 }
 export function removeWaypoint(s,id,index) {
@@ -59,8 +59,8 @@ export function addWaypoint(s,id,p) {
 export function replaceRoute(s,id,path) {
   const d=editableDefinition(s,id);
   if(d.navigationRoute||d.assignment?.route?.length){
-    if(d.navigationRoute){d.navigationRoute.points=[path.initial,...path.route];d.navigationRoute.mode=path.routeMode;}
-    else{d.assignment.route=[path.initial,...path.route];d.assignment.routeMode=path.routeMode;}
+    if(d.navigationRoute){d.navigationRoute.points=[path.initial,...path.route];d.navigationRoute.mode=path.routeMode;d.navigationRoute.speedProfile=path.speedProfile;}
+    else{d.assignment.route=[path.initial,...path.route];d.assignment.routeMode=path.routeMode;d.assignment.speedProfile=path.speedProfile;}
     d.assignment.phase=0;
   }else {
     Object.assign(d.unit,path);
@@ -137,10 +137,10 @@ export function editWaypoint(s,id,index,point){
   if(!d||index<0||index>=d.unit.route.length)throw new Error('経由点が見つかりません。');
   const shared=d.navigationRoute?.points??d.assignment?.route;
   if(shared?.length)shared[index+(d.navigationJoin?0:1)]={
-    ...point
+    ...shared[index+(d.navigationJoin?0:1)],...point
   };
   else d.unit.route[index]={
-    ...point
+    ...d.unit.route[index],...point
   };
 }
 export function removeDefinition(s,id) {

@@ -1,7 +1,8 @@
-import {showEditorDialog} from './ui-dom.js?v=20261014-placement-height-33';
-import {navigationErrors} from './navigation.js?v=20261014-placement-height-33';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261014-placement-height-33';
-import {requireElement} from './ui-dom.js?v=20261014-placement-height-33';
+import {SpeedProfileUI} from './speed-profile-ui.js?v=20261014-route-curves-speed-34';
+import {showEditorDialog} from './ui-dom.js?v=20261014-route-curves-speed-34';
+import {navigationErrors} from './navigation.js?v=20261014-route-curves-speed-34';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261014-route-curves-speed-34';
+import {requireElement} from './ui-dom.js?v=20261014-route-curves-speed-34';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){
@@ -16,8 +17,9 @@ export class NavigationUI{
     $('navigation-delete').onclick=()=>this.remove();
     for(const id of ['navigation-close','navigation-cancel'])$(id).onclick=()=>this.dialog.close();
     $('navigation-kind').onchange=()=>{this.item.name=$('navigation-name').value.trim();this.item.kind=$('navigation-kind').value;this.fields();};
-    $('navigation-draw').onclick=()=>{try{this.collect();this.dialog.close();this.pickRoute(this.item,points=>{if(points)this.item.points=points;this.fields();showEditorDialog(this.dialog);});}catch(e){this.error(e.message);}};
+    $('navigation-draw').onclick=()=>{try{this.collect();this.dialog.close();this.pickRoute(this.item,(points,profile)=>{if(points){this.item.points=points;if(profile)this.item.speedProfile=profile;else delete this.item.speedProfile;}this.fields();showEditorDialog(this.dialog);});}catch(e){this.error(e.message);}};
     $('navigation-pick').onclick=()=>{this.collect(false);this.dialog.close();this.pickPoint();};
+    $('navigation-mode').onchange=()=>{this.collect();if(this.speedUI){this.speedUI.mode=this.item.mode;this.speedUI.loop=this.item.mode!=='once';this.speedUI.changed();}};
     $('navigation-domain').onchange=()=>this.heightField();
     $('navigation-via-current').onclick=()=>{try{this.collect();this.seedVia(true);}catch(e){this.error(e.message);}};
     $('navigation-inspect').onclick=()=>this.inspect();
@@ -33,6 +35,8 @@ export class NavigationUI{
     this.fields();showEditorDialog(this.dialog);
   }
   fields(){
+    this.speedUI?.dispose();
+    if(this.kind==='route')this.speedUI=new SpeedProfileUI($('navigation-speed-host'),{profile:this.item.speedProfile,mode:this.item.mode,speed:this.getUnit()?.speed??10,getPoints:()=>this.item.points,onChange:profile=>{if(profile)this.item.speedProfile=profile;else delete this.item.speedProfile;}});
     $('navigation-title').textContent=this.kind==='route'?'経路の作成・編集':'目的地の作成・編集';
     const resources=$('navigation-resource');resources.replaceChildren(new Option('新しく作る',''));
     for(const item of this.getDraft()[this.key]??[])resources.append(new Option(item.name,item.id));resources.value=this.existing?.id??'';
@@ -59,10 +63,8 @@ export class NavigationUI{
     if(this.kind==='route'){
       this.item.mode=$('navigation-mode').value;
       this.item.navigation={domain:$('navigation-domain').value,clearance:this.number('navigation-clearance')};
-      if(points)this.item.points=$('navigation-points').value.trim()?$('navigation-points').value.trim().split(/\n+/).map(line=>{
-        const values=line.trim().split(/[,\s]+/).map(Number);if(values.length!==3||values.some(v=>!Number.isFinite(v)))throw Error('経路は一行に東西・南北・高度の3つの数値を指定してください。');
-        return {x:values[0],y:values[1],z:values[2]};
-      }):[];
+      if(points){const old=this.item.points??[],parsed=$('navigation-points').value.trim()?$('navigation-points').value.trim().split(/\n+/).map(line=>{const values=line.trim().split(/[,\s]+/).map(Number);if(values.length!==3||values.some(v=>!Number.isFinite(v)))throw Error('経路は一行に東西・南北・高度の3つの数値を指定してください。');return {x:values[0],y:values[1],z:values[2]};}):[];this.item.points=parsed.map((p,i)=>{const reference=old.length===parsed.length?old[i]:old.find(q=>q.x===p.x&&q.y===p.y&&q.z===p.z);return {...reference,...p};});}
+
     }else{
       this.item.kind=$('navigation-kind').value;
       if(this.item.kind==='unit'){this.item.unitId=$('navigation-unit').value;delete this.item.point;}

@@ -1,7 +1,7 @@
-import { sharedAssignment } from "./shared-settings.js?v=20261014-placement-height-33";
-import { configurationTarget } from "./configuration-contract.js?v=20261014-placement-height-33";
-import { getValue, setValue } from "./configuration-schema.js?v=20261014-placement-height-33";
-import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261014-placement-height-33";
+import { sharedAssignment } from "./shared-settings.js?v=20261014-route-curves-speed-34";
+import { configurationTarget } from "./configuration-contract.js?v=20261014-route-curves-speed-34";
+import { getValue, setValue } from "./configuration-schema.js?v=20261014-route-curves-speed-34";
+import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261014-route-curves-speed-34";
 export class ConfigurationSession {
   constructor(source, id, revision, scope = "entity") {
     this.draft = structuredClone(source);

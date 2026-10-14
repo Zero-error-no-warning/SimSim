@@ -1,6 +1,7 @@
-import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261014-placement-height-33';
-import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261014-placement-height-33';
-import {conditionErrors} from './decision.js?v=20261014-placement-height-33';
+import {routeFeatureErrors} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {isParameterRef,parameterErrors,resolveGraph} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
+import {navigationErrors,proximityErrors,conditionKey} from './navigation.js?v=20261014-route-curves-speed-34';
+import {conditionErrors} from './decision.js?v=20261014-route-curves-speed-34';
 export const NODE_KINDS = {
   follow: '経路を進む', patrol: '協調して周回', signal: '情報を待つ',
   report: '報告', move: '目的に向かって進む', wait: '時間待ち', stop: '終了'
@@ -42,7 +43,7 @@ export const hasSharedBehaviors = s => (s.behaviorAssignments ?? []).length > 0;
 const number = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
 const point = p => p && ['x', 'y', 'z'].every(k => number(p[k], -1000000, 1000000));
 export function sharedErrors(s, resolved=false) {
-  const errors = navigationErrors(s), graphs = s.behaviors ?? [], assignments = s.behaviorAssignments ?? [];
+  const errors = [...navigationErrors(s),...(s.behaviorAssignments??[]).flatMap(a=>routeFeatureErrors(a?.route,a?.speedProfile))], graphs = s.behaviors ?? [], assignments = s.behaviorAssignments ?? [];
   if (!Array.isArray(graphs) || graphs.length > 50) return ['挙動は最大50件の配列です。'];
   if (!Array.isArray(assignments) || assignments.length > 100) return ['タスクは最大100件の配列です。'];
   const routeCatalog=Array.isArray(s.routes)?s.routes:[],destinationCatalog=Array.isArray(s.destinations)?s.destinations:[];

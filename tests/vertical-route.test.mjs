@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Simulation} from '../src/engine.js?v=20261014-placement-height-33';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-placement-height-33';
+import {Simulation} from '../src/engine.js?v=20261014-route-curves-speed-34';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-route-curves-speed-34';
 const source=(domain='air')=>({version:3,unitsSystem:'SI',title:'3D route',duration:20,seed:'vertical',terrain:{columns:3,rows:3,spacing:1000,origin:{x:-1000,y:-1000,z:0},seaLevel:0,elevations:Array(9).fill(-500)},units:[{id:'unit',name:'unit',domain,faction:'friendly',manned:false,speed:100,initial:{x:0,y:0,z:domain==='air'?1000:-100},route:domain==='air'?[{x:300,y:0,z:1400},{x:300,y:0,z:1800}]:[{x:0,y:0,z:-300}],routeMode:'once'}],recording:{step:.5,interval:.5}});
 const near=(actual,expected)=>assert(Math.abs(actual-expected)<1e-5,`${actual} != ${expected}`);
 test('air route uses slant distance and supports a purely vertical segment',()=>{

@@ -1,10 +1,11 @@
-import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261014-placement-height-33';
-import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261014-placement-height-33';
+import {routeFeatureErrors} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {resolveValue,isParameterRef} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
+import {generationErrors,navigationProfileErrors} from './route-planner.js?v=20261014-route-curves-speed-34';
 // Named navigation resources, shared by state nodes and proximity conditions.
 export function routeFor(s,a,n,u){
   const graph=s.behaviors?.find(g=>g.id===a?.behaviorId),id=resolveValue(n?.routeId,graph,a);
   const route=id?s.routes?.find(r=>r.id===id):null;
-  return {id:route?.id??'default',points:route?.points??a?.route??[u.initial,...u.route],mode:n?.kind==='patrol'?'loop':route?.mode??a?.routeMode??u.routeMode};
+  return {id:route?.id??'default',speedProfile:route?.speedProfile??(a?.route?.length?a.speedProfile:u.speedProfile),points:route?.points??a?.route??[u.initial,...u.route],mode:n?.kind==='patrol'?'loop':route?.mode??a?.routeMode??u.routeMode};
 }
 export function destinationFor(s,a,n){
   const id=resolveValue(n?.destinationId,s.behaviors?.find(g=>g.id===a?.behaviorId),a);
@@ -31,6 +32,7 @@ export function navigationErrors(s){
           if(item.points!==undefined)errors.push('経路にはpointsかgenerateのどちらか一方を指定してください。');
           errors.push(...generationErrors(item.generate,item.mode??'once'));
         }else if(!Array.isArray(item.points)||item.points.length<2||item.points.length>500||item.points.some(p=>!point(p)))errors.push('経路は2～500点の座標で指定してください。');
+        errors.push(...routeFeatureErrors(item.points,item.speedProfile));
         if(item.navigation!==undefined)errors.push(...navigationProfileErrors(item.navigation));
         if(!['once','loop','pingpong'].includes(item.mode??'once'))errors.push('経路の繰り返し方式が不正です。');
       }else if(item.kind==='point'){

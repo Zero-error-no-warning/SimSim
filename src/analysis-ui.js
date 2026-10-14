@@ -1,21 +1,21 @@
-import {MODEL_BUILD} from './model-version.js?v=20261014-placement-height-33';
-import {ExperimentUI} from './experiment-ui.js?v=20261014-placement-height-33';
-import {verifiedWorker} from './worker-client.js?v=20261014-placement-height-33';
-import {PlansUI} from './plans-ui.js?v=20261014-placement-height-33';
-import {preparePlans,planTrialSource} from './plans.js?v=20261014-placement-height-33';
-import {SensitivityUI} from './sensitivity-ui.js?v=20261014-placement-height-33';
-import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261014-placement-height-33';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-placement-height-33';
-import {HistoryUI} from './history-ui.js?v=20261014-placement-height-33';
-import {MeasurementUI} from './measurement-ui.js?v=20261014-placement-height-33';
-import {stateMembers} from './state-measurement.js?v=20261014-placement-height-33';
-import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261014-placement-height-33';
-import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-placement-height-33';
-import { numericScale } from './chart-scale.js?v=20261014-placement-height-33';
-import { clone,validateScenario } from './engine.js?v=20261014-placement-height-33';
-import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261014-placement-height-33';
-import { ParameterEditor } from './parameter-ui.js?v=20261014-placement-height-33';
-import { requireElement } from './ui-dom.js?v=20261014-placement-height-33';
+import {MODEL_BUILD} from './model-version.js?v=20261014-route-curves-speed-34';
+import {ExperimentUI} from './experiment-ui.js?v=20261014-route-curves-speed-34';
+import {verifiedWorker} from './worker-client.js?v=20261014-route-curves-speed-34';
+import {PlansUI} from './plans-ui.js?v=20261014-route-curves-speed-34';
+import {preparePlans,planTrialSource} from './plans.js?v=20261014-route-curves-speed-34';
+import {SensitivityUI} from './sensitivity-ui.js?v=20261014-route-curves-speed-34';
+import {prepareSensitivity,sensitivityTrialSource} from './sensitivity.js?v=20261014-route-curves-speed-34';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-curves-speed-34';
+import {HistoryUI} from './history-ui.js?v=20261014-route-curves-speed-34';
+import {MeasurementUI} from './measurement-ui.js?v=20261014-route-curves-speed-34';
+import {stateMembers} from './state-measurement.js?v=20261014-route-curves-speed-34';
+import { TRIGGER_EVENTS,NODE_KINDS } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import { RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-route-curves-speed-34';
+import { numericScale } from './chart-scale.js?v=20261014-route-curves-speed-34';
+import { clone,validateScenario } from './engine.js?v=20261014-route-curves-speed-34';
+import { trialScenario,analysisConditions,formatBinding,bindingKey,parameter,normalizedAnalysis,readParameter,availableBindings } from './parameters.js?v=20261014-route-curves-speed-34';
+import { ParameterEditor } from './parameter-ui.js?v=20261014-route-curves-speed-34';
+import { requireElement } from './ui-dom.js?v=20261014-route-curves-speed-34';
 const $=requireElement;
 const percent=v=>v===null?'—':(v*100).toFixed(1)+'%';
 const minutes=v=>v===null?'—':(v/60).toFixed(1)+'分';
@@ -26,7 +26,7 @@ export class AnalysisUI {
     Object.assign(this,{
       getScenario,getSnapshot,commit,replay,seek,showError,notify,focusSensitivity,activatePlanEditing
     });
-    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261014-placement-height-33',import.meta.url),{
+    this.worker=verifiedWorker(new URL('./analysis-worker.js?v=20261014-route-curves-speed-34',import.meta.url),{
       type:'module',name:'SimSim Monte Carlo'
     });
     window.addEventListener('simsim-boot-failed',()=>this.worker.terminate(),{once:true});

@@ -1,22 +1,23 @@
-import {fieldErrors} from './configuration-schema.js?v=20261014-placement-height-33';
-import {BASE_FIELDS,POSITION_FIELDS,MOVEMENT_FIELDS,MOTION_FIELDS,GROUP_FIELDS} from './configuration-fields.js?v=20261014-placement-height-33';
-import {resourceErrors} from './resources.js?v=20261014-placement-height-33';
-import {experimentErrors} from './experiment-settings.js?v=20261014-placement-height-33';
-import {communicationErrors} from './communication.js?v=20261014-placement-height-33';
-import {informationErrors} from './information-settings.js?v=20261014-placement-height-33';
-import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261014-placement-height-33';
-import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261014-placement-height-33';
-import {measurementErrors} from './measurement-points.js?v=20261014-placement-height-33';
-import {Terrain} from './terrain.js?v=20261014-placement-height-33';
-export {Terrain} from './terrain.js?v=20261014-placement-height-33';
-import {navigationProfileErrors} from './route-planner.js?v=20261014-placement-height-33';
-import {materializeRoutes} from './route-planner.js?v=20261014-placement-height-33';
-import {stateGoalErrors} from './state-measurement.js?v=20261014-placement-height-33';
-import { readParameter } from './parameters.js?v=20261014-placement-height-33';
-import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261014-placement-height-33';
-import { actionErrors } from './action-settings.js?v=20261014-placement-height-33';
-import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261014-placement-height-33';
-import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261014-placement-height-33';
+import {sampleRoute,attachClock,pathDuration,pathTravel,pathSpeed,routeFeatureErrors} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {fieldErrors} from './configuration-schema.js?v=20261014-route-curves-speed-34';
+import {BASE_FIELDS,POSITION_FIELDS,MOVEMENT_FIELDS,MOTION_FIELDS,GROUP_FIELDS} from './configuration-fields.js?v=20261014-route-curves-speed-34';
+import {resourceErrors} from './resources.js?v=20261014-route-curves-speed-34';
+import {experimentErrors} from './experiment-settings.js?v=20261014-route-curves-speed-34';
+import {communicationErrors} from './communication.js?v=20261014-route-curves-speed-34';
+import {informationErrors} from './information-settings.js?v=20261014-route-curves-speed-34';
+import {planConfigErrors,applyPlan} from './plan-settings.js?v=20261014-route-curves-speed-34';
+import {sensitivityConfigErrors} from './sensitivity-settings.js?v=20261014-route-curves-speed-34';
+import {measurementErrors} from './measurement-points.js?v=20261014-route-curves-speed-34';
+import {Terrain} from './terrain.js?v=20261014-route-curves-speed-34';
+export {Terrain} from './terrain.js?v=20261014-route-curves-speed-34';
+import {navigationProfileErrors} from './route-planner.js?v=20261014-route-curves-speed-34';
+import {materializeRoutes} from './route-planner.js?v=20261014-route-curves-speed-34';
+import {stateGoalErrors} from './state-measurement.js?v=20261014-route-curves-speed-34';
+import { readParameter } from './parameters.js?v=20261014-route-curves-speed-34';
+import { sharedErrors, migrateTriggers } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import { actionErrors } from './action-settings.js?v=20261014-route-curves-speed-34';
+import { sensorErrors,missionErrors,analysisErrors } from './detection-settings.js?v=20261014-route-curves-speed-34';
+import { expandGroups, noiseVector, random01, streamKey } from './random.js?v=20261014-route-curves-speed-34';
 // Pure simulation model: metres, seconds; x=east, y=north, z=height above sea level.
 export const MAX_UNITS = 2000;
 export const DOMAINS = ['ground', 'surface', 'subsurface', 'air'];
@@ -68,6 +69,7 @@ export function validateScenario(value) {
       errors.push(...fieldErrors([...BASE_FIELDS.filter(f=>f.path!=='id'),...POSITION_FIELDS,...MOVEMENT_FIELDS],u,{scenario:value}).map(e=>prefix+': '+e));
       errors.push(...sensorErrors(u,prefix),...actionErrors(u,prefix,recipientIds));
       if(value.version>=3&&u.behavior)errors.push(prefix+': 旧行動ルールは読み込み時にノードへ変換してください。');
+      errors.push(...routeFeatureErrors([u.initial,...(Array.isArray(u.route)?u.route:[])],u.speedProfile));
       if(u.navigation!==undefined)errors.push(...navigationProfileErrors(u.navigation));
       if (!['once','loop','pingpong'].includes(u.routeMode)) errors.push(prefix+': routeModeが不正です。');
       if(u.groupId!==undefined && index<value.units.length) errors.push(prefix+': groupIdは生成ユニット専用です。');
@@ -137,7 +139,8 @@ export class Simulation {
     this.terrain=new Terrain(this.scenario.terrain);
     this.paths=deferPaths?new Map():new Map(this.scenario.units.filter(u=>u.enabled!==false).map(u=>[u.id,this.compile(u)]));
   }
-  compile(unit) {
+  compile(unit) {const path=this.compileGeometry(unit);path.curved=[unit.initial,...unit.route].some(p=>p.in||p.out);return attachClock(path,unit.speedProfile);}
+  compileGeometry(unit) {
     const start=this.terrain.project(unit.initial,unit.domain);
     let nodes=[{
       ...start.point,d:0
@@ -152,8 +155,7 @@ export class Simulation {
     if (start.error&&!phased) return {
       ...runtime,nodes,length:0,error:start.error,errorAt:'初期位置',periodic:false
     };
-    let points=[start.point,...unit.route.map(p=>this.terrain.project(p,unit.domain).point)];
-    if(unit.route.length && unit.routeMode==='loop')points.push(start.point);
+    let points=sampleRoute([start.point,...unit.route.map(p=>this.terrain.project(p,unit.domain).point)],unit.routeMode==='loop',{step:Math.min(125,this.terrain.cellSize/4)});
     const nominalLength=points.slice(1).reduce((d,p,i)=>d+distance(points[i],p),0);
     if(nominalLength>0 && ((motion.horizontal??0)+(motion.vertical??0)+(motion.commonHorizontal??0)>0)) {
       const generated=[start.point],scale=motion.scale??2000,step=Math.min(125,this.terrain.cellSize/4,scale/8);
@@ -240,8 +242,8 @@ export class Simulation {
     if(u.enabled===false)return {id:u.id,position:{...u.initial},status:'disabled',heading:0,distance:0,routeDistance:0,error:null,errorAt:null,actualSpeed:0,startDelay:0,eta:null};
     const elapsed=Math.max(0,Number(time)||0),t=limitTime?Math.min(this.scenario.duration,elapsed):elapsed;
     const path=this.paths.get(u.id),actualSpeed=path.actualSpeed??u.speed;
-    const delay=path.delay??0,rawTravel=actualSpeed*Math.max(0,t-delay);
-    const travel=!path.periodic&&actualSpeed>0&&t>=delay+path.length/actualSpeed?Math.max(rawTravel,path.length):rawTravel;
+    const delay=path.delay??0,rawTravel=pathTravel(path,Math.max(0,t-delay));
+    const travel=!path.periodic&&actualSpeed>0&&t>=delay+pathDuration(path)-1e-8?Math.max(rawTravel,path.length):rawTravel;
     const d=path.periodic && path.length>0 ? travel%path.length : Math.min(travel,path.length);
     let left=0,right=path.nodes.length-1;
     while(left<right) {
@@ -259,7 +261,7 @@ export class Simulation {
     else if(t<delay)status='waiting';
     return {
       id:u.id,position,status,heading:Math.atan2(b.x-a.x,b.y-a.y),distance:Math.min(travel,path.periodic?travel:path.length),routeDistance:path.length,
-      error:path.error,errorAt:path.errorAt,actualSpeed,startDelay:Number.isFinite(delay)?delay:null,eta:actualSpeed>0&&Number.isFinite(delay)?delay+path.length/actualSpeed:null
+      error:path.error,errorAt:path.errorAt,actualSpeed:path.clock?(t<delay||status==='arrived'?0:pathSpeed(path,Math.max(0,t-delay))):actualSpeed,startDelay:Number.isFinite(delay)?delay:null,eta:actualSpeed>0&&Number.isFinite(delay)?delay+pathDuration(path):null
     };
   }
   routePoints(id) {

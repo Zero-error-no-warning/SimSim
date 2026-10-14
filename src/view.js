@@ -1,11 +1,12 @@
-import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-placement-height-33';
-import { editableDefinition } from './editor.js?v=20261014-placement-height-33';
-import { sharedAssignment } from './shared-settings.js?v=20261014-placement-height-33';
-import {taskPresentations} from './map-presentation.js?v=20261014-placement-height-33';
-import {resourceName} from './resource-ui.js?v=20261014-placement-height-33';
+import {sampleRoute} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-route-curves-speed-34';
+import { editableDefinition } from './editor.js?v=20261014-route-curves-speed-34';
+import { sharedAssignment } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import {taskPresentations} from './map-presentation.js?v=20261014-route-curves-speed-34';
+import {resourceName} from './resource-ui.js?v=20261014-route-curves-speed-34';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261014-placement-height-33';
+import { Terrain, Simulation } from './engine.js?v=20261014-route-curves-speed-34';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -739,7 +740,7 @@ export class MapView {
       if(unit.id===this.selected) {
         const definition=this.editableUnit(),raw=[definition.initial,...definition.route];
         // Planned path remains distinct from the generated route.
-        const planned=raw.map(p=>this.world(this.terrain.project(p,definition.domain).point,unit.domain==='ground'?24:0));
+        const planned=sampleRoute(raw,definition.routeMode==='loop').map(p=>this.world(this.terrain.project(p,definition.domain).point,unit.domain==='ground'?24:0));
         if(planned.length>1){
           const geom=new THREE.BufferGeometry().setFromPoints(planned);
           const line=new THREE.Line(geom,new THREE.LineDashedMaterial({

@@ -1,5 +1,5 @@
 import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261014-placement-height-33';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261014-route-curves-speed-34';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -24,7 +24,7 @@ try{
  p=await xy(1);await page.keyboard.down('Shift');await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x,p.y-30,{steps:5});await page.mouse.up();await page.keyboard.up('Shift');const vertical=(await points())[1];assert.equal(vertical.x,horizontal.x);assert.equal(vertical.y,horizontal.y);assert(vertical.z>horizontal.z);
  // Add a point to the visible plane, then remove it; reject impossible underwater height.
  const q=await page.evaluate(()=>{const v=window.testView,p=v.screenPoint(v.world({x:6000,y:4000,z:v.routeEditor.height})),r=v.renderer.domElement.getBoundingClientRect();return{x:p.x+r.x,y:p.y+r.y};});await page.mouse.click(q.x,q.y);assert.equal((await points()).length,start.length+1);await page.locator('[data-route-delete]').click();assert.equal((await points()).length,start.length);
- await page.locator('[data-route-height]').fill('-100');await page.locator('[data-route-height]').press('Tab');assert((await page.locator('.route-map-panel output').innerText()).length);assert((await points()).every(p=>p.z>0));
+ await page.locator('[data-route-height]').fill('-100');await page.locator('[data-route-height]').press('Tab');assert((await page.locator('.route-map-panel > output').innerText()).length);assert((await points()).every(p=>p.z>0));
  await page.screenshot({path:'/tmp/simsim-route-editor.png'});await page.locator('[data-route-done]').click();await page.waitForSelector('#navigation-dialog[open]');assert((await page.locator('#navigation-points').inputValue()).includes(String(vertical.z)));
  const edited=await page.locator('#navigation-points').inputValue();await page.locator('#navigation-draw').click();await page.locator('[data-route-delete]').click();await page.keyboard.press('Escape');await page.waitForSelector('#navigation-dialog[open]');assert.equal(await page.locator('#navigation-points').inputValue(),edited);
  await page.locator('#navigation-save').click();await page.locator('#settings-apply').click();await page.waitForSelector('#settings-editor[hidden]',{state:'attached'});

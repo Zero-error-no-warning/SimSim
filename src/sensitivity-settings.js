@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261014-placement-height-33';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261014-route-curves-speed-34';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){

@@ -1,31 +1,31 @@
-import {RouteMapEditor} from './route-map-editor.js?v=20261014-placement-height-33';
-import {SelectUI} from './select-ui.js?v=20261014-placement-height-33';
-import {surveillanceTemplate} from './mission-templates.js?v=20261014-placement-height-33';
-import {SettingsUI} from './settings-ui.js?v=20261014-placement-height-33';
-import {resourceName} from './resource-ui.js?v=20261014-placement-height-33';
-import {taskPresentations} from './map-presentation.js?v=20261014-placement-height-33';
-import {planEditor} from './plan-editing.js?v=20261014-placement-height-33';
-import {verifiedWorker} from './worker-client.js?v=20261014-placement-height-33';
-import {restorePlansResult} from './plans.js?v=20261014-placement-height-33';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-placement-height-33';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261014-placement-height-33';
-import {parameter} from './parameters.js?v=20261014-placement-height-33';
-import {WorkspaceUI} from './workspace-ui.js?v=20261014-placement-height-33';
-import {NavigationUI} from './navigation-ui.js?v=20261014-placement-height-33';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261014-placement-height-33';
-import {ContextMenu} from './context-menu.js?v=20261014-placement-height-33';
-import {TerrainUI} from './terrain-ui.js?v=20261014-placement-height-33';
-import { BehaviorUI } from './behavior-ui.js?v=20261014-placement-height-33';
-import { createSimulation } from './recorded-engine.js?v=20261014-placement-height-33';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261014-placement-height-33';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,setInitialHeight,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261014-placement-height-33';
-import { importScenario } from './scenario-import.js?v=20261014-placement-height-33';
-import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-placement-height-33';
-import { restoreAnalysisResult } from './detection.js?v=20261014-placement-height-33';
-import { AnalysisUI } from './analysis-ui.js?v=20261014-placement-height-33';
-import { MapView } from './view.js?v=20261014-placement-height-33';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261014-placement-height-33';
-import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261014-placement-height-33';
+import {RouteMapEditor} from './route-map-editor.js?v=20261014-route-curves-speed-34';
+import {SelectUI} from './select-ui.js?v=20261014-route-curves-speed-34';
+import {surveillanceTemplate} from './mission-templates.js?v=20261014-route-curves-speed-34';
+import {SettingsUI} from './settings-ui.js?v=20261014-route-curves-speed-34';
+import {resourceName} from './resource-ui.js?v=20261014-route-curves-speed-34';
+import {taskPresentations} from './map-presentation.js?v=20261014-route-curves-speed-34';
+import {planEditor} from './plan-editing.js?v=20261014-route-curves-speed-34';
+import {verifiedWorker} from './worker-client.js?v=20261014-route-curves-speed-34';
+import {restorePlansResult} from './plans.js?v=20261014-route-curves-speed-34';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-curves-speed-34';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261014-route-curves-speed-34';
+import {parameter} from './parameters.js?v=20261014-route-curves-speed-34';
+import {WorkspaceUI} from './workspace-ui.js?v=20261014-route-curves-speed-34';
+import {NavigationUI} from './navigation-ui.js?v=20261014-route-curves-speed-34';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261014-route-curves-speed-34';
+import {ContextMenu} from './context-menu.js?v=20261014-route-curves-speed-34';
+import {TerrainUI} from './terrain-ui.js?v=20261014-route-curves-speed-34';
+import { BehaviorUI } from './behavior-ui.js?v=20261014-route-curves-speed-34';
+import { createSimulation } from './recorded-engine.js?v=20261014-route-curves-speed-34';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,setInitialHeight,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261014-route-curves-speed-34';
+import { importScenario } from './scenario-import.js?v=20261014-route-curves-speed-34';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-route-curves-speed-34';
+import { restoreAnalysisResult } from './detection.js?v=20261014-route-curves-speed-34';
+import { AnalysisUI } from './analysis-ui.js?v=20261014-route-curves-speed-34';
+import { MapView } from './view.js?v=20261014-route-curves-speed-34';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261014-route-curves-speed-34';
+import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261014-route-curves-speed-34';
 assertDocumentVersion();
 
 const $=requireElement;
@@ -46,7 +46,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='停止・計算対象外';STATUS_NAMES.depleted='移動資源枯渇';
-const worker=verifiedWorker(new URL('./worker.js?v=20261014-placement-height-33',import.meta.url),{
+const worker=verifiedWorker(new URL('./worker.js?v=20261014-route-curves-speed-34',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 $('record-run').disabled=true;$('analysis-open').disabled=true;
@@ -160,26 +160,26 @@ const behaviorUI=new BehaviorUI({
     const unit=behaviorUI.mapUnit();
     if(item){openMapRoute(item,done,unit);return;}
     const assignment=behaviorUI.assignment();
-    openMapRoute({points:assignment.route??[unit.initial,...unit.route],mode:'loop'},points=>{if(points){behaviorUI.remember();assignment.route=points;}behaviorUI.render();showEditorDialog(behaviorUI.dialog);},unit);
+    openMapRoute({points:assignment.route??[unit.initial,...unit.route],mode:'loop',speedProfile:assignment.speedProfile??unit.speedProfile},(points,profile)=>{if(points){behaviorUI.remember();assignment.route=points;assignment.speedProfile=profile;}behaviorUI.render();showEditorDialog(behaviorUI.dialog);},unit);
   },pickBase:()=>{
     settingsUI?.suspendForMap();setEditMode('shared-base');view.placementUnit=behaviorUI.mapUnit();notify('目的地を地図でクリックしてください。');
   }
 });
 const routeUI=new NavigationUI({pickRoute:(item,done)=>openMapRoute(item,done,editableDefinition(settingsDraft(),selected)?.unit),getDraft:()=>settingsDraft(),getUnit:()=>editableDefinition(settingsDraft(),selected)?.unit,commitRoute:item=>{const next=clone(settingsDraft());
-  const d=editableDefinition(next,selected);if(d.navigationRoute){const r=next.routes.find(r=>r.id===d.navigationRoute.id);Object.assign(r,{points:item.points,mode:item.mode,navigation:item.navigation});}
-  else{replaceRoute(next,selected,{initial:item.points[0],route:item.points.slice(1),routeMode:item.mode});definition(next,selected).unit.navigation=item.navigation;}
+  const d=editableDefinition(next,selected);if(d.navigationRoute){const r=next.routes.find(r=>r.id===d.navigationRoute.id);Object.assign(r,{points:item.points,mode:item.mode,navigation:item.navigation,speedProfile:item.speedProfile});}
+  else{replaceRoute(next,selected,{initial:item.points[0],route:item.points.slice(1),routeMode:item.mode,speedProfile:item.speedProfile});definition(next,selected).unit.navigation=item.navigation;}
 applySettingsDraft(next,'経路を保存しました。地図上の点をドラッグして編集できます。');}});
 settingsUI=new SettingsUI({getScenario:()=>scenario,getRevision:()=>revision,getSelected:()=>selected,pause,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message,true),navigation:()=>openRoutePlanner(),behavior:()=>openSettingsBehavior(),analysis:(binding,kind)=>analysisUI.addConfigurationBinding(binding,kind)});
 function openMapRoute(item,done,unit){
   pause();settingsUI?.suspendForMap();const dialogs=[...document.querySelectorAll('dialog[open]')];dialogs.forEach(d=>d.close());
   setEditMode('navigation-route');const routesVisible=view.routes.visible;view.routes.visible=false;view.handles.forEach(h=>h.mesh.visible=false);
   $('map-instruction').textContent='空白クリックで追加 · 点をドラッグで移動 · Shift＋ドラッグで高さ変更 · Escで取消';
-  new RouteMapEditor(view,{item,unit,terrain:settingsDraft().terrain,onFinish:points=>{view.routes.visible=routesVisible;setEditMode(null);settingsUI?.restoreFromMap();dialogs.forEach(d=>showEditorDialog(d));done(points);}});
+  new RouteMapEditor(view,{item,unit,terrain:settingsDraft().terrain,onFinish:(points,profile)=>{view.routes.visible=routesVisible;setEditMode(null);settingsUI?.restoreFromMap();dialogs.forEach(d=>showEditorDialog(d));done(points,profile);}});
 }
 function settingsDraft(){return settingsUI?.active?settingsUI.session.draft:scenario;}
 function applySettingsDraft(next,message){if(settingsUI?.active){settingsUI.session.assertRevision(revision);settingsUI.session.draft=clone(next);settingsUI.render();return true;}return commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message);}
 function openSettingsBehavior(){try{if(!settingsUI.active)settingsUI.open('operation','entity.route');settingsUI.dedicated($('behavior-dialog'),()=>behaviorUI.open());}catch(error){showError(error.message);}}
-function openRoutePlanner(){if(!selected)return;pause();setEditMode(null);setAuthoring(true);const d=editableDefinition(settingsDraft(),selected),r=d.navigationRoute;settingsUI.dedicated($('navigation-dialog'),()=>routeUI.open('route',r?.id,{name:r?.name??d.unit.name+'の経路',points:[d.unit.initial,...d.unit.route],mode:d.unit.routeMode,navigation:r?.navigation??d.unit.navigation}));$('navigation-domain').value=d.unit.domain;$('navigation-domain').disabled=true;routeUI.heightField();$('navigation-mode').value=d.unit.routeMode;$('navigation-planning').open=true;}
+function openRoutePlanner(){if(!selected)return;pause();setEditMode(null);setAuthoring(true);const d=editableDefinition(settingsDraft(),selected),r=d.navigationRoute;settingsUI.dedicated($('navigation-dialog'),()=>routeUI.open('route',r?.id,{name:r?.name??d.unit.name+'の経路',points:[d.unit.initial,...d.unit.route],mode:d.unit.routeMode,speedProfile:d.unit.speedProfile,navigation:r?.navigation??d.unit.navigation}));$('navigation-domain').value=d.unit.domain;$('navigation-domain').disabled=true;routeUI.heightField();$('navigation-mode').value=d.unit.routeMode;$('navigation-planning').open=true;}
 
 let routeIssues=[];
 function refreshRouteChecks(){routeIssues=scenarioRouteIssues(scenario);view.setRouteWarnings(routeIssues);$('route-check-status').textContent=routeIssues.length?'要確認 '+routeIssues.length+'区間（赤線）':'地形の問題なし';$('route-check-status').dataset.issues=routeIssues.length;}

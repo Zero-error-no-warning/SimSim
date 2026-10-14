@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {clone,validateScenario} from '../src/engine.js?v=20261014-placement-height-33';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-placement-height-33';
-import {rememberInformation} from '../src/knowledge.js?v=20261014-placement-height-33';
-import {prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261014-placement-height-33';
-import {trialScenario} from '../src/parameters.js?v=20261014-placement-height-33';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261014-placement-height-33';
-import {MODEL_BUILD} from '../src/model-version.js?v=20261014-placement-height-33';
+import {clone,validateScenario} from '../src/engine.js?v=20261014-route-curves-speed-34';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-route-curves-speed-34';
+import {rememberInformation} from '../src/knowledge.js?v=20261014-route-curves-speed-34';
+import {prepareAnalysis,summarizeRow,restoreAnalysisResult} from '../src/detection.js?v=20261014-route-curves-speed-34';
+import {trialScenario} from '../src/parameters.js?v=20261014-route-curves-speed-34';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261014-route-curves-speed-34';
+import {MODEL_BUILD} from '../src/model-version.js?v=20261014-route-curves-speed-34';
 const base=JSON.parse(fs.readFileSync(new URL('fixtures/legacy/received-position-demo.txt',import.meta.url)));
 const source=()=>{const s=clone(base);s.version=4;s.duration=60;s.units[0].sensor.enabled=false;s.behaviors[0].triggers=[];s.behaviors[1].triggers=[];s.behaviors[2].initial='move';s.behaviors[2].triggers=[];return s;};
 const run=s=>{const m=createSimulation(s);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:s.duration})){}return m;};
@@ -49,8 +49,8 @@ test('initial intelligence contributes freshness and analysis archives preserve 
  const invalid=clone(payload);invalid.rows[0].trials[0].informationMetrics.units.uav.freshContactSeconds=61;assert.throws(()=>restoreAnalysisResult(invalid),/情報指標/);
 });
 
-test('UI revisions preserve model-26 recordings while incompatible model revisions are rejected',()=>{
- const m=run(source()),payload=recordingPayload(m);assert.notEqual(UI_BUILD,MODEL_BUILD);assert.equal(payload.implementation,'20261009-information-analysis-26');
+test('UI revisions preserve current-model recordings while incompatible model revisions are rejected',()=>{
+ const m=run(source()),payload=recordingPayload(m);assert.notEqual(UI_BUILD,MODEL_BUILD);assert.equal(payload.implementation,MODEL_BUILD);
  assert.deepEqual(restoreRecording(payload).evaluate(60).units,m.evaluate(60).units);
  payload.implementation='different-calculation-model';assert.throws(()=>restoreRecording(payload),/実装版/);
 });

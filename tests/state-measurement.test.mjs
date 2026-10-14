@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261014-placement-height-33';
-import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-placement-height-33';
-import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261014-placement-height-33';
-import {trialScenario} from '../src/parameters.js?v=20261014-placement-height-33';
-import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261014-placement-height-33';
-import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261014-placement-height-33';
+import {clone,validateScenario,Simulation} from '../src/engine.js?v=20261014-route-curves-speed-34';
+import {RecordedSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261014-route-curves-speed-34';
+import {runDetection,restoreAnalysisResult,prepareAnalysis,summarizeRow,snapshotMission} from '../src/detection.js?v=20261014-route-curves-speed-34';
+import {trialScenario} from '../src/parameters.js?v=20261014-route-curves-speed-34';
+import {stateMembers,StateTracker} from '../src/state-measurement.js?v=20261014-route-curves-speed-34';
+import {removeAssignment,removeBehavior} from '../src/editor.js?v=20261014-route-curves-speed-34';
 const source=JSON.parse(readFileSync(new URL('./fixtures/state-measurement.txt',import.meta.url)));
 const run=(s,record=true)=>{const model=new RecordedSimulation(s),g=sharedSteps(model,s.mission,undefined,{horizon:s.duration,record});let v=g.next();while(!v.done)v=g.next();return {model,result:v.value};};
 validateScenario(source);assert.deepEqual(stateMembers(source),['group__1','group__2']);

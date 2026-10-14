@@ -1,4 +1,5 @@
-import {Terrain} from './terrain.js?v=20261014-placement-height-33';
+import {sampleRoute} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {Terrain} from './terrain.js?v=20261014-route-curves-speed-34';
 const DOMAINS=['ground','surface','subsurface','air'];
 const finite=Number.isFinite,lerp=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
@@ -49,6 +50,7 @@ export function inspectSegment(terrain,a,b,profile){
   return null;
 }
 export function inspectRoute(terrain,points,profile,{loop=false}={}){
+ if(Array.isArray(points)&&points.some(p=>p.in||p.out)){points=sampleRoute(points,loop);loop=false;}
   const errors=navigationProfileErrors(profile);if(errors.length)throw Error(errors[0]);
   const t=terrain instanceof Terrain?terrain:new Terrain(terrain),issues=[];
   if(!Array.isArray(points)||!points.length)return {ok:true,issues};

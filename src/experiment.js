@@ -1,10 +1,10 @@
-import {clone,validateScenario} from './engine.js?v=20261014-placement-height-33';
-import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261014-placement-height-33';
-import {random01} from './random.js?v=20261014-placement-height-33';
-import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261014-placement-height-33';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261014-placement-height-33';
-import {wilson} from './detection.js?v=20261014-placement-height-33';
-import {MODEL_BUILD} from './model-version.js?v=20261014-placement-height-33';
+import {clone,validateScenario} from './engine.js?v=20261014-route-curves-speed-34';
+import {writeParameter,trialScenario,parameter} from './parameters.js?v=20261014-route-curves-speed-34';
+import {random01} from './random.js?v=20261014-route-curves-speed-34';
+import {constraintsSatisfied,experimentErrors} from './experiment-settings.js?v=20261014-route-curves-speed-34';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261014-route-curves-speed-34';
+import {wilson} from './detection.js?v=20261014-route-curves-speed-34';
+import {MODEL_BUILD} from './model-version.js?v=20261014-route-curves-speed-34';
 export function controlValues(e,index,phase='explore',bounds={}){
  const values={};for(const c of e.controls){const [min,max]=bounds[c.id]??[c.min,c.max],u=random01((e.designSeed??'SimSim-design')+'|'+phase+'|'+index+'|'+c.id);let value=min+u*(max-min);if(parameter(c.parameter).integer)value=Math.round(value);values[c.id]=value;}return values;
 }
