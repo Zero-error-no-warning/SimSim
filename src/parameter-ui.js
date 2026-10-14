@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261014-route-map-32';
-import { requireElement } from './ui-dom.js?v=20261014-route-map-32';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261014-placement-height-33';
+import { requireElement } from './ui-dom.js?v=20261014-placement-height-33';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

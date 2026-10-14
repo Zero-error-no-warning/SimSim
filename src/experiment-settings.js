@@ -1,4 +1,4 @@
-import {parameter,bindingKey,readParameter} from './parameters.js?v=20261014-route-map-32';
+import {parameter,bindingKey,readParameter} from './parameters.js?v=20261014-placement-height-33';
 export function bindingFaction(s,b){
  const [kind,id]=b.target.split(':');
  if(kind==='unit')return s.units.find(u=>u.id===id)?.faction;

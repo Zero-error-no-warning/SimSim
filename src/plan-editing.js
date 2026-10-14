@@ -1,4 +1,4 @@
-import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261014-route-map-32';
+import {capturePlan,applyPlan,planDifferences} from './plan-settings.js?v=20261014-placement-height-33';
 const copy=v=>JSON.parse(JSON.stringify(v));
 export function planEditor(s){
   const c=s.analysis?.plans;

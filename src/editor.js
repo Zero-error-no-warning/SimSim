@@ -1,7 +1,8 @@
-import {bindingTargetExists} from './parameters.js?v=20261014-route-map-32';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-map-32';
-import {resolveValue} from './behavior-parameters.js?v=20261014-route-map-32';
-import { sharedAssignment } from './shared-settings.js?v=20261014-route-map-32';
+import {Terrain} from './terrain.js?v=20261014-placement-height-33';
+import {bindingTargetExists} from './parameters.js?v=20261014-placement-height-33';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-placement-height-33';
+import {resolveValue} from './behavior-parameters.js?v=20261014-placement-height-33';
+import { sharedAssignment } from './shared-settings.js?v=20261014-placement-height-33';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -18,6 +19,7 @@ export function translate(entity,delta) {
   for(const p of [entity.initial,...entity.route]){
     p.x+=delta.x;
     p.y+=delta.y;
+    p.z+=delta.z??0;
   }
 }
 export function editableDefinition(s,id) {
@@ -73,6 +75,16 @@ export function setPosition(s,id,key,value) {
   const points=[d.unit.initial,...d.unit.route],delta=value-d.unit.initial[key];
   for(const p of points)p[key]+=delta;
 }
+export function setInitialHeight(s,id,value,moveRoute=true){
+  const d=editableDefinition(s,id);
+  if(!d)throw Error('高度を変更する対象が見つかりません。');
+  if(!['air','subsurface'].includes(d.unit.domain))throw Error('地上・水上の高さは地表・海面に合わせます。');
+  if(!Number.isFinite(value)||Math.abs(value)>1000000)throw Error('高さを有効な数値で指定してください。');
+  const delta=value-d.unit.initial.z,points=[d.unit.initial,...(moveRoute?d.unit.route:[])],terrain=new Terrain(s.terrain);
+  const unique=[...new Set(points)];
+  for(const p of unique){const checked=terrain.project({...p,z:p.z+delta},d.unit.domain);if(checked.error)throw Error(checked.error);}
+  for(const p of unique)p.z+=delta;
+}
 export function pruneReferences(s) {
   if(s.measurements){
     s.measurements=s.measurements.filter(m=>{const a=s.behaviorAssignments?.find(a=>a.id===m.assignmentId),g=s.behaviors?.find(g=>g.id===a?.behaviorId);return g?.nodes.some(n=>n.id===m.nodeId);});
@@ -111,12 +123,13 @@ export function newScenario(s) {
 export function moveDefinition(s,id,delta){
   const d=editableDefinition(s,id);
   if(!d)throw new Error('移動対象が見つかりません。');
-  if(d.navigationJoin){d.unit.initial.x+=delta.x;d.unit.initial.y+=delta.y;return;}
+  if(d.navigationJoin){d.unit.initial.x+=delta.x;d.unit.initial.y+=delta.y;d.unit.initial.z+=delta.z??0;return;}
   const a=sharedAssignment(s,id);
   const points=d.navigationRoute?.points??a?.route;
   if(points?.length)for(const p of points){
     p.x+=delta.x;
     p.y+=delta.y;
+    p.z+=delta.z??0;
   }else translate(d.unit,delta);
 }
 export function editWaypoint(s,id,index,point){

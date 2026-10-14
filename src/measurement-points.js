@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261014-route-map-32';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261014-placement-height-33';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

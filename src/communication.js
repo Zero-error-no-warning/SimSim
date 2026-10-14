@@ -1,7 +1,7 @@
-import {fieldErrors} from './configuration-schema.js?v=20261014-route-map-32';
-import {PROPAGATION_FIELDS,REPORT_FIELDS,LINK_FIELDS,DISRUPTION_FIELDS,OPERATIONAL_FIELDS,COORDINATION_FIELDS} from './configuration-fields.js?v=20261014-route-map-32';
-import {random01,streamKey} from './random.js?v=20261014-route-map-32';
-import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261014-route-map-32';
+import {fieldErrors} from './configuration-schema.js?v=20261014-placement-height-33';
+import {PROPAGATION_FIELDS,REPORT_FIELDS,LINK_FIELDS,DISRUPTION_FIELDS,OPERATIONAL_FIELDS,COORDINATION_FIELDS} from './configuration-fields.js?v=20261014-placement-height-33';
+import {random01,streamKey} from './random.js?v=20261014-placement-height-33';
+import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261014-placement-height-33';
 const within=(d,t)=>t>=d.start&&t<d.end;
 export function transmissionAttempts(model,s,receiver,t,messageId){
  const configured=model.source.communicationLinks;

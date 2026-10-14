@@ -1,4 +1,4 @@
-import('./app.js?v=20261014-route-map-32').catch(error => {
+import('./app.js?v=20261014-placement-height-33').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

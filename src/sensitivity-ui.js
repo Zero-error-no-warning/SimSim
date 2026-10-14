@@ -1,8 +1,8 @@
-import {clone} from './engine.js?v=20261014-route-map-32';
-import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261014-route-map-32';
-import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261014-route-map-32';
-import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261014-route-map-32';
-import {requireElement as $} from './ui-dom.js?v=20261014-route-map-32';
+import {clone} from './engine.js?v=20261014-placement-height-33';
+import {parameter,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261014-placement-height-33';
+import {sensitivityBindings,sensitivityMetrics,defaultSensitivityCandidate} from './sensitivity-settings.js?v=20261014-placement-height-33';
+import {summarizeSensitivity,metricValue} from './sensitivity.js?v=20261014-placement-height-33';
+import {requireElement as $} from './ui-dom.js?v=20261014-placement-height-33';
 const number=n=>n===null?'—':Number(n.toFixed(3)).toString();
 export class SensitivityUI{
   constructor(owner){

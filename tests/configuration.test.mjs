@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {CONFIGURATION_MODULES,configurationTarget,configurationContractErrors} from '../src/configuration-contract.js?v=20261014-route-map-32';
-import {ConfigurationSession} from '../src/configuration-session.js?v=20261014-route-map-32';
-import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261014-route-map-32';
-import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261014-route-map-32';
-import {fieldErrors,setValue} from '../src/configuration-schema.js?v=20261014-route-map-32';
-import {RESOURCE_FIELDS} from '../src/resource-schema.js?v=20261014-route-map-32';
-import {validateScenario} from '../src/engine.js?v=20261014-route-map-32';
-import {stateField} from '../src/state-contract.js?v=20261014-route-map-32';
-import {conditionErrors,evaluateCondition,UNKNOWN} from '../src/decision.js?v=20261014-route-map-32';
+import {CONFIGURATION_MODULES,configurationTarget,configurationContractErrors} from '../src/configuration-contract.js?v=20261014-placement-height-33';
+import {ConfigurationSession} from '../src/configuration-session.js?v=20261014-placement-height-33';
+import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261014-placement-height-33';
+import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261014-placement-height-33';
+import {fieldErrors,setValue} from '../src/configuration-schema.js?v=20261014-placement-height-33';
+import {RESOURCE_FIELDS} from '../src/resource-schema.js?v=20261014-placement-height-33';
+import {validateScenario} from '../src/engine.js?v=20261014-placement-height-33';
+import {stateField} from '../src/state-contract.js?v=20261014-placement-height-33';
+import {conditionErrors,evaluateCondition,UNKNOWN} from '../src/decision.js?v=20261014-placement-height-33';
 const sample=()=>JSON.parse(fs.readFileSync(new URL('../data/information-mission.txt',import.meta.url)));
 const module=id=>CONFIGURATION_MODULES.find(m=>m.id===id);
 test('public contract rejects missing editor or input type; resource ranges and destinations use the same fields',()=>{

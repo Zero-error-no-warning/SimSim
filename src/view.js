@@ -1,11 +1,11 @@
-import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-route-map-32';
-import { editableDefinition } from './editor.js?v=20261014-route-map-32';
-import { sharedAssignment } from './shared-settings.js?v=20261014-route-map-32';
-import {taskPresentations} from './map-presentation.js?v=20261014-route-map-32';
-import {resourceName} from './resource-ui.js?v=20261014-route-map-32';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-placement-height-33';
+import { editableDefinition } from './editor.js?v=20261014-placement-height-33';
+import { sharedAssignment } from './shared-settings.js?v=20261014-placement-height-33';
+import {taskPresentations} from './map-presentation.js?v=20261014-placement-height-33';
+import {resourceName} from './resource-ui.js?v=20261014-placement-height-33';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261014-route-map-32';
+import { Terrain, Simulation } from './engine.js?v=20261014-placement-height-33';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -169,6 +169,10 @@ export class MapView {
       x:p.x,y:-p.z,z
     };
   }
+  heightDrag(point,dx,dy){
+    const a=this.screenPoint(this.world(point)),b=this.screenPoint(this.world({...point,z:point.z+100})),vx=b.x-a.x,vy=b.y-a.y,length=vx*vx+vy*vy;
+    return length<.01?null:100*(dx*vx+dy*vy)/length;
+  }
   pointerDown(event) {
     this.renderer.domElement.focus({
       preventScroll:true
@@ -201,11 +205,11 @@ export class MapView {
     const selected=id??handle.id;
     if(selected!==this.selected)this.onSelect(selected);
     this.updatePointer(event);
-    const unit=this.editableUnit(),point=this.pointFor(unit,handle?.point.z??unit.initial.z);
+    const unit=this.editableUnit(),vertical=event.shiftKey&&['air','subsurface'].includes(unit.domain),point=this.pointFor(unit,handle?.point.z??unit.initial.z)??(vertical?{...unit.initial}:null);
     if(!point)return;
     this.controls.enabled=false;
     this.drag={
-      id:selected,index:handle?.index??-1,unit,origin:point,point,base:handle?.point??point,pointerId:event.pointerId,moved:false,valid:true
+      id:selected,index:handle?.index??-1,unit,origin:point,point,base:handle?.point??(vertical?unit.initial:point),vertical,initialOnly:!!editableDefinition(this.scenario,selected)?.navigationJoin,pointerId:event.pointerId,moved:false,valid:true
     };
     this.renderer.domElement.setPointerCapture(event.pointerId);
   }
@@ -227,14 +231,19 @@ export class MapView {
     if(event.pointerId!==d.pointerId)return;
     if(!d.moved&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<5)return;
     d.moved=true;
-    const p=this.pointFor(d.unit,d.index>=0?d.base.z:d.unit.initial.z);
-    const proposed=p?{
-      x:d.base.x+p.x-d.origin.x,y:d.base.y+p.y-d.origin.y,z:d.base.z
+    let p,proposed;
+    if(d.vertical){
+      const delta=this.heightDrag(d.base,event.clientX-this.down.x,event.clientY-this.down.y);
+      if(delta===null){d.valid=false;d.error='高さは斜めの視点でドラッグするか、右クリックの高度・深度変更で指定してください。';this.onDragState?.(d.error,true);return;}
+      p=proposed={...d.base,z:Math.round(Math.max(-1000000,Math.min(1000000,d.base.z+delta)))};
+    }else{
+      p=this.pointFor(d.unit,d.index>=0?d.base.z:d.unit.initial.z);
+      proposed=p?{x:d.base.x+p.x-d.origin.x,y:d.base.y+p.y-d.origin.y,z:d.base.z}:null;
     }
-    :null;
     const checked=proposed?this.terrain.project(proposed,d.unit.domain):{
       error:'地形データの範囲外です'
     };
+    if(d.vertical&&d.index<0&&!d.initialOnly&&!checked.error){for(const point of d.unit.route){const problem=this.terrain.project({...point,z:point.z+checked.point.z-d.base.z},d.unit.domain);if(problem.error){checked.error='経路：'+problem.error;break;}}}
     d.valid=!checked.error;
     d.error=checked.error;
     d.point=checked.point??d.point;
@@ -242,12 +251,12 @@ export class MapView {
     this.element.classList.add('dragging');
     if(p&&d.valid){
       d.delta={
-        x:p.x-d.origin.x,y:p.y-d.origin.y
+        x:d.vertical?0:p.x-d.origin.x,y:d.vertical?0:p.y-d.origin.y,z:d.vertical?checked.point.z-d.base.z:0
       };
       this.previewDrag(d);
       this.onHover(checked.point);
     }
-    this.onDragState?.(d.valid?'ドラッグして配置 · 放すと確定 · Escで取り消し':d.error+' · 放すと変更を取り消します',!d.valid);
+    this.onDragState?.(d.valid?(d.vertical?(d.unit.domain==='subsurface'?'深度 '+(this.scenario.terrain.seaLevel-d.point.z).toFixed(0):'高度 '+d.point.z.toFixed(0))+' m · 放すと確定 · Escで取消':'ドラッグして配置 · 放すと確定 · Escで取り消し'):d.error+' · 放すと変更を取り消します',!d.valid);
   }
   previewDrag(d) {
     if(d.index<0){
@@ -256,7 +265,7 @@ export class MapView {
         const u=this.markers.get(state.id)?.unit;
         if(u&&(u.id===d.id||selected.groupId&&u.groupId===selected.groupId)){
           const position={
-            ...state.position,x:state.position.x+d.delta.x,y:state.position.y+d.delta.y
+            ...state.position,x:state.position.x+d.delta.x,y:state.position.y+d.delta.y,z:state.position.z+(d.delta.z??0)
           };
           if(u.domain==='ground')position.z=this.terrain.height(position.x,position.y)??position.z;
           this.markers.get(u.id).position.copy(this.world(position,30));
@@ -276,8 +285,8 @@ export class MapView {
       this.dragPreview.geometry.dispose();
       this.dragPreview.material.dispose();
     }
-    const points=[d.unit.initial,...d.unit.route].map((p,i)=>d.index<0?{
-      ...p,x:p.x+d.delta.x,y:p.y+d.delta.y
+    const points=[d.unit.initial,...d.unit.route].map((p,i)=>d.index<0&&(!d.initialOnly||i===0)?{
+      ...p,x:p.x+d.delta.x,y:p.y+d.delta.y,z:p.z+(d.delta.z??0)
     }
     :i===d.index+1?d.point:p);
     if(d.unit.routeMode==='loop'&&points.length>1)points.push(points[0]);
@@ -313,7 +322,7 @@ export class MapView {
       });
       if(d.moved){
         if(d.valid)this.onEdit?.({
-          id:d.id,index:d.index,point:d.point,delta:d.delta
+          id:d.id,index:d.index,point:d.point,delta:d.delta,vertical:d.vertical,initialOnly:d.initialOnly
         });
         else this.onDragState?.(d.error+' 変更を取り消しました。',true);
       }

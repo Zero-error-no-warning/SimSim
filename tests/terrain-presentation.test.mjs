@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Terrain} from '../src/terrain.js?v=20261014-route-map-32';
-import {meshHeight,terrainGrid,coastline} from '../src/terrain-presentation.js?v=20261014-route-map-32';
+import {Terrain} from '../src/terrain.js?v=20261014-placement-height-33';
+import {meshHeight,terrainGrid,coastline} from '../src/terrain-presentation.js?v=20261014-placement-height-33';
 const terrain=()=>new Terrain({origin:{x:-1000,y:200},columns:2,rows:2,spacing:2000,spacingY:1000,seaLevel:100,elevations:[-100,300,300,-100]});
 test('grid follows rendered triangles, including saddle and rectangular cells',()=>{
  const t=terrain(),grid=terrainGrid(t);assert.equal(meshHeight(t,0,700),300);assert(grid.spacing<5000);

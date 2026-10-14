@@ -1,6 +1,6 @@
 import * as THREE from '../vendor/three/three.module.min.js';
-import {Terrain} from './terrain.js?v=20261014-route-map-32';
-import {inspectRoute} from './route-planner.js?v=20261014-route-map-32';
+import {Terrain} from './terrain.js?v=20261014-placement-height-33';
+import {inspectRoute} from './route-planner.js?v=20261014-placement-height-33';
 export class RouteMapEditor {
   constructor(view,{item,unit,terrain,onFinish}){
     Object.assign(this,{view,onFinish});this.points=structuredClone(item.points??[]);this.mode=item.mode;this.terrain=new Terrain(terrain);

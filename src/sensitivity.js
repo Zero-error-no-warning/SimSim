@@ -1,11 +1,11 @@
-import {MODEL_BUILD} from './model-version.js?v=20261014-route-map-32';
-import {importScenario} from './scenario-import.js?v=20261014-route-map-32';
-import {clone,validateScenario} from './engine.js?v=20261014-route-map-32';
-import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261014-route-map-32';
-import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261014-route-map-32';
-import {median} from './measurement-points.js?v=20261014-route-map-32';
-import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261014-route-map-32';
-import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261014-route-map-32';
+import {MODEL_BUILD} from './model-version.js?v=20261014-placement-height-33';
+import {importScenario} from './scenario-import.js?v=20261014-placement-height-33';
+import {clone,validateScenario} from './engine.js?v=20261014-placement-height-33';
+import {trialScenario,readParameter,bindingKey,formatBinding} from './parameters.js?v=20261014-placement-height-33';
+import {prepareAnalysis,restoreAnalysisRows} from './detection.js?v=20261014-placement-height-33';
+import {median} from './measurement-points.js?v=20261014-placement-height-33';
+import {sensitivityMetrics,sensitivityConfigErrors} from './sensitivity-settings.js?v=20261014-placement-height-33';
+import {RECORD_MODEL,compatibleModel} from './recording.js?v=20261014-placement-height-33';
 
 export function sensitivityTrialSource(s){
   const next=clone(s);next.analysis.factors=[];delete next.analysis.groupId;delete next.analysis.counts;

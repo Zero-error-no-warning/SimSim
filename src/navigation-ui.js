@@ -1,7 +1,7 @@
-import {showEditorDialog} from './ui-dom.js?v=20261014-route-map-32';
-import {navigationErrors} from './navigation.js?v=20261014-route-map-32';
-import {generateRoute,inspectRoute} from './route-planner.js?v=20261014-route-map-32';
-import {requireElement} from './ui-dom.js?v=20261014-route-map-32';
+import {showEditorDialog} from './ui-dom.js?v=20261014-placement-height-33';
+import {navigationErrors} from './navigation.js?v=20261014-placement-height-33';
+import {generateRoute,inspectRoute} from './route-planner.js?v=20261014-placement-height-33';
+import {requireElement} from './ui-dom.js?v=20261014-placement-height-33';
 const $=requireElement;
 export class NavigationUI{
   constructor({getDraft,getUnit,remember,render,pickRoute,pickPoint,commitRoute}){

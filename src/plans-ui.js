@@ -1,11 +1,11 @@
-import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261014-route-map-32';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-map-32';
-import {bindingTargetExists} from './parameters.js?v=20261014-route-map-32';
-import {clone} from './engine.js?v=20261014-route-map-32';
-import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261014-route-map-32';
-import {sensitivityMetrics} from './sensitivity-settings.js?v=20261014-route-map-32';
-import {summarizePlans} from './plans.js?v=20261014-route-map-32';
-import {requireElement as $} from './ui-dom.js?v=20261014-route-map-32';
+import {planEditor,switchPlan,savePlan,deleteActivePlan,planHasDraft} from './plan-editing.js?v=20261014-placement-height-33';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-placement-height-33';
+import {bindingTargetExists} from './parameters.js?v=20261014-placement-height-33';
+import {clone} from './engine.js?v=20261014-placement-height-33';
+import {capturePlan,planDifferences,planMetric} from './plan-settings.js?v=20261014-placement-height-33';
+import {sensitivityMetrics} from './sensitivity-settings.js?v=20261014-placement-height-33';
+import {summarizePlans} from './plans.js?v=20261014-placement-height-33';
+import {requireElement as $} from './ui-dom.js?v=20261014-placement-height-33';
 const format=(n,kind,delta=false)=>n===null?'—':(delta&&n>0?'+':'')+Number((n*(kind==='rate'?100:1)).toFixed(2))+(kind==='rate'?(delta?'ポイント':'%'):'秒');
 export class PlansUI{
   constructor(owner){
