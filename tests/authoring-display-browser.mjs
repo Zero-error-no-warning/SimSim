@@ -1,5 +1,5 @@
 import {clickWorkspace,showNavigator} from './workspace-browser-helpers.mjs';
-import {UI_BUILD} from '../src/ui-dom.js?v=20261014-route-curves-speed-34';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261014-inline-route-editor-35';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';

@@ -1,5 +1,5 @@
-import { validateScenario } from './engine.js?v=20261014-route-curves-speed-34';
-import { normalizedAnalysis } from './parameters.js?v=20261014-route-curves-speed-34';
+import { validateScenario } from './engine.js?v=20261014-inline-route-editor-35';
+import { normalizedAnalysis } from './parameters.js?v=20261014-inline-route-editor-35';
 // Compatibility ends here: the application and workers execute canonical version 3/4 scenarios.
 export function importScenario(value) {
   const s = validateScenario(value);

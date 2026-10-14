@@ -1,8 +1,8 @@
-import {Terrain} from './terrain.js?v=20261014-route-curves-speed-34';
-import {bindingTargetExists} from './parameters.js?v=20261014-route-curves-speed-34';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-curves-speed-34';
-import {resolveValue} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
-import { sharedAssignment } from './shared-settings.js?v=20261014-route-curves-speed-34';
+import {Terrain} from './terrain.js?v=20261014-inline-route-editor-35';
+import {bindingTargetExists} from './parameters.js?v=20261014-inline-route-editor-35';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
+import {resolveValue} from './behavior-parameters.js?v=20261014-inline-route-editor-35';
+import { sharedAssignment } from './shared-settings.js?v=20261014-inline-route-editor-35';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);
@@ -45,6 +45,19 @@ export function removeWaypoint(s,id,index) {
   const route=shared?.length?shared:d.unit.route;
   if(d.assignment&&s.behaviors.find(g=>g.id===d.assignment.behaviorId)?.nodes.some(n=>n.kind==='patrol')&&route.length<=3)throw Error('周回経路は3点以上必要です。');
   route.splice(shared?.length?index+(d.navigationJoin?0:1):index,1);
+}
+// Edit the route itself; a nearest-join departure is not a point of that route.
+export function routeEditingData(s,id){
+  const d=editableDefinition(s,id);if(!d)return null;
+  return {name:d.navigationRoute?.name??(d.group?.name??d.unit.name)+'の経路',scopeNote:d.navigationRoute||d.assignment?.route?.length?'共有経路：同じ経路を使う担当にも反映されます。':d.group?'この群の経路を編集します。':'',points:d.navigationRoute?.points??(d.assignment?.route?.length?d.assignment.route:[d.unit.initial,...d.unit.route]),mode:d.unit.routeMode,speedProfile:d.unit.speedProfile,navigation:d.navigationRoute?.navigation??d.unit.navigation};
+}
+export function updateEditedRoute(s,id,{points,speedProfile}){
+  const d=editableDefinition(s,id);if(!d)throw Error('経路の編集対象が見つかりません。');
+  const target=d.navigationRoute??(d.assignment?.route?.length?d.assignment:d.unit);
+  if(d.navigationRoute)target.points=structuredClone(points);
+  else if(target===d.assignment)target.route=structuredClone(points);
+  else{target.initial=structuredClone(points[0]);target.route=structuredClone(points.slice(1));}
+  if(speedProfile)target.speedProfile=structuredClone(speedProfile);else delete target.speedProfile;
 }
 export function addWaypoint(s,id,p) {
   const d=editableDefinition(s,id);

@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261014-route-curves-speed-34';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261014-inline-route-editor-35';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

@@ -1,12 +1,12 @@
-import {sampleRoute} from './route-curves.js?v=20261014-route-curves-speed-34';
-import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-route-curves-speed-34';
-import { editableDefinition } from './editor.js?v=20261014-route-curves-speed-34';
-import { sharedAssignment } from './shared-settings.js?v=20261014-route-curves-speed-34';
-import {taskPresentations} from './map-presentation.js?v=20261014-route-curves-speed-34';
-import {resourceName} from './resource-ui.js?v=20261014-route-curves-speed-34';
+import {sampleRoute} from './route-curves.js?v=20261014-inline-route-editor-35';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261014-inline-route-editor-35';
+import { editableDefinition } from './editor.js?v=20261014-inline-route-editor-35';
+import { sharedAssignment } from './shared-settings.js?v=20261014-inline-route-editor-35';
+import {taskPresentations} from './map-presentation.js?v=20261014-inline-route-editor-35';
+import {resourceName} from './resource-ui.js?v=20261014-inline-route-editor-35';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261014-route-curves-speed-34';
+import { Terrain, Simulation } from './engine.js?v=20261014-inline-route-editor-35';
 const COLORS={
   friendly:'#6bd0fa',hostile:'#f99587',neutral:'#d5c789'
 };
@@ -23,10 +23,10 @@ const disposal = group => {
 };
 export class MapView {
   constructor(element,{
-    onSelect,onSelectTask,onMapClick,onHover,onEdit,onContext,onDragState
+    onSelect,onSelectTask,onMapClick,onHover,onEdit,onContext,onDragState,onRouteSelect
   }) {
     this.element=element;
-    this.onSelect=onSelect;this.onSelectTask=onSelectTask;
+    this.onSelect=onSelect;this.onSelectTask=onSelectTask;this.onRouteSelect=onRouteSelect;
     this.onMapClick=onMapClick;
     this.onHover=onHover;
     this.onEdit=onEdit;
@@ -155,6 +155,13 @@ export class MapView {
     }
     return best;
   }
+  pickRoute(event){
+    if(!this.routes.visible||this.knowledgeOwner||this.taskAggregation)return null;
+    const r=this.renderer.domElement.getBoundingClientRect(),x=event.clientX-r.left,y=event.clientY-r.top;let best=9,id=null;
+    for(const line of this.routes.children){if(!line.userData.unitId||!line.visible)continue;const positions=line.geometry.attributes.position;
+      let a;for(let i=0;i<positions.count;i++){const b=this.screenPoint(new THREE.Vector3().fromBufferAttribute(positions,i));if(a?.visible&&b.visible){const dx=b.x-a.x,dy=b.y-a.y,l=dx*dx+dy*dy,t=l?Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/l)):0,d=Math.hypot(x-a.x-t*dx,y-a.y-t*dy);if(d<best){best=d;id=line.userData.unitId;}}a=b;}
+    }return id;
+  }
   pointFor(unit,height=unit?.initial.z) {
     if(!this.terrain)return null;
     if(unit?.domain==='ground'){
@@ -190,7 +197,7 @@ export class MapView {
       if(event.button===1)event.preventDefault();
       this.cameraGesture={pointerId:event.pointerId,space:this.spaceHeld};this.cameraButtons();this.clearTerrainBrush();return;
     }
-    if(this.routeEditor){this.routeEditor.down(event);return;}
+    if(this.routeEditor?.down(event))return;
     if(event.button===0&&this.editMode==='terrain'){
       event.stopImmediatePropagation();event.preventDefault();this.updatePointer(event);
       const point=this.mapPoint();if(!point)return;
@@ -199,7 +206,8 @@ export class MapView {
     }
     if(event.button!==0||!this.authoring||this.editMode)return;
     this.updatePointer(event);
-    const id=this.pickUnit(event),handle=id?null:this.pickHandle(event);
+    const pickedHandle=this.pickHandle(event),pickedUnit=this.pickUnit(event),rect=this.renderer.domElement.getBoundingClientRect(),distance=p=>Math.hypot(p.x-event.clientX+rect.left,p.y-event.clientY+rect.top);
+    const handle=pickedHandle&&(!pickedUnit||pickedHandle.index>=0&&distance(this.screenPoint(pickedHandle.mesh.position))<=distance(this.screenPoint(this.markers.get(pickedUnit).position)))?pickedHandle:null,id=handle?null:pickedUnit;
     if(!id&&!handle)return;
     event.stopImmediatePropagation();
     event.preventDefault();
@@ -216,7 +224,7 @@ export class MapView {
   }
   pointerMove(event) {
     if(this.cameraGesture){if(this.down&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)>5)this.down.moved=true;return;}
-    if(this.routeEditor){this.routeEditor.movePointer(event);return;}
+    if(this.routeEditor?.drag){this.routeEditor.movePointer(event);return;}
     this.updatePointer(event);
     if(this.editMode==='terrain'){
       const point=this.mapPoint();this.terrainBrush(point);
@@ -302,7 +310,7 @@ export class MapView {
         this.cameraButtons();if(this.pendingMenu){const context=this.pendingMenu;this.pendingMenu=null;if(this.down&&!this.down.moved&&Math.hypot(event.clientX-this.down.x,event.clientY-this.down.y)<=5)this.openContext(context);}
       });return;
     }
-    if(this.routeEditor){this.routeEditor.up(event);return;}
+    if(this.routeEditor?.drag){this.routeEditor.up(event);return;}
     if(this.terrainStroke!==undefined){
       event.stopImmediatePropagation();if(event.pointerId!==this.terrainStroke)return;
       this.terrainStroke=undefined;this.controls.enabled=true;this.onTerrainStroke?.('end');
@@ -338,6 +346,7 @@ export class MapView {
     }
     const id=this.pickUnit(event);
     if(id)this.onSelect(id);
+    else if(this.authoring){const route=this.pickRoute(event);if(route)this.onRouteSelect?.(route);}
   }
   cancelDrag(){
     this.cancelTerrainStroke();
@@ -735,7 +744,7 @@ export class MapView {
         const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({
           color:unit.id===this.selected?'#ffd18b':COLORS[unit.faction],transparent:true,opacity:unit.id===this.selected?.95:.42
         }));
-        this.routes.add(line);
+        line.userData.unitId=unit.id;line.visible=!(this.routeEditor?.inline&&this.routeEditor.sourceId===unit.id);this.routes.add(line);
       }
       if(unit.id===this.selected) {
         const definition=this.editableUnit(),raw=[definition.initial,...definition.route];
@@ -747,7 +756,7 @@ export class MapView {
             color:'#e8f1fb',dashSize:250,gapSize:160,transparent:true,opacity:.65
           }));
           line.computeLineDistances();
-          this.routes.add(line);
+          line.userData.unitId=unit.id;line.visible=!(this.routeEditor?.inline&&this.routeEditor.sourceId===unit.id);this.routes.add(line);
         }
         if(this.authoring)for(let index=0;index<raw.length;index++) {
           const projection=this.terrain.project(raw[index],definition.domain),canvas=document.createElement('canvas');

@@ -1,8 +1,8 @@
-import {defaultProfile,closeProfile,profileValue,profileTable,sampleRoute} from './route-curves.js?v=20261014-route-curves-speed-34';
+import {defaultProfile,closeProfile,profileValue,profileTable,sampleRoute} from './route-curves.js?v=20261014-inline-route-editor-35';
 const svgNS='http://www.w3.org/2000/svg';
 export class SpeedProfileUI{
- constructor(host,{profile,loop=false,mode=loop?'loop':'once',speed=0,getPoints,onChange}){
-  loop=mode!=='once';Object.assign(this,{host,loop,mode,speed,getPoints,onChange});this.profile=structuredClone(profile??defaultProfile());this.enabled=!!profile;this.selected=0;
+ constructor(host,{profile,loop=false,mode=loop?'loop':'once',speed=0,getPoints,onChange,onCommit,pointLabel=i=>i+1}){
+  loop=mode!=='once';Object.assign(this,{host,loop,mode,speed,getPoints,onChange,onCommit,pointLabel});this.profile=structuredClone(profile??defaultProfile());this.enabled=!!profile;this.selected=0;
   if(loop)closeProfile(this.profile);
   host.classList.add('speed-profile-editor');host.innerHTML='<label class="check-field"><input data-speed-enabled type="checkbox">速度グラフを使用</label><div data-speed-body><p class="route-help">横軸は経路全体の時間 0～100%。点とハンドルをドラッグして速度を編集。グラフをダブルクリックで点を追加。</p><svg data-speed-graph viewBox="0 0 320 220" tabindex="0" aria-label="経路全体の速度グラフ"></svg><div class="compact-actions"><button data-speed-preset="flat">一定</button><button data-speed-preset="up">加速</button><button data-speed-preset="down">減速</button><button data-speed-preset="hill">山形</button></div><label>編集する点<select data-speed-point></select></label><div class="fields-two"><label>時間（%）<input data-speed-time type="number" min="0" max="100" step="any"></label><label>速度（km/h）<input data-speed-value type="number" min="0" step="any"></label></div><button data-speed-delete>点を削除</button><output data-speed-info role="status"></output><small>ユニットの移動速度を変更すると、グラフの速度も比例して変わります。</small></div>';
   this.svg=host.querySelector('svg');this.checkbox=host.querySelector('[data-speed-enabled]');this.checkbox.checked=this.enabled;
@@ -15,7 +15,7 @@ export class SpeedProfileUI{
   this.render();
  }
  clampHandles(){const p=this.profile.points;for(let i=0;i<p.length;i++)for(const side of ['in','out'])if(p[i][side]){const h=p[i][side],gap=side==='in'?p[i].t-(p[i-1]?.t??p[i].t): (p[i+1]?.t??p[i].t)-p[i].t;h.t=(side==='in'?-1:1)*Math.min(gap,Math.abs(h.t));h.v=Math.max(-p[i].v,Math.min(20-p[i].v,h.v));}}
- changed(side='start'){this.clampHandles();if(this.loop)closeProfile(this.profile,side);this.onChange(this.enabled?structuredClone(this.profile):undefined);this.render();}
+ changed(side='start'){this.clampHandles();if(this.loop)closeProfile(this.profile,side);this.onChange(this.enabled?structuredClone(this.profile):undefined);this.render();if(!this.drag)this.onCommit?.();}
  coordinate(e){const r=this.svg.getBoundingClientRect(),x=(e.clientX-r.x)/r.width*320,y=(e.clientY-r.y)/r.height*220;return {t:(x-42)/262,v:(182-y)/150*this.maxV};}
  draw(tag,attrs,parent=this.svg){const n=document.createElementNS(svgNS,tag);for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);parent.append(n);return n;}
  render(){
@@ -32,7 +32,7 @@ export class SpeedProfileUI{
   const geometry=this.getPoints?.()??[],sampled=sampleRoute(geometry,this.mode==='loop');if(this.mode==='pingpong')sampled.push(...sampled.slice(0,-1).reverse());const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z),length=sampled.slice(1).reduce((n,p,i)=>n+dist(sampled[i],p),0),table=profileTable(this.profile,this.loop),duration=this.speed>0&&table.average>0?length/(this.speed*table.average):Infinity;
   let message=(this.loop?'0%・100%の速度とハンドルの傾きを連動。 ':'')+'所要時間 '+(Number.isFinite(duration)?duration.toFixed(1)+' 秒':'未定（速度を確認）');
   // Locate waypoint passes on the integrated speed graph, not Bezier parameters.
-  let along=0;for(let i=1;i<geometry.length;i++){const segment=sampleRoute([geometry[i-1],geometry[i]]);along+=segment.slice(1).reduce((n,p,j)=>n+dist(segment[j],p),0);const fraction=length?along/length:0;let lo=0,hi=512;while(hi-lo>1){const mid=(lo+hi)>>1;if(table.areas[mid]<fraction)lo=mid;else hi=mid;}const t=(lo+(table.areas[hi]>table.areas[lo]?(fraction-table.areas[lo])/(table.areas[hi]-table.areas[lo]):0))/512,p=xy(t,0);this.draw('line',{x1:p.x,y1:22,x2:p.x,y2:182,class:'speed-waypoint'});this.draw('text',{x:p.x,y:216,'text-anchor':'middle'}).textContent=String(i+1);}
+  let along=0;for(let i=1;i<geometry.length;i++){const segment=sampleRoute([geometry[i-1],geometry[i]]);along+=segment.slice(1).reduce((n,p,j)=>n+dist(segment[j],p),0);const fraction=length?along/length:0;let lo=0,hi=512;while(hi-lo>1){const mid=(lo+hi)>>1;if(table.areas[mid]<fraction)lo=mid;else hi=mid;}const t=(lo+(table.areas[hi]>table.areas[lo]?(fraction-table.areas[lo])/(table.areas[hi]-table.areas[lo]):0))/512,p=xy(t,0);this.draw('line',{x1:p.x,y1:22,x2:p.x,y2:182,class:'speed-waypoint'});this.draw('text',{x:p.x,y:216,'text-anchor':'middle'}).textContent=String(this.pointLabel(i));}
   this.host.querySelector('[data-speed-info]').textContent=message;
  }
  down(e){const node=e.target.closest('[data-speed-node]');if(!node)return;e.preventDefault();e.stopPropagation();this.selected=Number(node.dataset.speedNode);const side=node.dataset.speedSide,p=this.profile.points[this.selected];if(side&&!p[side]){const next=this.profile.points[this.selected+(side==='in'?-1:1)];p[side]={t:(next.t-p.t)/3,v:(next.v-p.v)/3};}this.drag={index:this.selected,side,pointerId:e.pointerId,before:structuredClone(this.profile),maxV:this.maxV};this.svg.setPointerCapture(e.pointerId);this.render();}
@@ -41,7 +41,7 @@ export class SpeedProfileUI{
   else{if(d.index>0&&d.index<list.length-1)p.t=Math.max(list[d.index-1].t+.001,Math.min(list[d.index+1].t-.001,q.t));p.v=Math.max(0,Math.min(20,q.v));}
   this.changed(d.index===list.length-1?'end':'start');
  }
- release(){const d=this.drag;this.drag=null;if(d&&this.svg.hasPointerCapture(d.pointerId))this.svg.releasePointerCapture(d.pointerId);if(d)this.render();}
- cancelDrag(){if(!this.drag)return;this.profile=this.drag.before;this.release();this.changed();}
- dispose(){this.release();this.host.replaceChildren();}
+ release(commit=true){const d=this.drag;this.drag=null;if(d&&this.svg.hasPointerCapture(d.pointerId))this.svg.releasePointerCapture(d.pointerId);if(d){this.render();if(commit)this.onCommit?.();}}
+ cancelDrag(commit=true){if(!this.drag)return;this.profile=this.drag.before;this.release(false);if(commit)this.changed();}
+ dispose(){this.release(false);this.host.replaceChildren();}
 }

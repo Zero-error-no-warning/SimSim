@@ -1,5 +1,5 @@
-import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261014-route-curves-speed-34';
-import {requireElement} from './ui-dom.js?v=20261014-route-curves-speed-34';
+import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261014-inline-route-editor-35';
+import {requireElement} from './ui-dom.js?v=20261014-inline-route-editor-35';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){

@@ -1,5 +1,5 @@
-import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261014-route-curves-speed-34';
-import {requireElement} from './ui-dom.js?v=20261014-route-curves-speed-34';
+import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261014-inline-route-editor-35';
+import {requireElement} from './ui-dom.js?v=20261014-inline-route-editor-35';
 const $=requireElement;
 const unitName={s:'秒',m:'m',ratio:'%'};
 const scale=p=>p.unit==='ratio'?100:1;

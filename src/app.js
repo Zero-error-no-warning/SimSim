@@ -1,31 +1,31 @@
-import {RouteMapEditor} from './route-map-editor.js?v=20261014-route-curves-speed-34';
-import {SelectUI} from './select-ui.js?v=20261014-route-curves-speed-34';
-import {surveillanceTemplate} from './mission-templates.js?v=20261014-route-curves-speed-34';
-import {SettingsUI} from './settings-ui.js?v=20261014-route-curves-speed-34';
-import {resourceName} from './resource-ui.js?v=20261014-route-curves-speed-34';
-import {taskPresentations} from './map-presentation.js?v=20261014-route-curves-speed-34';
-import {planEditor} from './plan-editing.js?v=20261014-route-curves-speed-34';
-import {verifiedWorker} from './worker-client.js?v=20261014-route-curves-speed-34';
-import {restorePlansResult} from './plans.js?v=20261014-route-curves-speed-34';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-route-curves-speed-34';
-import {restoreSensitivityResult} from './sensitivity.js?v=20261014-route-curves-speed-34';
-import {parameter} from './parameters.js?v=20261014-route-curves-speed-34';
-import {WorkspaceUI} from './workspace-ui.js?v=20261014-route-curves-speed-34';
-import {NavigationUI} from './navigation-ui.js?v=20261014-route-curves-speed-34';
-import {scenarioRouteIssues} from './route-inspection.js?v=20261014-route-curves-speed-34';
-import {ContextMenu} from './context-menu.js?v=20261014-route-curves-speed-34';
-import {TerrainUI} from './terrain-ui.js?v=20261014-route-curves-speed-34';
-import { BehaviorUI } from './behavior-ui.js?v=20261014-route-curves-speed-34';
-import { createSimulation } from './recorded-engine.js?v=20261014-route-curves-speed-34';
-import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261014-route-curves-speed-34';
-import { definition,editableDefinition,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,setInitialHeight,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261014-route-curves-speed-34';
-import { importScenario } from './scenario-import.js?v=20261014-route-curves-speed-34';
-import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-route-curves-speed-34';
-import { restoreAnalysisResult } from './detection.js?v=20261014-route-curves-speed-34';
-import { AnalysisUI } from './analysis-ui.js?v=20261014-route-curves-speed-34';
-import { MapView } from './view.js?v=20261014-route-curves-speed-34';
-import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261014-route-curves-speed-34';
-import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261014-route-curves-speed-34';
+import {RouteMapEditor} from './route-map-editor.js?v=20261014-inline-route-editor-35';
+import {SelectUI} from './select-ui.js?v=20261014-inline-route-editor-35';
+import {surveillanceTemplate} from './mission-templates.js?v=20261014-inline-route-editor-35';
+import {SettingsUI} from './settings-ui.js?v=20261014-inline-route-editor-35';
+import {resourceName} from './resource-ui.js?v=20261014-inline-route-editor-35';
+import {taskPresentations} from './map-presentation.js?v=20261014-inline-route-editor-35';
+import {planEditor} from './plan-editing.js?v=20261014-inline-route-editor-35';
+import {verifiedWorker} from './worker-client.js?v=20261014-inline-route-editor-35';
+import {restorePlansResult} from './plans.js?v=20261014-inline-route-editor-35';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261014-inline-route-editor-35';
+import {restoreSensitivityResult} from './sensitivity.js?v=20261014-inline-route-editor-35';
+import {parameter} from './parameters.js?v=20261014-inline-route-editor-35';
+import {WorkspaceUI} from './workspace-ui.js?v=20261014-inline-route-editor-35';
+import {NavigationUI} from './navigation-ui.js?v=20261014-inline-route-editor-35';
+import {scenarioRouteIssues} from './route-inspection.js?v=20261014-inline-route-editor-35';
+import {ContextMenu} from './context-menu.js?v=20261014-inline-route-editor-35';
+import {TerrainUI} from './terrain-ui.js?v=20261014-inline-route-editor-35';
+import { BehaviorUI } from './behavior-ui.js?v=20261014-inline-route-editor-35';
+import { createSimulation } from './recorded-engine.js?v=20261014-inline-route-editor-35';
+import { sharedAssignment,NODE_KINDS } from './shared-settings.js?v=20261014-inline-route-editor-35';
+import { definition,editableDefinition,routeEditingData,updateEditedRoute,moveDefinition,editWaypoint,removeWaypoint,addWaypoint,replaceRoute,setPosition,setInitialHeight,newScenario,removeDefinition,translate,circleRoute } from './editor.js?v=20261014-inline-route-editor-35';
+import { importScenario } from './scenario-import.js?v=20261014-inline-route-editor-35';
+import { MAX_FILE_BYTES, RECORD_MODEL,recordModel,compatibleModel } from './recording.js?v=20261014-inline-route-editor-35';
+import { restoreAnalysisResult } from './detection.js?v=20261014-inline-route-editor-35';
+import { AnalysisUI } from './analysis-ui.js?v=20261014-inline-route-editor-35';
+import { MapView } from './view.js?v=20261014-inline-route-editor-35';
+import { Terrain, DOMAIN_NAMES, validateScenario, clone, MAX_UNITS } from './engine.js?v=20261014-inline-route-editor-35';
+import { requireElement,assertDocumentVersion,showEditorDialog } from './ui-dom.js?v=20261014-inline-route-editor-35';
 assertDocumentVersion();
 
 const $=requireElement;
@@ -46,7 +46,7 @@ const STATUS_NAMES={
 let scenario,model,snapshot,selected=null,playing=false,time=0,revision=0,request=0,lastAccepted=0,editMode=null,dirty=false,authoring=true,pendingPlacement=null,circleCenter=null,selectedWaypoint=null;
 const undo=[],redo=[];
 STATUS_NAMES.disabled='停止・計算対象外';STATUS_NAMES.depleted='移動資源枯渇';
-const worker=verifiedWorker(new URL('./worker.js?v=20261014-route-curves-speed-34',import.meta.url),{
+const worker=verifiedWorker(new URL('./worker.js?v=20261014-inline-route-editor-35',import.meta.url),{
   type:'module',name:'SimSim simulation'
 });
 $('record-run').disabled=true;$('analysis-open').disabled=true;
@@ -114,12 +114,13 @@ worker.onmessage=({
 const view=new MapView($('map'),{
   onSelect:id=>select(id),
   onSelectTask:id=>expandTask(id),
+  onRouteSelect:id=>openInlineRoute(id),
   onMapClick:point=>handleMapClick(point),
   onEdit:edit=>{
     if(edit.selectOnly){
       selectedWaypoint={
         id:edit.id,index:edit.index
-      };notify('経由点 '+(edit.index+1)+' を選択しました。Deleteで削除、ドラッグで移動できます。');return;
+      };openInlineRoute(edit.id,edit.index);return;
     }
     selectedWaypoint=edit.index>=0?{
       id:edit.id,index:edit.index
@@ -171,10 +172,35 @@ const routeUI=new NavigationUI({pickRoute:(item,done)=>openMapRoute(item,done,ed
 applySettingsDraft(next,'経路を保存しました。地図上の点をドラッグして編集できます。');}});
 settingsUI=new SettingsUI({getScenario:()=>scenario,getRevision:()=>revision,getSelected:()=>selected,pause,commit:(next,message)=>commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message,true),navigation:()=>openRoutePlanner(),behavior:()=>openSettingsBehavior(),analysis:(binding,kind)=>analysisUI.addConfigurationBinding(binding,kind)});
 function openMapRoute(item,done,unit){
+  closeInlineRoute();
   pause();settingsUI?.suspendForMap();const dialogs=[...document.querySelectorAll('dialog[open]')];dialogs.forEach(d=>d.close());
   setEditMode('navigation-route');const routesVisible=view.routes.visible;view.routes.visible=false;view.handles.forEach(h=>h.mesh.visible=false);
   $('map-instruction').textContent='空白クリックで追加 · 点をドラッグで移動 · Shift＋ドラッグで高さ変更 · Escで取消';
   new RouteMapEditor(view,{item,unit,terrain:settingsDraft().terrain,onFinish:(points,profile)=>{view.routes.visible=routesVisible;setEditMode(null);settingsUI?.restoreFromMap();dialogs.forEach(d=>showEditorDialog(d));done(points,profile);}});
+}
+function closeInlineRoute(){if(view.routeEditor?.inline)view.routeEditor.finish(false);}
+function openInlineRoute(id=selected,index){
+  if(!id||settingsUI?.active||document.querySelector('dialog[open]')||view.knowledgeOwner||view.taskAggregation)return;
+  if(id!==selected)select(id);
+  pause();setEditMode(null);setAuthoring(true);
+  const d=editableDefinition(scenario,id),item=routeEditingData(scenario,id);if(!item?.points.length)return;
+  const pointIndex=index===undefined?0:index+(d.navigationJoin?0:1);
+  if(view.routeEditor?.inline){view.routeEditor.index=pointIndex;view.routeEditor.refresh();return;}
+  const editor=new RouteMapEditor(view,{item,unit:d.unit,terrain:scenario.terrain,inline:true,index:pointIndex,numberOffset:d.navigationJoin?1:0,onChange:data=>{
+    const applied=commit(next=>updateEditedRoute(next,id,data),'経路の曲線・速度を変更しました。');
+    if(!applied){const current=routeEditingData(scenario,id);if(current)editor.sync(current,editableDefinition(scenario,id).unit,scenario.terrain);}
+    return applied;
+  },onFinish:()=>{view.buildRoutes();view.updateSnapshot(snapshot);}});
+  editor.sourceId=id;
+  view.buildRoutes();
+  notify('経路をその場で編集できます。青緑のハンドルで曲がり方、「経路全体の速度」で速度を調整します。');
+}
+$('route-edit-open').onclick=()=>openInlineRoute();
+function syncInlineRoute(){
+  const e=view.routeEditor;if(!e?.inline)return;
+  const item=routeEditingData(scenario,e.sourceId);
+  if(!item||selected!==e.sourceId||!authoring||editMode||settingsUI?.active||view.knowledgeOwner||view.taskAggregation||!view.showRoutes||document.querySelector('dialog[open]')){closeInlineRoute();return;}
+  e.sync(item,editableDefinition(scenario,e.sourceId).unit,scenario.terrain);
 }
 function settingsDraft(){return settingsUI?.active?settingsUI.session.draft:scenario;}
 function applySettingsDraft(next,message){if(settingsUI?.active){settingsUI.session.assertRevision(revision);settingsUI.session.draft=clone(next);settingsUI.render();return true;}return commit(target=>{for(const key of Object.keys(target))delete target[key];Object.assign(target,next);},message);}
@@ -291,6 +317,7 @@ function applyScenario(next,{
 }
 ={
 }) {
+  if(resetHistory||fit)closeInlineRoute();
   if(terrainUI.active)terrainUI.cancel();
   closeMapMenu();
   const checked=importScenario(next),compiled=createSimulation(checked);
@@ -344,6 +371,7 @@ function applyScenario(next,{
   updateTelemetry();
   updateUndo();
   setEditMode(editMode&&selected?editMode:null);
+  syncInlineRoute();
   post('scenario',{
     recording,autoRecord
   });
@@ -386,6 +414,7 @@ function updateUndo(){
 }
 function select(id){
   if(settingsUI?.active&&!settingsUI.navigate(()=>select(id)))return;
+  if(id!==selected)closeInlineRoute();
   sensitivityTarget=null;
   selectedWaypoint=null;
   selected=id;
@@ -555,6 +584,7 @@ function updateClock() {
   if(document.activeElement!==$('timeline'))$('timeline').value=snapshot?.time??time;
 }
 function setEditMode(mode) {
+  if(mode)closeInlineRoute();
   if(terrainUI.active&&mode!=='terrain')terrainUI.cancel();
   if(mode)setAuthoring(true);
   else {
@@ -671,6 +701,7 @@ function newId(prefix){
   return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);
 }
 function setAuthoring(enabled){
+  if(!enabled)closeInlineRoute();
   if(!enabled&&terrainUI.active)terrainUI.cancel();
   pause();
   if(enabled&&time!==0){
@@ -856,11 +887,13 @@ function openMapMenu(context){
     separator();add('地形を適用',()=>terrainUI.apply());add('地形編集を取り消す　Esc',()=>terrainUI.cancel());
   }else if(context.handle?.index>=0){
     selectedWaypoint={id:context.handle.id,index:context.handle.index};
+    add('曲線・速度をここで編集',()=>openInlineRoute(context.handle.id,context.handle.index));
     add('経由点 '+(context.handle.index+1)+' を削除　Delete',deleteSelected);
     add('経路の検査・自動生成',openRoutePlanner);
     add('経由点を追加',()=>setEditMode('route'));
   }else if(d){
     selectedWaypoint=null;
+    add('曲線・速度をここで編集',()=>openInlineRoute(context.id));
     add(d.group?'この群の設定':'ユニットの設定',()=>settingsUI.open());
     add('担当タスクを編集',()=>behaviorUI.open());
     add((d.group??d.unit).enabled===false?'計算に使用する（有効化）':'計算から外す（無効化）',()=>setUnitEnabled(selected,(d.group??d.unit).enabled===false));separator();
@@ -988,7 +1021,7 @@ $('sample-picker').addEventListener('change',()=>{
   const file=$('sample-picker').value;if(file)loadDemo(false,file).catch(error=>showError(error.message));$('sample-picker').value='';
 });
 window.addEventListener('keydown',event=>{
-  if(view.routeEditor||document.querySelector('dialog[open]')||event.defaultPrevented)return;
+  if(view.routeEditor&&!view.routeEditor.inline||document.querySelector('dialog[open]')||event.defaultPrevented)return;
   if(settingsUI?.active&&!settingsUI.mapPicking){if(event.key==='Escape'){event.preventDefault();if(settingsUI.navigate(()=>settingsUI.close()))settingsUI.close();}return;}
   if(event.key==='Escape'){
     if(editMode==='shared-route'){
@@ -1014,7 +1047,7 @@ window.addEventListener('keydown',event=>{
     event.preventDefault();view.focusSelected();
   }
   if(event.key==='Delete'||event.key==='Backspace'){
-    event.preventDefault();deleteSelected();
+    event.preventDefault();if(view.routeEditor?.inline)view.routeEditor.panel.querySelector('[data-route-delete]').click();else deleteSelected();
   }
   if(event.code==='Space'&&(event.ctrlKey||event.metaKey)){
     event.preventDefault();if(!terrainUI.active)$('play').click();
@@ -1027,6 +1060,9 @@ window.addEventListener('beforeunload',event=>{
 });
 let previous=performance.now(),lastPost=0;
 function frame(now) {
+  const inline=view.routeEditor?.inline;
+  if(inline&&(settingsUI?.active||document.querySelector('dialog[open]')||view.knowledgeOwner||view.taskAggregation||!view.showRoutes))closeInlineRoute();
+  $('route-edit-open').hidden=!selected||!authoring||!!editMode||!!view.routeEditor||settingsUI?.active||!!view.knowledgeOwner||view.taskAggregation||!view.showRoutes;
   const elapsed=Math.min(.5,(now-previous)/1000);
   previous=now;
   if(playing&&scenario){

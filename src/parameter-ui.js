@@ -1,5 +1,5 @@
-import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261014-route-curves-speed-34';
-import { requireElement } from './ui-dom.js?v=20261014-route-curves-speed-34';
+import { availableBindings,bindingKey,parameter,readParameter,normalizedAnalysis } from './parameters.js?v=20261014-inline-route-editor-35';
+import { requireElement } from './ui-dom.js?v=20261014-inline-route-editor-35';
 const $=requireElement,copy=v=>JSON.parse(JSON.stringify(v));
 export class ParameterEditor {
   constructor(onChange){

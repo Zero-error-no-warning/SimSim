@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261014-route-curves-speed-34';
-import {constraintsSatisfied} from './experiment-settings.js?v=20261014-route-curves-speed-34';
-import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261014-route-curves-speed-34';
-import {readParameter,writeParameter} from './parameters.js?v=20261014-route-curves-speed-34';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261014-route-curves-speed-34';
-import {MODEL_BUILD} from './model-version.js?v=20261014-route-curves-speed-34';
+import {clone,validateScenario} from './engine.js?v=20261014-inline-route-editor-35';
+import {constraintsSatisfied} from './experiment-settings.js?v=20261014-inline-route-editor-35';
+import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261014-inline-route-editor-35';
+import {readParameter,writeParameter} from './parameters.js?v=20261014-inline-route-editor-35';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261014-inline-route-editor-35';
+import {MODEL_BUILD} from './model-version.js?v=20261014-inline-route-editor-35';
 const contains=(values,bounds)=>Object.entries(bounds).every(([id,[lo,hi]])=>values[id]>=lo&&values[id]<=hi);
 export function extractPatterns(experiment,{maxRules=4,minCandidates=4}={}){
  if(experiment.status!=='complete'||experiment.completed!==experiment.planned)throw Error('定石の抽出には探索の完了が必要です。');

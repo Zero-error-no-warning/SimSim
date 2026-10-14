@@ -1,4 +1,4 @@
-import {Terrain} from './engine.js?v=20261014-route-curves-speed-34';
+import {Terrain} from './engine.js?v=20261014-inline-route-editor-35';
 // Edit the existing elevation grid; display exaggeration never changes SI data.
 export function sampleTerrainHeight(data,point){
   if(!point||!Number.isFinite(point.x)||!Number.isFinite(point.y))return null;

@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261014-route-curves-speed-34';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261014-inline-route-editor-35';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){
