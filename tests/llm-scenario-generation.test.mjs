@@ -7,8 +7,13 @@ import {prepareAnalysis,runDetection} from '../src/detection.js?v=20261015-direc
 import {trialScenario,PARAMETERS} from '../src/parameters.js?v=20261015-direction-markers-36';
 const text=fs.readFileSync(new URL('../docs/llm-scenario-generation.txt',import.meta.url),'utf8');
 assert(!/__MINIMAL__|__RECEIVED__|__GROUP__|__PARAMETERS__/.test(text));
-const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,14);
+const blocks=[...text.matchAll(/```json\n([\s\S]*?)\n```/g)].map(m=>JSON.parse(m[1]));assert.equal(blocks.length,15);
 const modern=blocks.filter(b=>b.version===4);assert.equal(modern.length,1);for(const raw of modern){const m=createSimulation(raw);for(const _ of sharedSteps(m,undefined,undefined,{record:true,horizon:raw.duration})){}assert.equal(m.result.invalidUnits,0);assert(m.result.success);assert.deepEqual(restoreRecording(recordingPayload(m)).evaluate(raw.duration).knowledge,m.evaluate(raw.duration).knowledge);}
+// Execute the documented optional curve/profile fragment as a named task route.
+const arc=blocks.find(b=>b.id==='climb-arc');assert(arc);
+const curvedSource={version:4,unitsSystem:'SI',title:'Documented arc',duration:120,terrain:{columns:3,rows:3,spacing:2000,origin:{x:-1000,y:-1000,z:0},seaLevel:0,elevations:Array(9).fill(-500)},units:[{id:'plane',name:'plane',domain:'air',faction:'friendly',manned:false,speed:100,initial:{x:0,y:0,z:500},route:[],routeMode:'once'}],routes:[arc],behaviors:[{id:'fly',name:'fly',initial:'follow',triggers:[],nodes:[{id:'follow',kind:'follow',routeId:arc.id},{id:'done',kind:'stop'}],edges:[{from:'follow',to:'done',when:'arrived'}]}],behaviorAssignments:[{id:'task',name:'task',behaviorId:'fly',targets:['unit:plane'],spacing:'none'}],recording:{step:1,interval:1}};
+const curved=createSimulation(importScenario(curvedSource));for(const _ of sharedSteps(curved,undefined,undefined,{record:true,horizon:120})){}
+assert.equal(curved.result.invalidUnits,0);assert(curved.paths.get('plane').curved&&curved.paths.get('plane').clock);assert(curved.evaluate(10).units[0].position.z>500);assert.equal(curved.evaluate(120).units[0].nodeId,'done');assert.equal(curved.evaluate(120).units[0].position.x,2000);assert.deepEqual(restoreRecording(recordingPayload(curved)).evaluate(10).units,curved.evaluate(10).units);
 const scenarios=blocks.filter(b=>b.version===3);assert.equal(scenarios.length,5);
 const evidence=[];
 for(const raw of scenarios){

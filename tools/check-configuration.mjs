@@ -1,4 +1,6 @@
 import fs from 'node:fs';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261015-direction-markers-36';
+import {MODEL_BUILD} from '../src/model-version.js?v=20261015-direction-markers-36';
 import {CONFIGURATION_MODULES,configurationContractErrors} from '../src/configuration-contract.js?v=20261015-direction-markers-36';
 import {FIELD_RENDERERS} from '../src/settings-form.js?v=20261015-direction-markers-36';
 import {EDITOR_RENDERERS} from '../src/settings-ui.js?v=20261015-direction-markers-36';
@@ -15,6 +17,16 @@ const rows=CONFIGURATION_MODULES.flatMap(m=>[
 ]).join('\n');
 const reference='設定契約から生成した入力台帳（設定契約版28）\n保存は従来のシナリオ形式。配列・資源IDごとの項目は各要素に適用。\n表示倍率は保存値→画面値。省略値は表示のために解決し、編集しない限りファイルへ追加しない。\n関連制約・参照・シナリオ版はvalidateScenarioで追加検証する。\n'+rows+'\n\n判断状態の台帳\n'+STATE_FIELDS.map(f=>f.field+' | '+f.type+' | '+f.label+' | 参照: '+f.visibility+' | 表示倍率: '+f.scale+' | 未知: '+f.unknown+' | 集約: '+f.aggregate).join('\n')+'\n';
 const url=new URL('../docs/llm-scenario-generation.txt',import.meta.url),source=fs.readFileSync(url,'utf8'),marker='\n[GENERATED CONFIGURATION CONTRACT]\n',base=source.split(marker)[0],expected=base+marker+reference;
+// A matching generated field table does not establish that the prose is current.
+// Require an explicit review of each primary manual for every UI/model revision.
+for(const name of ['llm-scenario-generation.txt','workspace-v3.md','user-operation-manual.txt']){
+ const document=fs.readFileSync(new URL('../docs/'+name,import.meta.url),'utf8');
+ for(const [label,value] of [['対応UIビルド',UI_BUILD],['モデル実装版',MODEL_BUILD]]){
+  const lines=[...document.matchAll(new RegExp('^'+label+':\\s*`?([^`\\s]+)`?\\s*$','gm'))];
+  if(lines.length!==1||lines[0][1]!==value)throw Error(name+' の'+label+'が現在のソースと一致しません。本文を照合・更新してから対象版を '+value+' に合わせてください。');
+ }
+}
 if(process.argv.includes('--write'))fs.writeFileSync(url,expected);
 else if(source!==expected)throw Error('契約仕様表が古くなっています。node tools/check-configuration.mjs --write を実行してください。');
 console.log('PASS: '+CONFIGURATION_MODULES.length+' configuration modules, '+CONFIGURATION_MODULES.reduce((n,m)=>n+m.fields.length,0)+' fields, editors, analysis/state exposure and generated LLM reference');
+console.log('PASS: primary documentation UI/model revisions match the source (prose review is still required)');
