@@ -1,5 +1,5 @@
-import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261015-direction-markers-36';
-import {requireElement} from './ui-dom.js?v=20261015-direction-markers-36';
+import {paintTerrain,resizeTerrain,sampleTerrainHeight} from './terrain-editor.js?v=20261015-sensor-planes-37';
+import {requireElement} from './ui-dom.js?v=20261015-sensor-planes-37';
 const $=requireElement;
 export class TerrainUI{
   constructor({getScenario,view,setMode,commit,notify}){

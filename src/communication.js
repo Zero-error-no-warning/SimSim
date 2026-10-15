@@ -1,7 +1,7 @@
-import {fieldErrors} from './configuration-schema.js?v=20261015-direction-markers-36';
-import {PROPAGATION_FIELDS,REPORT_FIELDS,LINK_FIELDS,DISRUPTION_FIELDS,OPERATIONAL_FIELDS,COORDINATION_FIELDS} from './configuration-fields.js?v=20261015-direction-markers-36';
-import {random01,streamKey} from './random.js?v=20261015-direction-markers-36';
-import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261015-direction-markers-36';
+import {fieldErrors} from './configuration-schema.js?v=20261015-sensor-planes-37';
+import {PROPAGATION_FIELDS,REPORT_FIELDS,LINK_FIELDS,DISRUPTION_FIELDS,OPERATIONAL_FIELDS,COORDINATION_FIELDS} from './configuration-fields.js?v=20261015-sensor-planes-37';
+import {random01,streamKey} from './random.js?v=20261015-sensor-planes-37';
+import {propagationVisible,propagationSpeed,mediumCompatible} from './propagation.js?v=20261015-sensor-planes-37';
 const within=(d,t)=>t>=d.start&&t<d.end;
 export function transmissionAttempts(model,s,receiver,t,messageId){
  const configured=model.source.communicationLinks;

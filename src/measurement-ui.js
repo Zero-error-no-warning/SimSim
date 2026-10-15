@@ -1,7 +1,7 @@
-import {clone,validateScenario} from './engine.js?v=20261015-direction-markers-36';
-import {NODE_KINDS} from './shared-settings.js?v=20261015-direction-markers-36';
-import {summarizeMeasurements} from './measurement-points.js?v=20261015-direction-markers-36';
-import {requireElement as $} from './ui-dom.js?v=20261015-direction-markers-36';
+import {clone,validateScenario} from './engine.js?v=20261015-sensor-planes-37';
+import {NODE_KINDS} from './shared-settings.js?v=20261015-sensor-planes-37';
+import {summarizeMeasurements} from './measurement-points.js?v=20261015-sensor-planes-37';
+import {requireElement as $} from './ui-dom.js?v=20261015-sensor-planes-37';
 const pct=n=>n===null?'—':(n*100).toFixed(1)+'%';
 const time=n=>n===null?'—':n.toFixed(1)+'秒';
 export class MeasurementUI{

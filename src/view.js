@@ -1,13 +1,13 @@
-import {drawUnitSymbol,routeHeading,DEFAULT_SYMBOL_MODE,UNIT_COLORS as COLORS} from './unit-symbols.js?v=20261015-direction-markers-36';
-import {sampleRoute} from './route-curves.js?v=20261015-direction-markers-36';
-import {terrainGrid,coastline} from './terrain-presentation.js?v=20261015-direction-markers-36';
-import { editableDefinition } from './editor.js?v=20261015-direction-markers-36';
-import { sharedAssignment } from './shared-settings.js?v=20261015-direction-markers-36';
-import {taskPresentations} from './map-presentation.js?v=20261015-direction-markers-36';
-import {resourceName} from './resource-ui.js?v=20261015-direction-markers-36';
+import {drawUnitSymbol,routeHeading,DEFAULT_SYMBOL_MODE,UNIT_COLORS as COLORS} from './unit-symbols.js?v=20261015-sensor-planes-37';
+import {sampleRoute} from './route-curves.js?v=20261015-sensor-planes-37';
+import {terrainGrid,coastline} from './terrain-presentation.js?v=20261015-sensor-planes-37';
+import { editableDefinition } from './editor.js?v=20261015-sensor-planes-37';
+import { sharedAssignment } from './shared-settings.js?v=20261015-sensor-planes-37';
+import {taskPresentations} from './map-presentation.js?v=20261015-sensor-planes-37';
+import {resourceName} from './resource-ui.js?v=20261015-sensor-planes-37';
 import * as THREE from '../vendor/three/three.module.min.js';
 import { OrbitControls } from '../vendor/three/OrbitControls.js';
-import { Terrain, Simulation } from './engine.js?v=20261015-direction-markers-36';
+import { Terrain, Simulation } from './engine.js?v=20261015-sensor-planes-37';
 const disposal = group => {
   for(const object of [...group.children]) {
     group.remove(object);
@@ -279,10 +279,8 @@ export class MapView {
         }
       }
       this.selectedMarker.position.copy(this.markers.get(d.id).position);
-      if(this.sensorSphere){
-        this.sensorSphere.position.copy(this.markers.get(d.id).position);
-        this.sensorSphere.position.y+=-30+(selected.sensor.mountHeight??(selected.domain==='ground'?2:0))*this.exaggeration;
-      }
+      const marker=this.markers.get(d.id).position;
+      this.updateSensorRange({x:marker.x,y:-marker.z,z:(marker.y-30)/this.exaggeration});
     }else {
       const h=this.handles.find(h=>h.index===d.index);
       if(h)h.mesh.position.copy(this.world(d.point,25));
@@ -503,21 +501,43 @@ export class MapView {
   }
   buildSensorRange() {
     disposal(this.sensorRangeGroup);
-    this.sensorSphere=null;
+    this.sensorRange=null;
     const unit=this.scenario.units.find(u=>u.id===this.selected);
-    if(unit?.enabled!==false&&unit?.sensor?.enabled){
-      const material=new THREE.MeshBasicMaterial({
-        color:'#80dbae',wireframe:true,transparent:true,opacity:.28,depthWrite:false
-      });
-      this.sensorSphere=new THREE.Mesh(new THREE.SphereGeometry(unit.sensor.range,20,12),material);
-      this.sensorSphere.scale.y=this.exaggeration;
-      const position=this.snapshot?.units.find(u=>u.id===unit.id)?.position??unit.initial;
-      this.sensorSphere.position.copy(this.world({
-        ...position,z:position.z+(unit.sensor.mountHeight??(unit.domain==='ground'?2:0))
+    if(unit?.enabled!==false&&unit?.sensor?.enabled&&unit.sensor.range>0){
+      // Horizontal maximum section at sensor height; no wireframe inside the range.
+      const color='#80dbae',segments=192;
+      const fill=new THREE.Mesh(new THREE.CircleGeometry(1,segments).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({
+        color,transparent:true,opacity:.07,side:THREE.DoubleSide,depthTest:false,depthWrite:false
       }));
-      this.sensorRangeGroup.add(this.sensorSphere);
+      fill.renderOrder=3;
+      const points=Array.from({length:segments+1},(_,i)=>new THREE.Vector3(Math.cos(i/segments*Math.PI*2),0,Math.sin(i/segments*Math.PI*2)));
+      const maximum=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({
+        color,transparent:true,opacity:.65,depthTest:false,depthWrite:false
+      }));
+      const sea=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineDashedMaterial({
+        color,transparent:true,opacity:.85,depthTest:false,depthWrite:false,dashSize:.08,gapSize:.05
+      }));
+      sea.computeLineDistances();maximum.renderOrder=sea.renderOrder=4;
+      this.sensorRange={unit,fill,maximum,sea};
+      this.sensorRangeGroup.add(fill,maximum,sea);
+      this.updateSensorRange(this.snapshot?.units.find(u=>u.id===unit.id)?.position??unit.initial);
     }
-    this.sensorRangeGroup.visible=this.showSensor;
+    this.sensorRangeGroup.visible=this.showSensor&&!this.taskAggregation&&(!this.knowledgeOwner||this.selected===this.knowledgeOwner);
+  }
+  updateSensorRange(position) {
+    if(!this.sensorRange)return;
+    const {unit,fill,maximum,sea}=this.sensorRange,radius=unit.sensor.range;
+    const height=position.z+(unit.sensor.mountHeight??(unit.domain==='ground'?2:0));
+    const delta=height-this.scenario.terrain.seaLevel;
+    for(const object of [fill,maximum]){
+      object.position.copy(this.world({...position,z:height}));object.scale.setScalar(radius);
+    }
+    // Use physical metres, independent of the visual height exaggeration.
+    const seaRadius=Math.sqrt(Math.max(0,radius*radius-delta*delta));
+    sea.position.copy(this.world({...position,z:this.scenario.terrain.seaLevel}));
+    sea.scale.setScalar(seaRadius);
+    // A coincident outline adds no information; a tangent has no area to outline.
+    sea.visible=Math.abs(delta)>.5&&seaRadius>0;
   }
   buildLabels() {
     this.labelLayer.replaceChildren();
@@ -783,12 +803,7 @@ export class MapView {
       this.trailPoints.set(state.id,points.map(p=>this.world(p,35)));
     }
     if(this.markers.has(this.selected))this.selectedMarker.position.copy(this.markers.get(this.selected).position);
-    if(this.sensorSphere){
-      const unit=this.markers.get(this.selected)?.unit,state=snapshot.units.find(u=>u.id===this.selected);
-      if(state)this.sensorSphere.position.copy(this.world({
-        ...state.position,z:state.position.z+(unit.sensor.mountHeight??(unit.domain==='ground'?2:0))
-      }));
-    }
+    if(selectedState)this.updateSensorRange(selectedState.position);
     disposal(this.detectionGroup);
     for(const event of snapshot.mission?.events.slice(-3)??[]) {
       const geometry=new THREE.BufferGeometry().setFromPoints([this.world(event.observerPosition,15),this.world(event.targetPosition,15)]);

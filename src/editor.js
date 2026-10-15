@@ -1,8 +1,8 @@
-import {Terrain} from './terrain.js?v=20261015-direction-markers-36';
-import {bindingTargetExists} from './parameters.js?v=20261015-direction-markers-36';
-import {pruneSensitivity} from './sensitivity-settings.js?v=20261015-direction-markers-36';
-import {resolveValue} from './behavior-parameters.js?v=20261015-direction-markers-36';
-import { sharedAssignment } from './shared-settings.js?v=20261015-direction-markers-36';
+import {Terrain} from './terrain.js?v=20261015-sensor-planes-37';
+import {bindingTargetExists} from './parameters.js?v=20261015-sensor-planes-37';
+import {pruneSensitivity} from './sensitivity-settings.js?v=20261015-sensor-planes-37';
+import {resolveValue} from './behavior-parameters.js?v=20261015-sensor-planes-37';
+import { sharedAssignment } from './shared-settings.js?v=20261015-sensor-planes-37';
 // All UI paths resolve the same editable route. Distances in metres.
 export function definition(s,id) {
   const unit=s.units.find(u=>u.id===id);

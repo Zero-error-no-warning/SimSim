@@ -1,4 +1,4 @@
-import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261015-direction-markers-36';
+import {StateTracker,stateMembers,validateStateResult} from './state-measurement.js?v=20261015-sensor-planes-37';
 
 // Additional state goals are independent of the mission's success condition.
 export function measurementErrors(s){

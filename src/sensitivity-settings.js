@@ -1,4 +1,4 @@
-import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261015-direction-markers-36';
+import {availableBindings,readParameter,parameter,bindingKey} from './parameters.js?v=20261015-sensor-planes-37';
 
 export const MAX_SENSITIVITY_CANDIDATES=32;
 export function sensitivityMetrics(s){

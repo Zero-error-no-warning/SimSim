@@ -1,4 +1,4 @@
-import('./app.js?v=20261015-direction-markers-36').catch(error => {
+import('./app.js?v=20261015-sensor-planes-37').catch(error => {
   window.dispatchEvent(new Event('simsim-boot-failed'));
   const status=document.getElementById('boot');
   if(!status)return;

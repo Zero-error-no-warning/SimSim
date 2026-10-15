@@ -1,4 +1,4 @@
-export const UI_BUILD='20261015-direction-markers-36';
+export const UI_BUILD='20261015-sensor-planes-37';
 export const RUNTIME_BUILD=typeof SIMSIM_PORTABLE_BUILD==='string'?SIMSIM_PORTABLE_BUILD:UI_BUILD;
 // The visible version follows the dated build revision used for cache updates.
 export const UI_VERSION='v'+UI_BUILD.replace(/^(\d{4})(\d{2})(\d{2})-.*-(\d+)$/,'$1.$2.$3.$4');

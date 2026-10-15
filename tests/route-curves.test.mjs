@@ -1,8 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {sampleRoute,smoothRoute,closeProfile,profileValue,defaultProfile,routeFeatureErrors,pathDuration} from '../src/route-curves.js?v=20261015-direction-markers-36';
-import {Simulation} from '../src/engine.js?v=20261015-direction-markers-36';
-import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261015-direction-markers-36';
-import {inspectRoute} from '../src/route-planner.js?v=20261015-direction-markers-36';
+import {sampleRoute,smoothRoute,closeProfile,profileValue,defaultProfile,routeFeatureErrors,pathDuration} from '../src/route-curves.js?v=20261015-sensor-planes-37';
+import {Simulation} from '../src/engine.js?v=20261015-sensor-planes-37';
+import {createSimulation,sharedSteps,recordingPayload,restoreRecording} from '../src/recorded-engine.js?v=20261015-sensor-planes-37';
+import {inspectRoute} from '../src/route-planner.js?v=20261015-sensor-planes-37';
 const p=(x,y=0,z=100)=>({x,y,z});
 const source=()=>({version:4,unitsSystem:'SI',title:'curves',duration:100,seed:'curve',terrain:{columns:5,rows:5,spacing:1000,origin:{x:-1000,y:-1000,z:0},seaLevel:0,elevations:Array(25).fill(-500)},units:[{id:'u',name:'u',domain:'air',faction:'friendly',manned:false,speed:100,initial:p(0),route:[p(1000)],routeMode:'once'}],behaviors:[],behaviorAssignments:[],recording:{step:1,interval:1}});
 const near=(actual,expected,tolerance=1e-5)=>assert(Math.abs(actual-expected)<tolerance,`${actual} != ${expected}`);

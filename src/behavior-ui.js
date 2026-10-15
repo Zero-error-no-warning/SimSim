@@ -1,15 +1,15 @@
-import {showEditorDialog} from './ui-dom.js?v=20261015-direction-markers-36';
-import {conditionErrors} from './decision.js?v=20261015-direction-markers-36';
-import {ConditionUI} from './condition-ui.js?v=20261015-direction-markers-36';
-import {ContextMenu} from './context-menu.js?v=20261015-direction-markers-36';
-import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261015-direction-markers-36';
-import {isParameterRef} from './behavior-parameters.js?v=20261015-direction-markers-36';
-import {NavigationUI} from './navigation-ui.js?v=20261015-direction-markers-36';
-import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261015-direction-markers-36';
-import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261015-direction-markers-36';
-import { clone,validateScenario } from './engine.js?v=20261015-direction-markers-36';
-import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261015-direction-markers-36';
-import { requireElement } from './ui-dom.js?v=20261015-direction-markers-36';
+import {showEditorDialog} from './ui-dom.js?v=20261015-sensor-planes-37';
+import {conditionErrors} from './decision.js?v=20261015-sensor-planes-37';
+import {ConditionUI} from './condition-ui.js?v=20261015-sensor-planes-37';
+import {ContextMenu} from './context-menu.js?v=20261015-sensor-planes-37';
+import {BehaviorParameterUI} from './behavior-parameter-ui.js?v=20261015-sensor-planes-37';
+import {isParameterRef} from './behavior-parameters.js?v=20261015-sensor-planes-37';
+import {NavigationUI} from './navigation-ui.js?v=20261015-sensor-planes-37';
+import {routeFor,destinationFor,conditionKey,proximityErrors} from './navigation.js?v=20261015-sensor-planes-37';
+import { removeAssignment,removeBehavior,pruneReferences } from './editor.js?v=20261015-sensor-planes-37';
+import { clone,validateScenario } from './engine.js?v=20261015-sensor-planes-37';
+import { NODE_KINDS,NODE_EVENTS,EDGE_EVENTS,TRIGGER_EVENTS,patrolGraph,sharedAssignment } from './shared-settings.js?v=20261015-sensor-planes-37';
+import { requireElement } from './ui-dom.js?v=20261015-sensor-planes-37';
 const $=requireElement,ns='http://www.w3.org/2000/svg';
 export class BehaviorUI{
   constructor({

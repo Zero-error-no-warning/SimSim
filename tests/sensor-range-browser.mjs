@@ -1,0 +1,40 @@
+import {showNavigator,clickWorkspace} from './workspace-browser-helpers.mjs';
+import {UI_BUILD} from '../src/ui-dom.js?v=20261015-sensor-planes-37';
+import assert from 'node:assert/strict';import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
+const portable=process.argv.includes('--portable'),root=path.resolve('.'),{chromium}=await import(process.env.SIMSIM_PLAYWRIGHT??'playwright');
+const server=http.createServer((req,res)=>{const file=path.join(root,new URL(req.url,'http://local').pathname.replace(/^\/$/,'/index.html'));res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':'text/html');try{res.end(fs.readFileSync(file));}catch{res.statusCode=404;res.end();}});await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
+const point=(x,y,z)=>({x,y,z}),unit=(id,domain,initial,route=[],extra={})=>({id,name:id,domain,faction:'friendly',manned:false,speed:50,initial,route,routeMode:'once',...extra,sensor:{enabled:true,range:1000,probabilityPerMinute:.8,domains:['air','surface','subsurface','ground'],terrainLOS:true,mountHeight:domain==='ground'?undefined:0,...extra.sensor}});
+const source={version:4,unitsSystem:'SI',title:'Sensor planes',duration:50,terrain:{columns:5,rows:5,spacing:1000,origin:{x:-2000,y:-2000},seaLevel:20,elevations:Array.from({length:25},(_,i)=>i%5===0?100:-2000)},recording:{step:1,interval:1},units:[unit('air','air',point(0,0,620),[point(1000,0,1220)]),unit('sub','subsurface',point(0,1000,-580)),unit('surface','surface',point(1000,-1000,20)),unit('mount','air',point(1000,1000,520),[],{sensor:{enabled:true,range:1000,mountHeight:100}}),unit('ground','ground',point(-2000,0,100),[],{sensor:{enabled:true,range:1000}}),unit('off','air',point(1000,0,1200),[],{enabled:false})],behaviors:[],behaviorAssignments:[],groups:[]};
+const near=(a,b)=>assert(Math.abs(a-b)<1e-5,`${a} != ${b}`);
+try{
+ browser=await chromium.launch({headless:true,...(process.env.SIMSIM_BROWSER_EXECUTABLE?{executablePath:process.env.SIMSIM_BROWSER_EXECUTABLE}:{}),args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader']});const page=await browser.newPage({viewport:{width:1600,height:1100}}),errors=[];page.on('pageerror',e=>{errors.push(e.message);console.error(e.stack);});page.setDefaultTimeout(20000);await page.goto('http://127.0.0.1:'+server.address().port+(portable?'/portable/index.html':'/'));await page.waitForSelector('#boot[hidden]',{state:'attached'});
+ if(!portable){await page.evaluate(async build=>{const {MapView}=await import('/src/view.js?v='+build),render=MapView.prototype.render;MapView.prototype.render=function(){window.testView=this;return render.call(this);};},UI_BUILD);await page.waitForFunction(()=>window.testView);}
+ await page.locator('#file').setInputFiles({name:'sensor.txt',mimeType:'text/plain',buffer:Buffer.from(JSON.stringify(source))});await page.waitForFunction(()=>document.getElementById('title').value==='Sensor planes');await showNavigator(page);
+ const select=async id=>{await page.locator('.unit-item[data-id='+id+']').click();};
+ const state=()=>page.evaluate(()=>{const v=window.testView,r=v.sensorRange;return{visible:v.sensorRangeGroup.visible,count:v.sensorRangeGroup.children.length,...r?{radius:r.maximum.scale.x,seaRadius:r.sea.scale.x,height:r.maximum.position.y,seaHeight:r.sea.position.y,x:r.maximum.position.x,z:r.maximum.position.z,seaVisible:r.sea.visible,dashed:r.sea.material.isLineDashedMaterial,fillOpacity:r.fill.material.opacity,wireframe:r.fill.material.wireframe,depth:r.fill.material.depthTest,side:r.fill.material.side}:{}};});
+ const save=async()=>{const [d]=await Promise.all([page.waitForEvent('download'),page.locator('#save').click()]);return JSON.parse(fs.readFileSync(await d.path(),'utf8'));};
+ await select('air');const saved=await save();
+ if(!portable){const s=await state();near(s.radius,1000);near(s.seaRadius,800);near(s.height,620*4);near(s.seaHeight,20*4);assert.equal(s.count,3);assert(s.visible&&s.seaVisible&&s.dashed);assert(s.fillOpacity>0&&s.fillOpacity<.1);assert.equal(s.wireframe,false);assert.equal(s.depth,false);assert.equal(s.side,2);
+  await select('sub');let under=await state();near(under.seaRadius,800);near(under.height,-580*4);assert(under.seaVisible);
+  await select('surface');assert.equal((await state()).seaVisible,false);
+  await select('mount');let mounted=await state();near(mounted.seaRadius,800);near(mounted.height,620*4);
+  await select('ground');near((await state()).height,102*4);
+  await select('off');assert.equal((await state()).count,0);await select('air');
+  await page.evaluate(()=>window.testView.setExaggeration(1));let s1=await state();near(s1.radius,1000);near(s1.seaRadius,800);near(s1.height,620);near(s1.seaHeight,20);
+  await page.evaluate(()=>window.testView.setExaggeration(4));
+ }
+ const display=async checked=>{await page.locator('#display-menu > summary').click();await page.locator('#show-sensor').setChecked(checked);await page.locator('#display-menu > summary').click();};
+ await display(false);if(!portable)assert.equal((await state()).visible,false);await display(true);if(!portable)assert.equal((await state()).visible,true);assert.deepEqual(await save(),saved);
+ // Real vertical placement drag: section shrinks during preview; Escape restores it.
+ if(!portable){const p=await page.evaluate(()=>{const v=window.testView,p=v.screenPoint(v.markers.get('air').position),r=v.renderer.domElement.getBoundingClientRect();return{x:p.x+r.x,y:p.y+r.y};});await page.keyboard.down('Shift');await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x,p.y-25,{steps:5});const during=await state();assert(during.height>620*4);assert(during.seaRadius<800);await page.keyboard.press('Escape');await page.mouse.up();await page.keyboard.up('Shift');near((await state()).seaRadius,800);near((await state()).height,620*4);assert.deepEqual(await save(),saved);}
+ await page.screenshot({path:'/tmp/simsim-sensor-planes'+(portable?'-portable':'')+'.png'});
+ await select('sub');if(!portable)await page.evaluate(()=>{const v=window.testView;v.camera.position.copy(v.controls.target).add({x:4000,y:-4000,z:2500});v.controls.update();v.render();});await page.screenshot({path:'/tmp/simsim-sensor-underwater'+(portable?'-portable':'')+'.png'});
+ await select('air');await clickWorkspace(page,'viewtop');await page.screenshot({path:'/tmp/simsim-sensor-top'+(portable?'-portable':'')+'.png'});
+ await page.locator('#record-run').click();await page.waitForFunction(()=>!document.getElementById('play').disabled);
+ const seek=async t=>{await page.locator('#timeline').evaluate((e,t)=>{e.value=t;e.dispatchEvent(new Event('input',{bubbles:true}));},String(t));await page.waitForFunction(t=>document.getElementById('clock').textContent==='00:00:'+String(t).padStart(2,'0'),t);if(!portable)await page.waitForFunction(t=>window.testView.rawSnapshot.time===t,t);};
+ await seek(10);if(!portable){let s=await state();assert(s.x>0&&s.x<1000);assert(s.height>620*4&&s.height<1220*4);assert(s.seaRadius<800);}
+ await seek(40);if(!portable){let s=await state();near(s.x,1000);near(s.height,1220*4);assert.equal(s.seaVisible,false);}
+ await seek(0);if(!portable){let s=await state();near(s.seaRadius,800);near(s.height,620*4);near(s.x,0);assert(s.seaVisible);}
+ if(!portable){await page.evaluate(()=>{const v=window.testView;v.taskAggregation=true;v.updateSnapshot(v.rawSnapshot);});assert.equal((await state()).visible,false);await page.evaluate(()=>{const v=window.testView;v.taskAggregation=false;v.knowledgeOwner='sub';v.updateSnapshot(v.rawSnapshot);});assert.equal((await state()).visible,false);await select('sub');assert.equal((await state()).visible,true);}
+ assert.deepEqual(errors,[]);console.log('PASS: '+(portable?'portable sensor range UI, replay and saved scenario':'two-plane sensor geometry, nonzero sea, underwater, mount height, coincidence, disabled sensor, exaggeration, drag preview/cancel, replay/rewind and information mask'));
+}finally{await browser?.close();server.close();}

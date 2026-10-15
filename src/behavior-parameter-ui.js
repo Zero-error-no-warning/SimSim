@@ -1,5 +1,5 @@
-import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261015-direction-markers-36';
-import {requireElement} from './ui-dom.js?v=20261015-direction-markers-36';
+import {PARAMETER_TYPES,isParameterRef,resolveValue} from './behavior-parameters.js?v=20261015-sensor-planes-37';
+import {requireElement} from './ui-dom.js?v=20261015-sensor-planes-37';
 const $=requireElement;
 const unitName={s:'秒',m:'m',ratio:'%'};
 const scale=p=>p.unit==='ratio'?100:1;

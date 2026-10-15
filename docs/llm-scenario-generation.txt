@@ -1,8 +1,8 @@
 # SimSim シナリオ生成マニュアル — LLM用・単一ファイル
 
-文書版: 2.2 / 更新日: 2026-10-15
+文書版: 2.3 / 更新日: 2026-10-15
 対象: SimSim、feat/information-aware-analysis
-対応UIビルド: 20261015-direction-markers-36
+対応UIビルド: 20261015-sensor-planes-37
 モデル実装版: 20261014-curved-route-model-1
 生成するシナリオ: version 4（旧例はversion 3互換性用）、SI単位、UTF-8の .txt ファイル（中身はJSON）
 仕様の確認基準: https://github.com/Zero-error-no-warning/SimSim/tree/feat/information-aware-analysis
@@ -2682,6 +2682,7 @@ periodicReportsは移動と並行する観測・状態報告（receiverIds、int
 
 ### 表示とシナリオの分離
 標準は進行方向を示す三角形。盤面とユニット一覧は同じ図形・色・選択枠を使い、一覧は北が上。「表示 → ユニット表示」で種類別アイコンへ切り替える。地形は透過・中立色で表示し、地形に沿う細かなグリッド、海岸線・海面の枠、縦線と投影点で位置・高度・深度を読む。これらは表示設定であり、生成JSONへsymbolMode・iconMode等の独自フィールドを追加しない。表示グリッドの間隔をterrain.spacing/spacingYやcolumns/rowsと混同しない。
+探知範囲は選択センサーの高さ（取付高を含む）で最大距離の薄面＋実線、海面との断面を点線で表示する。海面半径はsqrt(range²−高度差²)、高度差の絶対値がrange以上なら海面の円は消え、0.5m以下なら実線にまとめる。距離だけの表示であり、遮蔽・地平線・媒体制約・確率や状態中のセンサー使用可否は未反映。表示用の円や平面をJSONへ追加しない。
 
 [GENERATED CONFIGURATION CONTRACT]
 設定契約から生成した入力台帳（設定契約版28）

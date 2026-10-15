@@ -1,7 +1,7 @@
-import { sharedAssignment } from "./shared-settings.js?v=20261015-direction-markers-36";
-import { configurationTarget } from "./configuration-contract.js?v=20261015-direction-markers-36";
-import { getValue, setValue } from "./configuration-schema.js?v=20261015-direction-markers-36";
-import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261015-direction-markers-36";
+import { sharedAssignment } from "./shared-settings.js?v=20261015-sensor-planes-37";
+import { configurationTarget } from "./configuration-contract.js?v=20261015-sensor-planes-37";
+import { getValue, setValue } from "./configuration-schema.js?v=20261015-sensor-planes-37";
+import { setPosition, editableDefinition, pruneReferences } from "./editor.js?v=20261015-sensor-planes-37";
 export class ConfigurationSession {
   constructor(source, id, revision, scope = "entity") {
     this.draft = structuredClone(source);

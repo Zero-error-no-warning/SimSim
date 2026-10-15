@@ -1,10 +1,10 @@
-import { availableBindings } from "./parameters.js?v=20261015-direction-markers-36";
-import { CONFIGURATION_MODULES, CATEGORIES, SCENARIO_CATEGORIES, configurationTarget, configurationContractErrors } from "./configuration-contract.js?v=20261015-direction-markers-36";
-import { getValue, setValue, resolvedDefault } from "./configuration-schema.js?v=20261015-direction-markers-36";
-import { ConfigurationSession } from "./configuration-session.js?v=20261015-direction-markers-36";
-import { renderFields, FIELD_RENDERERS } from "./settings-form.js?v=20261015-direction-markers-36";
-import { renderResourceCollection, resourceName } from "./resource-ui.js?v=20261015-direction-markers-36";
-import { validateScenario } from "./engine.js?v=20261015-direction-markers-36";
+import { availableBindings } from "./parameters.js?v=20261015-sensor-planes-37";
+import { CONFIGURATION_MODULES, CATEGORIES, SCENARIO_CATEGORIES, configurationTarget, configurationContractErrors } from "./configuration-contract.js?v=20261015-sensor-planes-37";
+import { getValue, setValue, resolvedDefault } from "./configuration-schema.js?v=20261015-sensor-planes-37";
+import { ConfigurationSession } from "./configuration-session.js?v=20261015-sensor-planes-37";
+import { renderFields, FIELD_RENDERERS } from "./settings-form.js?v=20261015-sensor-planes-37";
+import { renderResourceCollection, resourceName } from "./resource-ui.js?v=20261015-sensor-planes-37";
+import { validateScenario } from "./engine.js?v=20261015-sensor-planes-37";
 const el = (tag, text) => {
   const n = document.createElement(tag);
   if (text) n.textContent = text;

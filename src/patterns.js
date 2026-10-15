@@ -1,9 +1,9 @@
-import {clone,validateScenario} from './engine.js?v=20261015-direction-markers-36';
-import {constraintsSatisfied} from './experiment-settings.js?v=20261015-direction-markers-36';
-import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261015-direction-markers-36';
-import {readParameter,writeParameter} from './parameters.js?v=20261015-direction-markers-36';
-import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261015-direction-markers-36';
-import {MODEL_BUILD} from './model-version.js?v=20261015-direction-markers-36';
+import {clone,validateScenario} from './engine.js?v=20261015-sensor-planes-37';
+import {constraintsSatisfied} from './experiment-settings.js?v=20261015-sensor-planes-37';
+import {controlValues,experimentSample,experimentSummary,experimentIdentity} from './experiment.js?v=20261015-sensor-planes-37';
+import {readParameter,writeParameter} from './parameters.js?v=20261015-sensor-planes-37';
+import {createSimulation,sharedSteps,recordModel} from './recorded-engine.js?v=20261015-sensor-planes-37';
+import {MODEL_BUILD} from './model-version.js?v=20261015-sensor-planes-37';
 const contains=(values,bounds)=>Object.entries(bounds).every(([id,[lo,hi]])=>values[id]>=lo&&values[id]<=hi);
 export function extractPatterns(experiment,{maxRules=4,minCandidates=4}={}){
  if(experiment.status!=='complete'||experiment.completed!==experiment.planned)throw Error('定石の抽出には探索の完了が必要です。');

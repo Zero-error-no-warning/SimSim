@@ -1,5 +1,5 @@
-import { renderFields } from "./settings-form.js?v=20261015-direction-markers-36";
-import { RESOURCE_CONTRACT, RESOURCE_FIELDS } from "./resource-schema.js?v=20261015-direction-markers-36";
+import { renderFields } from "./settings-form.js?v=20261015-sensor-planes-37";
+import { RESOURCE_CONTRACT, RESOURCE_FIELDS } from "./resource-schema.js?v=20261015-sensor-planes-37";
 export const resourceName = (id) => ({ fuel: "燃料", energy: "電池・エネルギー", battery: "電池" })[id] ?? id;
 const el = (tag, text) => {
   const e = document.createElement(tag);

@@ -1,4 +1,4 @@
-import {defaultProfile,closeProfile,profileValue,profileTable,sampleRoute} from './route-curves.js?v=20261015-direction-markers-36';
+import {defaultProfile,closeProfile,profileValue,profileTable,sampleRoute} from './route-curves.js?v=20261015-sensor-planes-37';
 const svgNS='http://www.w3.org/2000/svg';
 export class SpeedProfileUI{
  constructor(host,{profile,loop=false,mode=loop?'loop':'once',speed=0,getPoints,onChange,onCommit,pointLabel=i=>i+1}){

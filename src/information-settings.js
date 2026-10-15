@@ -1,5 +1,5 @@
-import {fieldErrors} from './configuration-schema.js?v=20261015-direction-markers-36';
-import {COMMAND_FIELDS,INITIAL_FIELDS,ASSUMPTION_FIELDS} from './configuration-fields.js?v=20261015-direction-markers-36';
+import {fieldErrors} from './configuration-schema.js?v=20261015-sensor-planes-37';
+import {COMMAND_FIELDS,INITIAL_FIELDS,ASSUMPTION_FIELDS} from './configuration-fields.js?v=20261015-sensor-planes-37';
 const id=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(x);
 export function selectorErrors(s){
   if(s===undefined)return [];
